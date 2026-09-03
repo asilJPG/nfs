@@ -183,5 +183,6 @@ select id, email from auth.users where email = '<ваш-логин>@stampy.local
 
 ## Дальше
 
+- `docs/devlog.md` — состояние проекта: что сделано, что нет, как продолжить с другой машины.
 - `docs/deploy.md` — деплой на Vercel, переменные окружения, cron.
 - `docs/nfc-provisioning.md` — как прошивать метки.
