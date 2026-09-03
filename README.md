@@ -158,7 +158,7 @@ npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 2   # новое касани
 Первый платформенный админ заводится вручную:
 
 ```sql
-insert into platform_admins (auth_user_id, email)
+insert into stampy_platform_admins (auth_user_id, email)
 select id, email from auth.users where email = 'you@example.com';
 ```
 
