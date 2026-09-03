@@ -170,4 +170,5 @@ select id, email from auth.users where email = 'you@example.com';
 
 ## Дальше
 
+- `docs/deploy.md` — деплой на Vercel, переменные окружения, cron.
 - `docs/nfc-provisioning.md` — как прошивать метки.
