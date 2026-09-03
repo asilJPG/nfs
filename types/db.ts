@@ -61,7 +61,8 @@ export type StaffUser = {
   id: string;
   tenant_id: string;
   auth_user_id: string | null;
-  email: string;
+  username: string;
+  email: string | null;
   name: string | null;
   role: StaffRole;
   venue_id: string | null;
@@ -255,6 +256,7 @@ export type Database = {
         Args: {
           p_name: string;
           p_slug: string;
+          p_username: string;
           p_venue_name?: string | null;
           p_brand?: Brand | null;
           p_stamps?: number;
@@ -311,9 +313,9 @@ export type Database = {
         Args: { p_tenant: string; p_segment: Segment };
         Returns: number;
       };
-      claim_staff_invite: {
-        Args: Record<string, never>;
-        Returns: string | null;
+      username_available: {
+        Args: { p_username: string };
+        Returns: boolean;
       };
       expire_stale: {
         Args: Record<string, never>;
@@ -362,7 +364,7 @@ export type RedeemResult =
 
 export type CreateTenantResult =
   | { ok: true; tenant_id: string; slug: string; venue_id: string; trial_ends_at: string }
-  | { ok: false; code: "already_has_tenant" | "slug_taken" };
+  | { ok: false; code: "already_has_tenant" | "slug_taken" | "username_taken" };
 
 export type TenantSummary = {
   id: string;

@@ -5,6 +5,8 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { can, MAX_VENUES_WITHOUT_UPGRADE } from "@/lib/plan";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { loginToAuthEmail, LOGIN_PATTERN, MIN_PASSWORD_LENGTH, normalizeLogin } from "@/lib/login";
 import type { StaffRole } from "@/types/db";
 
 export type Result = { ok: boolean; message: string };
@@ -63,43 +65,93 @@ export async function setVenueActive(venueId: string, active: boolean): Promise<
 }
 
 const staffSchema = z.object({
-  email: z.string().trim().email().max(200),
+  login: z.string().trim().toLowerCase().regex(LOGIN_PATTERN, "Логин: латиница, цифры, точка, дефис"),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `Пароль от ${MIN_PASSWORD_LENGTH} символов`),
+  name: z.string().trim().max(80).optional(),
   role: z.enum(["manager", "cashier"]),
   venueId: z.string().uuid().nullable(),
 });
 
 /**
- * Creates the staff row now; it links to a real account the first time that
- * person signs in with the same email (claim_staff_invite).
+ * Заводит сотруднику аккаунт и строку в одной операции: владелец сам придумывает
+ * логин и пароль и передаёт их лично. Ни одного письма не отправляется.
  */
-export async function inviteStaff(input: {
-  email: string;
+export async function createStaff(input: {
+  login: string;
+  password: string;
+  name?: string;
   role: StaffRole;
   venueId: string | null;
 }): Promise<Result> {
   const { tenant } = await requireRole("owner", "manager");
   const parsed = staffSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: "Проверьте адрес почты и роль." };
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте поля." };
+  }
+
+  const login = normalizeLogin(parsed.data.login);
+  const admin = supabaseAdmin();
+
+  const { data: free } = await admin.rpc("username_available", { p_username: login });
+  if (free === false) return { ok: false, message: "Такой логин уже занят." };
+
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email: loginToAuthEmail(login),
+    password: parsed.data.password,
+    email_confirm: true,
+    user_metadata: { login, tenant_id: tenant.id },
+  });
+  if (createError || !created.user) {
+    console.error("staff createUser failed", createError);
+    return { ok: false, message: "Не удалось создать аккаунт сотрудника." };
+  }
 
   const supabase = await supabaseServer();
   const { error } = await supabase.from("stampy_staff_users").insert({
     tenant_id: tenant.id,
-    email: parsed.data.email.toLowerCase(),
+    auth_user_id: created.user.id,
+    username: login,
+    name: parsed.data.name || null,
     role: parsed.data.role,
     venue_id: parsed.data.venueId,
   });
 
   if (error) {
-    if (error.code === "23505") return { ok: false, message: "Такой сотрудник уже добавлен." };
+    await admin.auth.admin.deleteUser(created.user.id);
     console.error("staff insert failed", error);
     return { ok: false, message: "Не удалось добавить сотрудника." };
   }
 
   revalidatePath("/dashboard/venues");
-  return {
-    ok: true,
-    message: `Готово. ${parsed.data.email} войдёт на ${process.env.NEXT_PUBLIC_APP_URL ?? ""}/login по этой почте.`,
-  };
+  return { ok: true, message: `Готово. Логин ${login} — передайте пароль сотруднику лично.` };
+}
+
+/** Пароль забыли — владелец назначает новый, без всякой почты. */
+export async function resetStaffPassword(staffId: string, password: string): Promise<Result> {
+  const { tenant } = await requireRole("owner", "manager");
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return { ok: false, message: `Пароль от ${MIN_PASSWORD_LENGTH} символов.` };
+  }
+
+  const supabase = await supabaseServer();
+  const { data: member } = await supabase
+    .from("stampy_staff_users")
+    .select("auth_user_id, username")
+    .eq("id", staffId)
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+
+  if (!member?.auth_user_id) return { ok: false, message: "Сотрудник не найден." };
+
+  const { error } = await supabaseAdmin().auth.admin.updateUserById(member.auth_user_id, {
+    password,
+  });
+  if (error) {
+    console.error("password reset failed", error);
+    return { ok: false, message: "Не удалось сменить пароль." };
+  }
+
+  return { ok: true, message: `Пароль для ${member.username} обновлён.` };
 }
 
 export async function removeStaff(staffId: string): Promise<Result> {

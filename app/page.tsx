@@ -58,7 +58,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/login?next=/onboarding"
+              href="/register"
               className="rounded-2xl bg-bean px-6 py-3.5 font-medium text-white"
             >
               Попробовать 30 дней бесплатно
@@ -123,7 +123,7 @@ export default function LandingPage() {
             с QR — привезём после регистрации.
           </p>
           <Link
-            href="/login?next=/onboarding"
+            href="/register"
             className="mt-6 inline-block rounded-2xl bg-bean px-6 py-3.5 font-medium text-white"
           >
             Создать карту

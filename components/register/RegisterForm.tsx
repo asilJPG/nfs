@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { createTenantAction, type OnboardingError } from "@/app/onboarding/actions";
+import { registerTenant, type RegisterError } from "@/app/register/actions";
 import { CardPreview, contrastRatio } from "@/components/brand/CardPreview";
 import { slugify, SLUG_PATTERN } from "@/lib/slug";
+import { LOGIN_HINT, LOGIN_PATTERN, MIN_PASSWORD_LENGTH, normalizeLogin } from "@/lib/login";
 import type { Brand } from "@/types/db";
 
 const PALETTES: { label: string; brand: Brand }[] = [
@@ -39,20 +40,26 @@ const STYLES: { value: Brand["card_style"]; label: string }[] = [
   { value: "stars", label: "★ Звёзды" },
 ];
 
-/** One screen, live preview: a shop should be running in about three minutes. */
-export function OnboardingForm() {
+/** Один экран с живым превью: кофейня должна запуститься минуты за три. */
+export function RegisterForm() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [login, setLogin] = useState("");
+  const [loginTouched, setLoginTouched] = useState(false);
+  const [password, setPassword] = useState("");
   const [venueName, setVenueName] = useState("");
   const [stamps, setStamps] = useState(6);
   const [reward, setReward] = useState("Бесплатный кофе");
   const [brand, setBrand] = useState<Brand>(PALETTES[0].brand);
-  const [error, setError] = useState<OnboardingError | null>(null);
+  const [error, setError] = useState<RegisterError | null>(null);
   const [pending, startTransition] = useTransition();
 
   const effectiveSlug = slugTouched ? slug : slugify(name);
+  const effectiveLogin = loginTouched ? normalizeLogin(login) : effectiveSlug;
   const slugValid = SLUG_PATTERN.test(effectiveSlug);
+  const loginValid = LOGIN_PATTERN.test(effectiveLogin);
+  const passwordValid = password.length >= MIN_PASSWORD_LENGTH;
 
   const contrastWarning = useMemo(() => {
     if (contrastRatio(brand.text, brand.surface) < 4.5) return "Текст плохо читается на карточке.";
@@ -64,9 +71,11 @@ export function OnboardingForm() {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await createTenantAction({
+      const result = await registerTenant({
         name,
         slug: effectiveSlug,
+        login: effectiveLogin,
+        password,
         venueName: venueName || undefined,
         stamps,
         reward,
@@ -80,9 +89,10 @@ export function OnboardingForm() {
     <form onSubmit={submit} className="mx-auto grid max-w-5xl gap-8 px-5 py-8 lg:grid-cols-[1fr_20rem]">
       <div className="flex flex-col gap-6">
         <header>
-          <h1 className="text-2xl font-semibold">Настройте карту</h1>
+          <h1 className="text-2xl font-semibold">Подключите кофейню</h1>
           <p className="text-sm text-ink-soft">
-            30 дней бесплатно. Карта заработает сразу — ещё до того, как приедут NFC-подставки.
+            30 дней бесплатно. Никакой почты и подтверждений — придумайте логин с паролем, и карта
+            заработает сразу, ещё до того, как приедут NFC-подставки.
           </p>
         </header>
 
@@ -96,6 +106,43 @@ export function OnboardingForm() {
             className={inputClass}
           />
         </Field>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Логин для входа"
+            hint={LOGIN_HINT}
+            error={error?.field === "login" ? error.message : undefined}
+          >
+            <input
+              value={effectiveLogin}
+              onChange={(event) => {
+                setLoginTouched(true);
+                setLogin(event.target.value);
+              }}
+              autoComplete="username"
+              autoCapitalize="none"
+              required
+              className={inputClass}
+            />
+            {!loginValid && effectiveLogin.length > 0 && (
+              <p className="mt-1 text-xs text-red-600">Логин пока не подходит.</p>
+            )}
+          </Field>
+
+          <Field
+            label="Пароль"
+            hint={`Минимум ${MIN_PASSWORD_LENGTH} символов. Восстановить его сможем только вручную.`}
+          >
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="new-password"
+              required
+              className={inputClass}
+            />
+          </Field>
+        </div>
 
         <Field
           label="Адрес карты"
@@ -200,7 +247,7 @@ export function OnboardingForm() {
 
         <button
           type="submit"
-          disabled={pending || !slugValid || name.trim().length < 2}
+          disabled={pending || !slugValid || !loginValid || !passwordValid || name.trim().length < 2}
           className="rounded-2xl bg-bean py-3.5 font-medium text-white disabled:opacity-50"
         >
           {pending ? "Создаём…" : "Запустить карту"}

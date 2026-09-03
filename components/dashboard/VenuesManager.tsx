@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import {
   addVenue,
-  inviteStaff,
+  createStaff,
   removeStaff,
+  resetStaffPassword,
   setVenueActive,
   type Result,
 } from "@/app/dashboard/venues/actions";
+import { LOGIN_HINT, MIN_PASSWORD_LENGTH, normalizeLogin } from "@/lib/login";
 import type { StaffRole, StaffUser, Venue } from "@/types/db";
 
 type Props = {
@@ -29,7 +31,9 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
   const [venueName, setVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
 
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [role, setRole] = useState<StaffRole>("cashier");
   const [venueId, setVenueId] = useState<string>("");
 
@@ -75,10 +79,13 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            run(() => addVenue({ name: venueName, address: venueAddress }), () => {
-              setVenueName("");
-              setVenueAddress("");
-            });
+            run(
+              () => addVenue({ name: venueName, address: venueAddress }),
+              () => {
+                setVenueName("");
+                setVenueAddress("");
+              },
+            );
           }}
           className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
         >
@@ -107,32 +114,19 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
       <section className="rounded-2xl border border-line bg-white p-4">
         <h2 className="mb-1 font-medium">Сотрудники</h2>
         <p className="mb-4 text-sm text-ink-soft">
+          Логин и пароль придумываете вы и передаёте сотруднику лично — писем система не шлёт.
           Бариста видит только кассу: выдать награду и поставить штамп вручную.
         </p>
 
         <ul className="mb-4 flex flex-col gap-2">
           {staff.map((member) => (
-            <li
+            <StaffRow
               key={member.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{member.name ?? member.email}</p>
-                <p className="text-sm text-ink-soft">
-                  {ROLE_LABELS[member.role]}
-                  {member.auth_user_id ? "" : " · ещё не заходил"}
-                </p>
-              </div>
-              {member.id !== currentStaffId && member.role !== "owner" && (
-                <button
-                  onClick={() => run(() => removeStaff(member.id))}
-                  disabled={pending}
-                  className="shrink-0 rounded-xl px-3 py-1.5 text-sm text-red-600"
-                >
-                  Отключить
-                </button>
-              )}
-            </li>
+              member={member}
+              pending={pending}
+              isSelf={member.id === currentStaffId}
+              onRun={run}
+            />
           ))}
         </ul>
 
@@ -140,51 +134,158 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
           onSubmit={(event) => {
             event.preventDefault();
             run(
-              () => inviteStaff({ email, role, venueId: venueId || null }),
-              () => setEmail(""),
+              () => createStaff({ login, password, name, role, venueId: venueId || null }),
+              () => {
+                setLogin("");
+                setPassword("");
+                setName("");
+              },
             );
           }}
-          className="grid gap-2 sm:grid-cols-[1fr_auto_auto]"
+          className="grid gap-2 sm:grid-cols-2"
         >
+          <label className="block">
+            <span className="mb-1 block text-sm text-ink-soft">Логин</span>
+            <input
+              value={login}
+              onChange={(event) => setLogin(normalizeLogin(event.target.value))}
+              autoCapitalize="none"
+              placeholder="amir-barista"
+              className={`${input} w-full`}
+            />
+            <span className="mt-1 block text-xs text-ink-soft">{LOGIN_HINT}</span>
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm text-ink-soft">Пароль</span>
+            <input
+              type="text"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="off"
+              placeholder={`минимум ${MIN_PASSWORD_LENGTH} символов`}
+              className={`${input} w-full`}
+            />
+            <span className="mt-1 block text-xs text-ink-soft">
+              Показан открыто — его нужно продиктовать сотруднику.
+            </span>
+          </label>
+
           <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="barista@coffee.uz"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Имя (необязательно)"
             className={input}
           />
-          <select
-            value={role}
-            onChange={(event) => setRole(event.target.value as StaffRole)}
-            className={input}
-          >
-            <option value="cashier">Бариста</option>
-            <option value="manager">Управляющий</option>
-          </select>
+
+          <div className="flex gap-2">
+            <select
+              value={role}
+              onChange={(event) => setRole(event.target.value as StaffRole)}
+              className={`${input} flex-1`}
+            >
+              <option value="cashier">Бариста</option>
+              <option value="manager">Управляющий</option>
+            </select>
+            {venues.length > 1 && (
+              <select
+                value={venueId}
+                onChange={(event) => setVenueId(event.target.value)}
+                className={`${input} flex-1`}
+              >
+                <option value="">Все точки</option>
+                {venues.map((venue) => (
+                  <option key={venue.id} value={venue.id}>
+                    {venue.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={pending || !email.includes("@")}
-            className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50"
+            disabled={pending || login.length < 4 || password.length < MIN_PASSWORD_LENGTH}
+            className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50 sm:col-span-2"
           >
-            Пригласить
+            Добавить сотрудника
           </button>
-          {venues.length > 1 && (
-            <select
-              value={venueId}
-              onChange={(event) => setVenueId(event.target.value)}
-              className={`${input} sm:col-span-3`}
-            >
-              <option value="">Все точки</option>
-              {venues.map((venue) => (
-                <option key={venue.id} value={venue.id}>
-                  {venue.name}
-                </option>
-              ))}
-            </select>
-          )}
         </form>
       </section>
     </div>
+  );
+}
+
+function StaffRow({
+  member,
+  pending,
+  isSelf,
+  onRun,
+}: {
+  member: StaffUser;
+  pending: boolean;
+  isSelf: boolean;
+  onRun: (action: () => Promise<Result>, onSuccess?: () => void) => void;
+}) {
+  const [resetting, setResetting] = useState(false);
+  const [password, setPassword] = useState("");
+
+  return (
+    <li className="rounded-2xl border border-line px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-medium">{member.name ?? member.username}</p>
+          <p className="text-sm text-ink-soft">
+            {ROLE_LABELS[member.role]} · логин <span className="font-mono">{member.username}</span>
+          </p>
+        </div>
+        {!isSelf && (
+          <div className="flex shrink-0 gap-2">
+            <button
+              onClick={() => setResetting((open) => !open)}
+              className="rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft"
+            >
+              Пароль
+            </button>
+            {member.role !== "owner" && (
+              <button
+                onClick={() => onRun(() => removeStaff(member.id))}
+                disabled={pending}
+                className="rounded-xl px-3 py-1.5 text-sm text-red-600"
+              >
+                Отключить
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {resetting && (
+        <div className="mt-3 flex gap-2">
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Новый пароль"
+            className={`${input} flex-1`}
+          />
+          <button
+            onClick={() =>
+              onRun(
+                () => resetStaffPassword(member.id, password),
+                () => {
+                  setPassword("");
+                  setResetting(false);
+                },
+              )
+            }
+            disabled={pending || password.length < MIN_PASSWORD_LENGTH}
+            className="rounded-2xl bg-bean px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+          >
+            Сменить
+          </button>
+        </div>
+      )}
+    </li>
   );
 }
 

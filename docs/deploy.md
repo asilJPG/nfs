@@ -48,8 +48,9 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))" #
 
 1. `NEXT_PUBLIC_APP_URL` привести к выданному домену и передеплоить (переменная
    попадает в клиентский бандл на сборке).
-2. Supabase → Authentication → URL Configuration → в Redirect URLs добавить
-   `https://<домен>/auth/callback`.
+2. Supabase → Authentication → Providers → Email: провайдер включён, «Confirm email»
+   можно выключить. Писем система всё равно не шлёт: аккаунты создаются админским
+   API с уже подтверждённым адресом, вход идёт по логину и паролю.
 3. BotFather → мини-апп указывает на `https://<домен>/card`.
 4. Привязать вебхук:
    ```bash
@@ -59,7 +60,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))" #
 5. Себя в платформенные админы:
    ```sql
    insert into stampy_platform_admins (auth_user_id, email)
-   select id, email from auth.users where email = 'ваша@почта';
+   select id, email from auth.users where email = '<ваш-логин>@stampy.local';
    ```
 
 ## 4. Cron и тарифы Vercel

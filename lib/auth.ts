@@ -12,24 +12,15 @@ type Client = Awaited<ReturnType<typeof supabaseServer>>;
  * claim_staff_invite() links the two by email. Costs one extra round trip only
  * on that very first visit.
  */
-async function findOrClaimStaff(supabase: Client, userId: string): Promise<StaffUser | null> {
+/** Аккаунт и строка сотрудника создаются вместе, поэтому связь всегда готова. */
+async function findStaff(supabase: Client, userId: string): Promise<StaffUser | null> {
   const { data } = await supabase
     .from("stampy_staff_users")
     .select("*")
     .eq("auth_user_id", userId)
     .eq("active", true)
     .maybeSingle();
-  if (data) return data;
-
-  const { data: claimed } = await supabase.rpc("claim_staff_invite");
-  if (!claimed) return null;
-
-  const { data: linked } = await supabase
-    .from("stampy_staff_users")
-    .select("*")
-    .eq("id", claimed)
-    .maybeSingle();
-  return linked ?? null;
+  return data ?? null;
 }
 
 /**
@@ -43,8 +34,8 @@ export async function requireStaff(): Promise<StaffContext> {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const staff = await findOrClaimStaff(supabase, user.id);
-  if (!staff) redirect("/onboarding");
+  const staff = await findStaff(supabase, user.id);
+  if (!staff) redirect("/register");
 
   const { data: tenant } = await supabase
     .from("stampy_tenants")
@@ -88,7 +79,7 @@ export async function currentStaff(): Promise<StaffContext | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const staff = await findOrClaimStaff(supabase, user.id);
+  const staff = await findStaff(supabase, user.id);
   if (!staff) return null;
 
   const { data: tenant } = await supabase.from("stampy_tenants").select("*").eq("id", staff.tenant_id).single();

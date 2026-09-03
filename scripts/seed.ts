@@ -3,8 +3,8 @@
  * something to show: 45 days of visits, guests at different stages, a reward
  * waiting to be redeemed, and a tag you can "tap" from the terminal.
  *
- *   npx tsx scripts/seed.ts --email you@example.com
- *   npx tsx scripts/seed.ts --email you@example.com --reset
+ *   npx tsx scripts/seed.ts
+ *   npx tsx scripts/seed.ts --login my-cafe --password secret123 --reset
  *
  * Uses the service role key, so run it against dev/staging — never blindly
  * against a database with real shops in it.
@@ -12,6 +12,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { deriveMetaKey, deriveTagMacKey } from "../lib/nfc/sun";
 import { arg, loadEnv, masterKey } from "./env";
+import { loginToAuthEmail } from "../lib/login";
 import type { Database } from "../types/db";
 
 loadEnv();
@@ -24,7 +25,8 @@ const GUESTS = 14;
 const DAYS = 45;
 const STAMPS_REQUIRED = 6;
 
-const email = arg("email");
+const OWNER_LOGIN = arg("login", "test-owner");
+const OWNER_PASSWORD = arg("password", "stampy-test-2026");
 const reset = process.argv.includes("--reset");
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -60,6 +62,10 @@ async function reseed() {
     await db.from("stampy_tenants").delete().eq("slug", SLUG);
     await db.from("stampy_customers").delete().gte("telegram_id", TELEGRAM_BASE).lt("telegram_id", TELEGRAM_BASE + 1000);
     await db.from("stampy_nfc_tags").delete().eq("uid", TAG_UID);
+    const { data: existing } = await db.auth.admin.listUsers();
+    for (const user of existing?.users ?? []) {
+      if (user.email === loginToAuthEmail(OWNER_LOGIN)) await db.auth.admin.deleteUser(user.id);
+    }
   }
 
   const { data: tenant, error: tenantError } = await db
@@ -96,9 +102,19 @@ async function reseed() {
     .single();
   if (!program || !venue) throw new Error("venue or program insert failed");
 
+  // Аккаунт создаётся админским API: подтверждение уже стоит, письма не уходят.
+  const { data: account, error: accountError } = await db.auth.admin.createUser({
+    email: loginToAuthEmail(OWNER_LOGIN),
+    password: OWNER_PASSWORD,
+    email_confirm: true,
+    user_metadata: { login: OWNER_LOGIN },
+  });
+  if (accountError || !account.user) throw accountError ?? new Error("owner account failed");
+
   await db.from("stampy_staff_users").insert({
     tenant_id: tenant.id,
-    email: email.toLowerCase(),
+    auth_user_id: account.user.id,
+    username: OWNER_LOGIN,
     role: "owner",
     name: "Владелец",
   });
@@ -230,7 +246,7 @@ async function main() {
       `  ${GUESTS} гостей · ${totalStamps} штампов за ${DAYS} дней · ${totalRewards} наград`,
       ``,
       `Вход в кабинет`,
-      `  ${appUrl}/login  →  ${email}  (роль owner уже привязана к этой почте)`,
+      `  ${appUrl}/login  →  логин ${OWNER_LOGIN} · пароль ${OWNER_PASSWORD}`,
       ``,
       `Мини-апп без Telegram — добавьте в .env.local:`,
       `  DEV_TELEGRAM_ID=${TELEGRAM_BASE}`,

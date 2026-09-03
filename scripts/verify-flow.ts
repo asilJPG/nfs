@@ -79,11 +79,11 @@ async function main() {
     `insert into auth.users (email) values ('b@example.com') returning id`,
   );
   await db.query(
-    `insert into stampy_staff_users (tenant_id, auth_user_id, email, role) values ($1, $2, 'a@example.com', 'owner')`,
+    `insert into stampy_staff_users (tenant_id, auth_user_id, username, role) values ($1, $2, 'owner-a', 'owner')`,
     [shopA.id, ownerA.id],
   );
   await db.query(
-    `insert into stampy_staff_users (tenant_id, auth_user_id, email, role) values ($1, $2, 'b@example.com', 'owner')`,
+    `insert into stampy_staff_users (tenant_id, auth_user_id, username, role) values ($1, $2, 'owner-b', 'owner')`,
     [shopB.id, ownerB.id],
   );
 

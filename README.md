@@ -53,13 +53,13 @@ npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 1
 После `db push` наполнить базу демо-кофейней:
 
 ```bash
-npm run seed -- --email you@example.com          # --reset пересоздаёт набор
+npm run seed                                     # --reset пересоздаёт набор
 ```
 
 Создаёт кофейню «Кофе Тест» (`/test-coffee`, тариф с маркетингом), точку, карту на
 6 штампов, 14 гостей с историей за 45 дней, незабранную награду и NFC-метку
-`04A1B2C3D4E580`. Роль owner привязывается к указанной почте — дальше обычный вход
-через `/login`.
+`04A1B2C3D4E580`. Владелец заводится с логином `test-owner` и паролем `stampy-test-2026` — вход
+на `/login`. Свои значения: `--login` и `--password`.
 
 Мини-апп открывается в обычном браузере, без Telegram:
 
@@ -98,15 +98,15 @@ npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 2   # новое касани
 1. @BotFather → создать бота, включить Mini App с URL `https://<домен>/card`,
    задать короткое имя (`NEXT_PUBLIC_MINIAPP_SHORT_NAME`).
 2. `npx tsx scripts/setup-webhook.ts` — привязать вебхук.
-3. В Supabase → Authentication → URL Configuration добавить
-   `https://<домен>/auth/callback` в Redirect URLs.
+3. В Supabase → Authentication → Providers → Email провайдер должен быть включён
+   (пароли), «Confirm email» не нужен — писем система не отправляет.
 
 ## Как устроено
 
 | Путь | Кто | Что |
 |---|---|---|
 | `/` | кофейня | лендинг |
-| `/onboarding` | кофейня | саморегистрация: карта за пару минут, триал 30 дней |
+| `/register` | кофейня | саморегистрация по логину и паролю, триал 30 дней |
 | `/dashboard` | владелец, управляющий | аналитика, оформление карты, точки, метки, рассылки, подписка |
 | `/staff` | бариста | выдать награду по коду, ручной штамп |
 | `/admin` | платформа | кофейни, подписки, регистрация меток, заявки на комплекты |
@@ -125,6 +125,17 @@ npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 2   # новое касани
 
 Штампы и награды пишутся **только** через SECURITY DEFINER функции
 (`claim_stamp`, `add_manual_stamp`, `redeem_reward`) — прямых INSERT-политик нет.
+
+### Вход без почты
+
+Кофейня регистрируется на `/register`: название, логин, пароль. Supabase Auth
+умеет опознавать только email, поэтому под капотом заводится служебный адрес
+`<логин>@stampy.local` — наружу он не показывается, письма на него не уходят.
+Аккаунты создаются админским API с `email_confirm: true`, так что подтверждений нет.
+
+Сотрудников заводит владелец: сам придумывает логин с паролем и передаёт лично.
+Сброс пароля — тоже через владельца, кнопкой в кабинете. Почта осталась
+необязательным контактным полем и на вход не влияет.
 
 ### Тенанты и доступ
 
@@ -159,7 +170,7 @@ npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 2   # новое касани
 
 ```sql
 insert into stampy_platform_admins (auth_user_id, email)
-select id, email from auth.users where email = 'you@example.com';
+select id, email from auth.users where email = '<ваш-логин>@stampy.local';
 ```
 
 ## Cron

@@ -1,82 +1,85 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import Link from "next/link";
+import { Suspense, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabaseBrowser } from "@/lib/supabase/client";
-
-const ERRORS: Record<string, string> = {
-  missing_code: "Ссылка неполная. Запросите вход заново.",
-  expired: "Ссылка устарела — такие письма живут час. Запросите новую.",
-};
+import { signIn } from "./actions";
 
 function LoginForm() {
-  const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
-  const linkError = params.get("error");
+  const next = useSearchParams().get("next") ?? undefined;
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [message, setMessage] = useState("");
-
-  async function submit(event: React.FormEvent) {
+  function submit(event: React.FormEvent) {
     event.preventDefault();
-    setStatus("sending");
-
-    const { error } = await supabaseBrowser().auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
+    setError(null);
+    startTransition(async () => {
+      const result = await signIn({ login, password, next });
+      if (result) setError(result.message);
     });
-
-    if (error) {
-      setStatus("error");
-      setMessage(error.message);
-      return;
-    }
-    setStatus("sent");
-  }
-
-  if (status === "sent") {
-    return (
-      <div className="text-center">
-        <p className="mb-2 text-3xl">📬</p>
-        <h1 className="mb-2 text-xl font-semibold">Письмо отправлено</h1>
-        <p className="text-sm text-ink-soft">
-          Откройте ссылку из письма на <b>{email}</b> — она действует час.
-        </p>
-      </div>
-    );
   }
 
   return (
     <form onSubmit={submit} className="w-full">
       <h1 className="mb-1 text-xl font-semibold">Вход для кофейни</h1>
-      <p className="mb-6 text-sm text-ink-soft">Пришлём ссылку на почту — пароль не нужен.</p>
+      <p className="mb-6 text-sm text-ink-soft">Логин и пароль, которые вы задали при регистрации.</p>
 
-      <input
-        type="email"
-        required
-        autoComplete="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        placeholder="you@coffee.uz"
-        className="w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean"
-      />
+      <label className="mb-3 block">
+        <span className="mb-1 block text-sm text-ink-soft">Логин</span>
+        <input
+          value={login}
+          onChange={(event) => setLogin(event.target.value)}
+          autoComplete="username"
+          autoCapitalize="none"
+          required
+          placeholder="coffee-amir"
+          className={input}
+        />
+      </label>
 
-      {linkError && <p className="mt-3 text-sm text-red-600">{ERRORS[linkError] ?? ERRORS.expired}</p>}
-      {status === "error" && <p className="mt-3 text-sm text-red-600">{message}</p>}
+      <label className="block">
+        <span className="mb-1 block text-sm text-ink-soft">Пароль</span>
+        <input
+          type="password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          required
+          className={input}
+        />
+      </label>
+
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
-        disabled={status === "sending"}
+        disabled={pending || !login || !password}
         className="mt-4 w-full rounded-2xl bg-bean py-3 font-medium text-white disabled:opacity-60"
       >
-        {status === "sending" ? "Отправляем…" : "Получить ссылку"}
+        {pending ? "Входим…" : "Войти"}
       </button>
+
+      <p className="mt-6 text-center text-sm text-ink-soft">
+        Ещё не подключились?{" "}
+        <Link href="/register" className="underline">
+          Создать карту
+        </Link>
+      </p>
+      <p className="mt-2 text-center text-xs text-ink-soft">
+        Забыли пароль — напишите в{" "}
+        <a href="https://t.me/stampy_support" className="underline">
+          поддержку
+        </a>
+        , восстановим вручную.
+      </p>
     </form>
   );
 }
+
+const input =
+  "w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean";
 
 export default function LoginPage() {
   return (
