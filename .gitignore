@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+supabase/.temp
+
+# Личный файл правил, не часть проекта
+all_rules.md
