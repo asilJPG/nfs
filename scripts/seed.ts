@@ -57,13 +57,13 @@ const NAMES = [
 async function reseed() {
   if (reset) {
     console.log("Удаляю прошлый тестовый набор…");
-    await db.from("tenants").delete().eq("slug", SLUG);
-    await db.from("customers").delete().gte("telegram_id", TELEGRAM_BASE).lt("telegram_id", TELEGRAM_BASE + 1000);
-    await db.from("nfc_tags").delete().eq("uid", TAG_UID);
+    await db.from("stampy_tenants").delete().eq("slug", SLUG);
+    await db.from("stampy_customers").delete().gte("telegram_id", TELEGRAM_BASE).lt("telegram_id", TELEGRAM_BASE + 1000);
+    await db.from("stampy_nfc_tags").delete().eq("uid", TAG_UID);
   }
 
   const { data: tenant, error: tenantError } = await db
-    .from("tenants")
+    .from("stampy_tenants")
     .insert({
       slug: SLUG,
       name: "Кофе Тест",
@@ -78,13 +78,13 @@ async function reseed() {
   if (tenantError || !tenant) throw tenantError ?? new Error("tenant insert failed");
 
   const { data: venue } = await db
-    .from("venues")
+    .from("stampy_venues")
     .insert({ tenant_id: tenant.id, name: "На Амире Темура", address: "ул. Амира Темура, 12" })
     .select()
     .single();
 
   const { data: program } = await db
-    .from("loyalty_programs")
+    .from("stampy_loyalty_programs")
     .insert({
       tenant_id: tenant.id,
       stamps_required: STAMPS_REQUIRED,
@@ -96,14 +96,14 @@ async function reseed() {
     .single();
   if (!program || !venue) throw new Error("venue or program insert failed");
 
-  await db.from("staff_users").insert({
+  await db.from("stampy_staff_users").insert({
     tenant_id: tenant.id,
     email: email.toLowerCase(),
     role: "owner",
     name: "Владелец",
   });
 
-  await db.from("nfc_tags").insert({
+  await db.from("stampy_nfc_tags").insert({
     uid: TAG_UID,
     tenant_id: tenant.id,
     venue_id: venue.id,
@@ -118,7 +118,7 @@ async function reseed() {
     const telegramId = TELEGRAM_BASE + index;
 
     const { data: customer } = await db
-      .from("customers")
+      .from("stampy_customers")
       .insert({
         telegram_id: telegramId,
         first_name: NAMES[index % NAMES.length],
@@ -144,7 +144,7 @@ async function reseed() {
     visitDays.sort((a, b) => b - a);
 
     const { data: membership } = await db
-      .from("memberships")
+      .from("stampy_memberships")
       .insert({
         tenant_id: tenant.id,
         customer_id: customer.id,
@@ -158,7 +158,7 @@ async function reseed() {
       .single();
     if (!membership) continue;
 
-    await db.from("stamps").insert(
+    await db.from("stampy_stamps").insert(
       visitDays.map((day) => ({
         tenant_id: tenant.id,
         membership_id: membership.id,
@@ -173,7 +173,7 @@ async function reseed() {
     const earned = Math.floor(visits / STAMPS_REQUIRED);
     for (let lap = 0; lap < earned; lap++) {
       const keepOpen = index === 0 && lap === earned - 1;
-      await db.from("rewards").insert({
+      await db.from("stampy_rewards").insert({
         tenant_id: tenant.id,
         membership_id: membership.id,
         program_id: program.id,
@@ -189,21 +189,21 @@ async function reseed() {
 
   // Guest 0 should always have a reward ready, whatever the random visits gave.
   const { data: devMembership } = await db
-    .from("memberships")
-    .select("id, customers!inner(telegram_id)")
+    .from("stampy_memberships")
+    .select("id, stampy_customers!inner(telegram_id)")
     .eq("tenant_id", tenant.id)
-    .eq("customers.telegram_id", TELEGRAM_BASE)
+    .eq("stampy_customers.telegram_id", TELEGRAM_BASE)
     .maybeSingle();
 
   if (devMembership) {
     const { count } = await db
-      .from("rewards")
+      .from("stampy_rewards")
       .select("id", { count: "exact", head: true })
       .eq("membership_id", devMembership.id)
       .eq("status", "earned");
 
     if (!count) {
-      await db.from("rewards").insert({
+      await db.from("stampy_rewards").insert({
         tenant_id: tenant.id,
         membership_id: devMembership.id,
         program_id: program.id,

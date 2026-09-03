@@ -37,14 +37,14 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
   const db = supabaseAdmin();
 
   const { data: tenant } = await db
-    .from("tenants")
+    .from("stampy_tenants")
     .select("id, slug, name, logo_url, brand, plan, subscription_status, trial_ends_at, subscription_until")
     .eq("id", tenantId)
     .maybeSingle();
   if (!tenant) return null;
 
   const { data: program } = await db
-    .from("loyalty_programs")
+    .from("stampy_loyalty_programs")
     .select("stamps_required, reward_title, reward_description")
     .eq("tenant_id", tenantId)
     .eq("active", true)
@@ -69,14 +69,14 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
   if (telegramId === null) return base;
 
   const { data: customer } = await db
-    .from("customers")
+    .from("stampy_customers")
     .select("id")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   if (!customer) return base;
 
   const { data: membership } = await db
-    .from("memberships")
+    .from("stampy_memberships")
     .select("id, stamps_count, lifetime_stamps, public_code, last_stamp_at")
     .eq("tenant_id", tenantId)
     .eq("customer_id", customer.id)
@@ -85,24 +85,24 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
 
   const [{ data: rewards }, { data: history }, { data: others }] = await Promise.all([
     db
-      .from("rewards")
+      .from("stampy_rewards")
       .select("id, title, earned_at, expires_at")
       .eq("membership_id", membership.id)
       .eq("status", "earned")
       .order("earned_at", { ascending: true }),
     db
-      .from("stamps")
-      .select("created_at, venues(name)")
+      .from("stampy_stamps")
+      .select("created_at, stampy_venues(name)")
       .eq("membership_id", membership.id)
       .order("created_at", { ascending: false })
       .limit(HISTORY_LIMIT)
-      .returns<{ created_at: string; venues: { name: string } | null }[]>(),
+      .returns<{ created_at: string; stampy_venues: { name: string } | null }[]>(),
     db
-      .from("memberships")
-      .select("stamps_count, tenants(slug, name, logo_url)")
+      .from("stampy_memberships")
+      .select("stamps_count, stampy_tenants(slug, name, logo_url)")
       .eq("customer_id", customer.id)
       .neq("tenant_id", tenantId)
-      .returns<{ stamps_count: number; tenants: TenantBadge | null }[]>(),
+      .returns<{ stamps_count: number; stampy_tenants: TenantBadge | null }[]>(),
   ]);
 
   base.card = {
@@ -114,10 +114,10 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
   base.rewards = rewards ?? [];
   base.history = (history ?? []).map((row) => ({
     created_at: row.created_at,
-    venue: row.venues?.name ?? null,
+    venue: row.stampy_venues?.name ?? null,
   }));
   base.otherCards = (others ?? []).flatMap((row) =>
-    row.tenants ? [{ ...row.tenants, stamps_count: row.stamps_count }] : [],
+    row.stampy_tenants ? [{ ...row.stampy_tenants, stamps_count: row.stamps_count }] : [],
   );
 
   return base;
@@ -125,7 +125,7 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
 
 export async function tenantIdBySlug(slug: string): Promise<string | null> {
   const { data } = await supabaseAdmin()
-    .from("tenants")
+    .from("stampy_tenants")
     .select("id")
     .eq("slug", slug.toLowerCase())
     .maybeSingle();

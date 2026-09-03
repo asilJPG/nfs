@@ -13,7 +13,7 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  update tenants
+  update stampy_tenants
      set subscription_status = p_status,
          plan = p_plan,
          subscription_until = p_until
@@ -43,12 +43,12 @@ begin
     return jsonb_build_object('ok', false, 'code', 'bad_uid');
   end if;
 
-  insert into nfc_tags (uid, tenant_id, venue_id, label)
+  insert into stampy_nfc_tags (uid, tenant_id, venue_id, label)
   values (v_uid, p_tenant, p_venue, p_label)
   on conflict (uid) do update
     set tenant_id = excluded.tenant_id,
         venue_id  = excluded.venue_id,
-        label     = coalesce(excluded.label, nfc_tags.label),
+        label     = coalesce(excluded.label, stampy_nfc_tags.label),
         active    = true;
 
   return jsonb_build_object('ok', true, 'uid', v_uid);
@@ -61,7 +61,7 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  update kit_orders set status = p_status where id = p_kit;
+  update stampy_kit_orders set status = p_status where id = p_kit;
   return jsonb_build_object('ok', found);
 end $$;
 
@@ -80,10 +80,10 @@ begin
 
   return query
   select t.id, t.name, t.slug, t.plan, t.subscription_status, t.trial_ends_at, t.subscription_until,
-         (select count(*) from memberships m where m.tenant_id = t.id),
-         (select count(*) from stamps s where s.tenant_id = t.id and s.created_at > now() - interval '30 days'),
-         (select count(*) from nfc_tags n where n.tenant_id = t.id)
-  from tenants t
+         (select count(*) from stampy_memberships m where m.tenant_id = t.id),
+         (select count(*) from stampy_stamps s where s.tenant_id = t.id and s.created_at > now() - interval '30 days'),
+         (select count(*) from stampy_nfc_tags n where n.tenant_id = t.id)
+  from stampy_tenants t
   order by t.created_at desc;
 end $$;
 

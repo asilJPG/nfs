@@ -13,7 +13,7 @@ export default async function OnboardingPage() {
 
   // Someone who already runs a shop has no business here.
   const { data: existing } = await supabase
-    .from("staff_users")
+    .from("stampy_staff_users")
     .select("id")
     .eq("auth_user_id", user.id)
     .maybeSingle();

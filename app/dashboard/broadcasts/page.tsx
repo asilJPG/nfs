@@ -46,7 +46,7 @@ export default async function BroadcastsPage() {
 
   const supabase = await supabaseServer();
   const { data: broadcasts } = await supabase
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .select("*")
     .eq("tenant_id", tenant.id)
     .order("created_at", { ascending: false })

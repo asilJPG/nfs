@@ -1,15 +1,15 @@
 -- Materialising a broadcast's audience. Done in SQL so the whole fan-out is one
--- statement and the shop never gets direct INSERT rights on broadcast_targets.
+-- statement and the shop never gets direct INSERT rights on stampy_broadcast_targets.
 
 create or replace function public.queue_broadcast(p_broadcast uuid)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  v_broadcast broadcasts;
-  v_tenant    tenants;
+  v_broadcast stampy_broadcasts;
+  v_tenant    stampy_tenants;
   v_today     int;
   v_count     int;
 begin
-  select * into v_broadcast from broadcasts where id = p_broadcast for update;
+  select * into v_broadcast from stampy_broadcasts where id = p_broadcast for update;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'not_found');
   end if;
@@ -20,13 +20,13 @@ begin
     return jsonb_build_object('ok', false, 'code', 'already_queued');
   end if;
 
-  select * into v_tenant from tenants where id = v_broadcast.tenant_id;
+  select * into v_tenant from stampy_tenants where id = v_broadcast.tenant_id;
   if not public.tenant_is_serving(v_tenant) then
     return jsonb_build_object('ok', false, 'code', 'tenant_inactive');
   end if;
 
   -- Daily cap protects the shop's own audience from being burned out.
-  select count(*) into v_today from broadcasts
+  select count(*) into v_today from stampy_broadcasts
   where tenant_id = v_broadcast.tenant_id
     and status in ('sending', 'done')
     and coalesce(started_at, created_at) >= date_trunc('day', now() at time zone 'Asia/Tashkent')
@@ -35,7 +35,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'daily_cap', 'cap', v_tenant.daily_broadcast_cap);
   end if;
 
-  insert into broadcast_targets (broadcast_id, tenant_id, customer_id, telegram_id)
+  insert into stampy_broadcast_targets (broadcast_id, tenant_id, customer_id, telegram_id)
   select p_broadcast, v_broadcast.tenant_id, s.customer_id, s.telegram_id
   from public.segment_customers(v_broadcast.tenant_id, v_broadcast.segment) s
   on conflict (broadcast_id, customer_id) do nothing;
@@ -45,7 +45,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'empty_audience');
   end if;
 
-  update broadcasts
+  update stampy_broadcasts
      set status = case when scheduled_at is null or scheduled_at <= now() then 'sending' else 'scheduled' end,
          started_at = case when scheduled_at is null or scheduled_at <= now() then now() else null end
    where id = p_broadcast;

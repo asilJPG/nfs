@@ -25,7 +25,7 @@ export default async function CardLayout({ children }: { children: React.ReactNo
 
   if (tenantId) {
     const { data } = await supabaseAdmin()
-      .from("tenants")
+      .from("stampy_tenants")
       .select("brand")
       .eq("id", tenantId)
       .maybeSingle();

@@ -11,10 +11,10 @@ export default async function TagsPage() {
   const supabase = await supabaseServer();
 
   const [{ data: tags }, { data: venues }, { data: kits }] = await Promise.all([
-    supabase.from("nfc_tags").select("*").eq("tenant_id", tenant.id).order("created_at"),
-    supabase.from("venues").select("*").eq("tenant_id", tenant.id).eq("active", true).order("name"),
+    supabase.from("stampy_nfc_tags").select("*").eq("tenant_id", tenant.id).order("created_at"),
+    supabase.from("stampy_venues").select("*").eq("tenant_id", tenant.id).eq("active", true).order("name"),
     supabase
-      .from("kit_orders")
+      .from("stampy_kit_orders")
       .select("id")
       .eq("tenant_id", tenant.id)
       .in("status", ["requested", "shipped"])

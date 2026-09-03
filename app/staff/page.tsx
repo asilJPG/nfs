@@ -9,7 +9,7 @@ export default async function StaffPage() {
   const supabase = await supabaseServer();
 
   const { data: venues } = await supabase
-    .from("venues")
+    .from("stampy_venues")
     .select("id, name")
     .eq("tenant_id", tenant.id)
     .eq("active", true)

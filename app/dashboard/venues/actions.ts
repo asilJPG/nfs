@@ -21,7 +21,7 @@ export async function addVenue(input: { name: string; address?: string }): Promi
 
   const supabase = await supabaseServer();
   const { count } = await supabase
-    .from("venues")
+    .from("stampy_venues")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenant.id)
     .eq("active", true);
@@ -33,7 +33,7 @@ export async function addVenue(input: { name: string; address?: string }): Promi
     };
   }
 
-  const { error } = await supabase.from("venues").insert({
+  const { error } = await supabase.from("stampy_venues").insert({
     tenant_id: tenant.id,
     name: parsed.data.name,
     address: parsed.data.address || null,
@@ -52,7 +52,7 @@ export async function setVenueActive(venueId: string, active: boolean): Promise<
   const supabase = await supabaseServer();
 
   const { error } = await supabase
-    .from("venues")
+    .from("stampy_venues")
     .update({ active })
     .eq("id", venueId)
     .eq("tenant_id", tenant.id);
@@ -82,7 +82,7 @@ export async function inviteStaff(input: {
   if (!parsed.success) return { ok: false, message: "Проверьте адрес почты и роль." };
 
   const supabase = await supabaseServer();
-  const { error } = await supabase.from("staff_users").insert({
+  const { error } = await supabase.from("stampy_staff_users").insert({
     tenant_id: tenant.id,
     email: parsed.data.email.toLowerCase(),
     role: parsed.data.role,
@@ -108,7 +108,7 @@ export async function removeStaff(staffId: string): Promise<Result> {
 
   const supabase = await supabaseServer();
   const { error } = await supabase
-    .from("staff_users")
+    .from("stampy_staff_users")
     .update({ active: false })
     .eq("id", staffId)
     .eq("tenant_id", tenant.id);

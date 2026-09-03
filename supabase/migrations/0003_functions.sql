@@ -1,5 +1,5 @@
 -- Business logic that must be atomic lives here, not in the API layer.
--- Everything that touches stamps or rewards goes through these functions.
+-- Everything that touches stampy_stamps or stampy_rewards goes through these functions.
 
 -- Codes people read aloud or type: no 0/O/1/I/L confusion.
 create or replace function public.gen_code(len int, alphabet text default '23456789ABCDEFGHJKMNPQRSTUVWXYZ')
@@ -14,8 +14,8 @@ begin
   return out_code;
 end $$;
 
--- Is this tenant allowed to hand out stamps right now?
-create or replace function public.tenant_is_serving(t tenants)
+-- Is this tenant allowed to hand out stampy_stamps right now?
+create or replace function public.tenant_is_serving(t stampy_tenants)
 returns boolean language sql immutable as $$
   select case t.subscription_status
     when 'trial'  then t.trial_ends_at > now()
@@ -30,13 +30,13 @@ create or replace function public.ensure_membership(
   p_telegram_id bigint,
   p_profile     jsonb default '{}'::jsonb
 )
-returns memberships language plpgsql security definer set search_path = public as $$
+returns stampy_memberships language plpgsql security definer set search_path = public as $$
 declare
-  v_customer   customers;
-  v_membership memberships;
+  v_customer   stampy_customers;
+  v_membership stampy_memberships;
   v_attempt    int := 0;
 begin
-  insert into customers (telegram_id, first_name, last_name, username, photo_url, language_code)
+  insert into stampy_customers (telegram_id, first_name, last_name, username, photo_url, language_code)
   values (
     p_telegram_id,
     nullif(p_profile ->> 'first_name', ''),
@@ -46,14 +46,14 @@ begin
     nullif(p_profile ->> 'language_code', '')
   )
   on conflict (telegram_id) do update
-    set first_name    = coalesce(excluded.first_name, customers.first_name),
-        last_name     = coalesce(excluded.last_name, customers.last_name),
+    set first_name    = coalesce(excluded.first_name, stampy_customers.first_name),
+        last_name     = coalesce(excluded.last_name, stampy_customers.last_name),
         username      = excluded.username,
-        photo_url     = coalesce(excluded.photo_url, customers.photo_url),
-        language_code = coalesce(excluded.language_code, customers.language_code)
+        photo_url     = coalesce(excluded.photo_url, stampy_customers.photo_url),
+        language_code = coalesce(excluded.language_code, stampy_customers.language_code)
   returning * into v_customer;
 
-  select * into v_membership from memberships
+  select * into v_membership from stampy_memberships
   where tenant_id = p_tenant and customer_id = v_customer.id;
   if found then
     return v_membership;
@@ -63,7 +63,7 @@ begin
   loop
     v_attempt := v_attempt + 1;
     begin
-      insert into memberships (tenant_id, customer_id, public_code)
+      insert into stampy_memberships (tenant_id, customer_id, public_code)
       values (p_tenant, v_customer.id, public.gen_code(6))
       returning * into v_membership;
       return v_membership;
@@ -82,14 +82,14 @@ create or replace function public.claim_stamp(
 )
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  v_token      stamp_tokens;
-  v_tenant     tenants;
-  v_program    loyalty_programs;
-  v_membership memberships;
-  v_reward     rewards;
+  v_token      stampy_stamp_tokens;
+  v_tenant     stampy_tenants;
+  v_program    stampy_loyalty_programs;
+  v_membership stampy_memberships;
+  v_reward     stampy_rewards;
   v_wait_secs  int;
 begin
-  select * into v_token from stamp_tokens where token = p_token for update;
+  select * into v_token from stampy_stamp_tokens where token = p_token for update;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'token_unknown');
   end if;
@@ -100,12 +100,12 @@ begin
     return jsonb_build_object('ok', false, 'code', 'token_expired');
   end if;
 
-  select * into v_tenant from tenants where id = v_token.tenant_id;
+  select * into v_tenant from stampy_tenants where id = v_token.tenant_id;
   if not public.tenant_is_serving(v_tenant) then
     return jsonb_build_object('ok', false, 'code', 'tenant_inactive');
   end if;
 
-  select * into v_program from loyalty_programs
+  select * into v_program from stampy_loyalty_programs
   where tenant_id = v_tenant.id and active;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'no_program');
@@ -114,7 +114,7 @@ begin
   v_membership := public.ensure_membership(v_tenant.id, p_telegram_id, p_profile);
 
   -- Burn the token either way: the tap physically happened.
-  update stamp_tokens
+  update stampy_stamp_tokens
      set consumed_at = now(), consumed_by_membership = v_membership.id
    where token = p_token;
 
@@ -131,10 +131,10 @@ begin
     );
   end if;
 
-  insert into stamps (tenant_id, membership_id, venue_id, tag_id, source)
+  insert into stampy_stamps (tenant_id, membership_id, venue_id, tag_id, source)
   values (v_tenant.id, v_membership.id, v_token.venue_id, v_token.tag_id, 'nfc');
 
-  update memberships
+  update stampy_memberships
      set stamps_count    = stamps_count + 1,
          lifetime_stamps = lifetime_stamps + 1,
          last_stamp_at   = now()
@@ -142,12 +142,12 @@ begin
   returning * into v_membership;
 
   if v_membership.stamps_count >= v_program.stamps_required then
-    update memberships
+    update stampy_memberships
        set stamps_count = stamps_count - v_program.stamps_required
      where id = v_membership.id
     returning * into v_membership;
 
-    insert into rewards (tenant_id, membership_id, program_id, title, expires_at)
+    insert into stampy_rewards (tenant_id, membership_id, program_id, title, expires_at)
     values (
       v_tenant.id, v_membership.id, v_program.id, v_program.reward_title,
       case when v_program.reward_expires_days is null then null
@@ -174,37 +174,37 @@ create or replace function public.add_manual_stamp(
 )
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  v_tenant     tenants;
-  v_program    loyalty_programs;
-  v_membership memberships;
-  v_reward     rewards;
+  v_tenant     stampy_tenants;
+  v_program    stampy_loyalty_programs;
+  v_membership stampy_memberships;
+  v_reward     stampy_rewards;
   v_staff      uuid := public.staff_id();
 begin
   if not public.can_read_tenant(p_tenant) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  select * into v_tenant from tenants where id = p_tenant;
+  select * into v_tenant from stampy_tenants where id = p_tenant;
   if not public.tenant_is_serving(v_tenant) then
     return jsonb_build_object('ok', false, 'code', 'tenant_inactive');
   end if;
 
-  select * into v_program from loyalty_programs where tenant_id = p_tenant and active;
+  select * into v_program from stampy_loyalty_programs where tenant_id = p_tenant and active;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'no_program');
   end if;
 
-  select * into v_membership from memberships
+  select * into v_membership from stampy_memberships
   where tenant_id = p_tenant and public_code = upper(trim(p_public_code))
   for update;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'card_not_found');
   end if;
 
-  insert into stamps (tenant_id, membership_id, venue_id, source, staff_user_id)
+  insert into stampy_stamps (tenant_id, membership_id, venue_id, source, staff_user_id)
   values (p_tenant, v_membership.id, p_venue, 'manual', v_staff);
 
-  update memberships
+  update stampy_memberships
      set stamps_count    = stamps_count + 1,
          lifetime_stamps = lifetime_stamps + 1,
          last_stamp_at   = now()
@@ -212,11 +212,11 @@ begin
   returning * into v_membership;
 
   if v_membership.stamps_count >= v_program.stamps_required then
-    update memberships set stamps_count = stamps_count - v_program.stamps_required
+    update stampy_memberships set stamps_count = stamps_count - v_program.stamps_required
      where id = v_membership.id
     returning * into v_membership;
 
-    insert into rewards (tenant_id, membership_id, program_id, title, expires_at)
+    insert into stampy_rewards (tenant_id, membership_id, program_id, title, expires_at)
     values (
       p_tenant, v_membership.id, v_program.id, v_program.reward_title,
       case when v_program.reward_expires_days is null then null
@@ -241,17 +241,17 @@ create or replace function public.issue_redeem_code(
 )
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  v_reward  rewards;
+  v_reward  stampy_rewards;
   v_owner   bigint;
   v_attempt int := 0;
 begin
-  select r.* into v_reward from rewards r where r.id = p_reward for update;
+  select r.* into v_reward from stampy_rewards r where r.id = p_reward for update;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'not_found');
   end if;
 
   select c.telegram_id into v_owner
-  from memberships m join customers c on c.id = m.customer_id
+  from stampy_memberships m join stampy_customers c on c.id = m.customer_id
   where m.id = v_reward.membership_id;
 
   if v_owner is distinct from p_telegram_id then
@@ -261,7 +261,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'already_' || v_reward.status);
   end if;
   if v_reward.expires_at is not null and v_reward.expires_at <= now() then
-    update rewards set status = 'expired' where id = p_reward;
+    update stampy_rewards set status = 'expired' where id = p_reward;
     return jsonb_build_object('ok', false, 'code', 'expired');
   end if;
 
@@ -274,7 +274,7 @@ begin
   loop
     v_attempt := v_attempt + 1;
     begin
-      update rewards
+      update stampy_rewards
          set redeem_code = public.gen_code(4, '0123456789'),
              redeem_code_expires_at = now() + make_interval(mins => p_ttl_minutes)
        where id = p_reward
@@ -295,14 +295,14 @@ create or replace function public.redeem_reward(
 )
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
-  v_reward rewards;
+  v_reward stampy_rewards;
   v_name   text;
 begin
   if not public.can_read_tenant(p_tenant) then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  select r.* into v_reward from rewards r
+  select r.* into v_reward from stampy_rewards r
   where r.tenant_id = p_tenant
     and r.redeem_code = trim(p_code)
     and r.status = 'earned'
@@ -315,11 +315,11 @@ begin
     return jsonb_build_object('ok', false, 'code', 'code_expired');
   end if;
   if v_reward.expires_at is not null and v_reward.expires_at <= now() then
-    update rewards set status = 'expired' where id = v_reward.id;
+    update stampy_rewards set status = 'expired' where id = v_reward.id;
     return jsonb_build_object('ok', false, 'code', 'reward_expired');
   end if;
 
-  update rewards
+  update stampy_rewards
      set status = 'redeemed',
          redeemed_at = now(),
          redeemed_by_staff = public.staff_id(),
@@ -329,7 +329,7 @@ begin
    where id = v_reward.id;
 
   select coalesce(c.first_name, 'Гость') into v_name
-  from memberships m join customers c on c.id = m.customer_id
+  from stampy_memberships m join stampy_customers c on c.id = m.customer_id
   where m.id = v_reward.membership_id;
 
   return jsonb_build_object('ok', true, 'title', v_reward.title, 'customer', v_name);
@@ -342,11 +342,11 @@ declare
   v_rewards int;
   v_tokens  int;
 begin
-  update rewards set status = 'expired'
+  update stampy_rewards set status = 'expired'
    where status = 'earned' and expires_at is not null and expires_at <= now();
   get diagnostics v_rewards = row_count;
 
-  delete from stamp_tokens where expires_at < now() - interval '2 days';
+  delete from stampy_stamp_tokens where expires_at < now() - interval '2 days';
   get diagnostics v_tokens = row_count;
 
   return jsonb_build_object('expired_rewards', v_rewards, 'deleted_tokens', v_tokens);

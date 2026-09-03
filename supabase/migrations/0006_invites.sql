@@ -12,7 +12,7 @@ begin
     return null;
   end if;
 
-  select id into v_staff from staff_users where auth_user_id = v_uid;
+  select id into v_staff from stampy_staff_users where auth_user_id = v_uid;
   if found then
     return v_staff;
   end if;
@@ -22,7 +22,7 @@ begin
     return null;
   end if;
 
-  update staff_users
+  update stampy_staff_users
      set auth_user_id = v_uid
    where auth_user_id is null
      and lower(email) = lower(v_email)

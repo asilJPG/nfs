@@ -1,6 +1,6 @@
 -- Stampy — loyalty SaaS for coffee shops.
 -- Tenancy: every business row carries tenant_id; staff access is gated by RLS.
--- Mini-app customers never authenticate against Postgres — their requests are
+-- Mini-app stampy_customers never authenticate against Postgres — their requests are
 -- proven by Telegram initData in the API layer and executed with the service role.
 
 create type subscription_status as enum ('trial', 'active', 'past_due', 'suspended');
@@ -19,9 +19,9 @@ begin
   return new;
 end $$;
 
--- ---------------------------------------------------------------- tenants ---
+-- ---------------------------------------------------------------- stampy_tenants ---
 
-create table tenants (
+create table stampy_tenants (
   id                  uuid primary key default gen_random_uuid(),
   slug                text not null unique
                         check (slug ~ '^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$'),
@@ -36,18 +36,18 @@ create table tenants (
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
 );
-create trigger tenants_touch before update on tenants
+create trigger tenants_touch before update on stampy_tenants
   for each row execute function public.touch_updated_at();
 
-create table platform_admins (
+create table stampy_platform_admins (
   auth_user_id uuid primary key references auth.users(id) on delete cascade,
   email        text not null,
   created_at   timestamptz not null default now()
 );
 
-create table venues (
+create table stampy_venues (
   id         uuid primary key default gen_random_uuid(),
-  tenant_id  uuid not null references tenants(id) on delete cascade,
+  tenant_id  uuid not null references stampy_tenants(id) on delete cascade,
   name       text not null check (length(trim(name)) between 1 and 80),
   address    text,
   lat        double precision,
@@ -57,32 +57,32 @@ create table venues (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index venues_tenant_idx on venues (tenant_id) where active;
-create trigger venues_touch before update on venues
+create index venues_tenant_idx on stampy_venues (tenant_id) where active;
+create trigger venues_touch before update on stampy_venues
   for each row execute function public.touch_updated_at();
 
-create table staff_users (
+create table stampy_staff_users (
   id           uuid primary key default gen_random_uuid(),
-  tenant_id    uuid not null references tenants(id) on delete cascade,
+  tenant_id    uuid not null references stampy_tenants(id) on delete cascade,
   auth_user_id uuid unique references auth.users(id) on delete set null,
   email        text not null,
   name         text,
   role         staff_role not null default 'cashier',
-  venue_id     uuid references venues(id) on delete set null, -- null = all venues
+  venue_id     uuid references stampy_venues(id) on delete set null, -- null = all stampy_venues
   active       boolean not null default true,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
   unique (tenant_id, email)
 );
-create index staff_users_tenant_idx on staff_users (tenant_id);
-create trigger staff_users_touch before update on staff_users
+create index staff_users_tenant_idx on stampy_staff_users (tenant_id);
+create trigger staff_users_touch before update on stampy_staff_users
   for each row execute function public.touch_updated_at();
 
 -- --------------------------------------------------------------- loyalty ----
 
-create table loyalty_programs (
+create table stampy_loyalty_programs (
   id                     uuid primary key default gen_random_uuid(),
-  tenant_id              uuid not null references tenants(id) on delete cascade,
+  tenant_id              uuid not null references stampy_tenants(id) on delete cascade,
   stamps_required        smallint not null default 6 check (stamps_required between 2 and 20),
   reward_title           text not null default 'Бесплатный кофе'
                            check (length(trim(reward_title)) between 1 and 60),
@@ -94,11 +94,11 @@ create table loyalty_programs (
   updated_at             timestamptz not null default now()
 );
 -- v1 allows exactly one live card per tenant; the shape already supports more.
-create unique index loyalty_programs_one_active on loyalty_programs (tenant_id) where active;
-create trigger loyalty_programs_touch before update on loyalty_programs
+create unique index loyalty_programs_one_active on stampy_loyalty_programs (tenant_id) where active;
+create trigger loyalty_programs_touch before update on stampy_loyalty_programs
   for each row execute function public.touch_updated_at();
 
-create table customers (
+create table stampy_customers (
   id            uuid primary key default gen_random_uuid(),
   telegram_id   bigint not null unique,
   first_name    text,
@@ -111,13 +111,13 @@ create table customers (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
-create trigger customers_touch before update on customers
+create trigger customers_touch before update on stampy_customers
   for each row execute function public.touch_updated_at();
 
-create table memberships (
+create table stampy_memberships (
   id              uuid primary key default gen_random_uuid(),
-  tenant_id       uuid not null references tenants(id) on delete cascade,
-  customer_id     uuid not null references customers(id) on delete cascade,
+  tenant_id       uuid not null references stampy_tenants(id) on delete cascade,
+  customer_id     uuid not null references stampy_customers(id) on delete cascade,
   stamps_count    smallint not null default 0 check (stamps_count >= 0),
   lifetime_stamps integer not null default 0 check (lifetime_stamps >= 0),
   first_seen_at   timestamptz not null default now(),
@@ -127,50 +127,50 @@ create table memberships (
   unique (tenant_id, customer_id),
   unique (tenant_id, public_code)
 );
-create index memberships_tenant_last_stamp_idx on memberships (tenant_id, last_stamp_at desc nulls last);
-create index memberships_customer_idx on memberships (customer_id);
+create index memberships_tenant_last_stamp_idx on stampy_memberships (tenant_id, last_stamp_at desc nulls last);
+create index memberships_customer_idx on stampy_memberships (customer_id);
 
--- Append-only ledger. memberships.stamps_count is a cache over this table.
-create table stamps (
+-- Append-only ledger. stampy_memberships.stamps_count is a cache over this table.
+create table stampy_stamps (
   id            uuid primary key default gen_random_uuid(),
-  tenant_id     uuid not null references tenants(id) on delete cascade,
-  membership_id uuid not null references memberships(id) on delete cascade,
-  venue_id      uuid references venues(id) on delete set null,
+  tenant_id     uuid not null references stampy_tenants(id) on delete cascade,
+  membership_id uuid not null references stampy_memberships(id) on delete cascade,
+  venue_id      uuid references stampy_venues(id) on delete set null,
   tag_id        uuid,
   source        stamp_source not null default 'nfc',
-  staff_user_id uuid references staff_users(id) on delete set null,
+  staff_user_id uuid references stampy_staff_users(id) on delete set null,
   created_at    timestamptz not null default now()
 );
-create index stamps_tenant_created_idx on stamps (tenant_id, created_at desc);
-create index stamps_membership_created_idx on stamps (membership_id, created_at desc);
+create index stamps_tenant_created_idx on stampy_stamps (tenant_id, created_at desc);
+create index stamps_membership_created_idx on stampy_stamps (membership_id, created_at desc);
 
-create table rewards (
+create table stampy_rewards (
   id                     uuid primary key default gen_random_uuid(),
-  tenant_id              uuid not null references tenants(id) on delete cascade,
-  membership_id          uuid not null references memberships(id) on delete cascade,
-  program_id             uuid not null references loyalty_programs(id) on delete restrict,
+  tenant_id              uuid not null references stampy_tenants(id) on delete cascade,
+  membership_id          uuid not null references stampy_memberships(id) on delete cascade,
+  program_id             uuid not null references stampy_loyalty_programs(id) on delete restrict,
   status                 reward_status not null default 'earned',
   title                  text not null,
   earned_at              timestamptz not null default now(),
   expires_at             timestamptz,
   redeemed_at            timestamptz,
-  redeemed_by_staff      uuid references staff_users(id) on delete set null,
-  redeemed_venue_id      uuid references venues(id) on delete set null,
+  redeemed_by_staff      uuid references stampy_staff_users(id) on delete set null,
+  redeemed_venue_id      uuid references stampy_venues(id) on delete set null,
   redeem_code            text,
   redeem_code_expires_at timestamptz
 );
-create index rewards_tenant_status_idx on rewards (tenant_id, status);
-create index rewards_membership_idx on rewards (membership_id, earned_at desc);
+create index rewards_tenant_status_idx on stampy_rewards (tenant_id, status);
+create index rewards_membership_idx on stampy_rewards (membership_id, earned_at desc);
 -- A redeem code only has to be unique among codes a cashier can still type in.
-create unique index rewards_active_redeem_code on rewards (tenant_id, redeem_code)
+create unique index rewards_active_redeem_code on stampy_rewards (tenant_id, redeem_code)
   where status = 'earned' and redeem_code is not null;
 
 -- ------------------------------------------------------------------- nfc ----
 
-create table nfc_tags (
+create table stampy_nfc_tags (
   id           uuid primary key default gen_random_uuid(),
-  tenant_id    uuid references tenants(id) on delete set null,
-  venue_id     uuid references venues(id) on delete set null,
+  tenant_id    uuid references stampy_tenants(id) on delete set null,
+  venue_id     uuid references stampy_venues(id) on delete set null,
   uid          text not null unique check (uid ~ '^[0-9A-F]{14}$'), -- 7-byte NXP UID, hex
   key_version  smallint not null default 1,
   last_counter integer not null default 0,
@@ -179,30 +179,30 @@ create table nfc_tags (
   last_seen_at timestamptz,
   created_at   timestamptz not null default now()
 );
-create index nfc_tags_tenant_idx on nfc_tags (tenant_id);
+create index nfc_tags_tenant_idx on stampy_nfc_tags (tenant_id);
 
-alter table stamps add constraint stamps_tag_fk
-  foreign key (tag_id) references nfc_tags(id) on delete set null;
+alter table stampy_stamps add constraint stamps_tag_fk
+  foreign key (tag_id) references stampy_nfc_tags(id) on delete set null;
 
 -- Bridges the browser tap to the Telegram mini app. Single use, short lived.
-create table stamp_tokens (
+create table stampy_stamp_tokens (
   token                  text primary key,
-  tenant_id              uuid not null references tenants(id) on delete cascade,
-  tag_id                 uuid not null references nfc_tags(id) on delete cascade,
-  venue_id               uuid references venues(id) on delete set null,
+  tenant_id              uuid not null references stampy_tenants(id) on delete cascade,
+  tag_id                 uuid not null references stampy_nfc_tags(id) on delete cascade,
+  venue_id               uuid references stampy_venues(id) on delete set null,
   tap_counter            integer not null,
   created_at             timestamptz not null default now(),
   expires_at             timestamptz not null,
   consumed_at            timestamptz,
-  consumed_by_membership uuid references memberships(id) on delete set null
+  consumed_by_membership uuid references stampy_memberships(id) on delete set null
 );
-create index stamp_tokens_expiry_idx on stamp_tokens (expires_at) where consumed_at is null;
+create index stamp_tokens_expiry_idx on stampy_stamp_tokens (expires_at) where consumed_at is null;
 
--- ------------------------------------------------------------ broadcasts ----
+-- ------------------------------------------------------------ stampy_broadcasts ----
 
-create table broadcasts (
+create table stampy_broadcasts (
   id           uuid primary key default gen_random_uuid(),
-  tenant_id    uuid not null references tenants(id) on delete cascade,
+  tenant_id    uuid not null references stampy_tenants(id) on delete cascade,
   title        text,
   body         text not null check (length(body) between 1 and 3500),
   image_url    text,
@@ -214,20 +214,20 @@ create table broadcasts (
   finished_at  timestamptz,
   sent_count   integer not null default 0,
   failed_count integer not null default 0,
-  created_by   uuid references staff_users(id) on delete set null,
+  created_by   uuid references stampy_staff_users(id) on delete set null,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
-create index broadcasts_tenant_idx on broadcasts (tenant_id, created_at desc);
-create index broadcasts_due_idx on broadcasts (scheduled_at) where status = 'scheduled';
-create trigger broadcasts_touch before update on broadcasts
+create index broadcasts_tenant_idx on stampy_broadcasts (tenant_id, created_at desc);
+create index broadcasts_due_idx on stampy_broadcasts (scheduled_at) where status = 'scheduled';
+create trigger broadcasts_touch before update on stampy_broadcasts
   for each row execute function public.touch_updated_at();
 
-create table broadcast_targets (
+create table stampy_broadcast_targets (
   id           uuid primary key default gen_random_uuid(),
-  broadcast_id uuid not null references broadcasts(id) on delete cascade,
-  tenant_id    uuid not null references tenants(id) on delete cascade,
-  customer_id  uuid not null references customers(id) on delete cascade,
+  broadcast_id uuid not null references stampy_broadcasts(id) on delete cascade,
+  tenant_id    uuid not null references stampy_tenants(id) on delete cascade,
+  customer_id  uuid not null references stampy_customers(id) on delete cascade,
   telegram_id  bigint not null,
   status       delivery_status not null default 'pending',
   error        text,
@@ -235,12 +235,12 @@ create table broadcast_targets (
   sent_at      timestamptz,
   unique (broadcast_id, customer_id)
 );
-create index broadcast_targets_pending_idx on broadcast_targets (broadcast_id) where status = 'pending';
+create index broadcast_targets_pending_idx on stampy_broadcast_targets (broadcast_id) where status = 'pending';
 
-create table kit_orders (
+create table stampy_kit_orders (
   id           uuid primary key default gen_random_uuid(),
-  tenant_id    uuid not null references tenants(id) on delete cascade,
-  venue_id     uuid references venues(id) on delete set null,
+  tenant_id    uuid not null references stampy_tenants(id) on delete cascade,
+  venue_id     uuid references stampy_venues(id) on delete set null,
   contact_name text not null,
   phone        text not null,
   address      text not null,
@@ -249,6 +249,6 @@ create table kit_orders (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
-create index kit_orders_status_idx on kit_orders (status, created_at);
-create trigger kit_orders_touch before update on kit_orders
+create index kit_orders_status_idx on stampy_kit_orders (status, created_at);
+create trigger kit_orders_touch before update on stampy_kit_orders
   for each row execute function public.touch_updated_at();

@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 
   const db = supabaseAdmin();
   const { data: tag, error: tagError } = await db
-    .from("nfc_tags")
+    .from("stampy_nfc_tags")
     .select("id, tenant_id, venue_id, active, last_counter")
     .eq("uid", tap.uid)
     .maybeSingle();
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
   // copied URL never gets past this UPDATE. Doing it as a conditional write
   // keeps two simultaneous taps from both winning.
   const { data: advanced, error: counterError } = await db
-    .from("nfc_tags")
+    .from("stampy_nfc_tags")
     .update({ last_counter: tap.counter, last_seen_at: new Date().toISOString() })
     .eq("id", tag.id)
     .lt("last_counter", tap.counter)
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
   if (!advanced?.length) return problemPage("replay", 409);
 
   const token = randomBytes(18).toString("base64url");
-  const { error: tokenError } = await db.from("stamp_tokens").insert({
+  const { error: tokenError } = await db.from("stampy_stamp_tokens").insert({
     token,
     tenant_id: tag.tenant_id,
     tag_id: tag.id,

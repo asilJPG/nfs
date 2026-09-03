@@ -90,7 +90,7 @@ async function claimTap(
   const db = supabaseAdmin();
 
   const { data: tokenRow } = await db
-    .from("stamp_tokens")
+    .from("stampy_stamp_tokens")
     .select("tenant_id, consumed_by_membership")
     .eq("token", token)
     .maybeSingle();
@@ -134,11 +134,11 @@ async function claimTap(
   // token. If it was this customer's own tap, that is not an error to show.
   if (result.code === "token_used" && tokenRow.consumed_by_membership) {
     const { data: owner } = await db
-      .from("memberships")
-      .select("customers(telegram_id)")
+      .from("stampy_memberships")
+      .select("stampy_customers(telegram_id)")
       .eq("id", tokenRow.consumed_by_membership)
       .maybeSingle();
-    const ownerTelegramId = (owner as { customers?: { telegram_id: number } | null } | null)?.customers
+    const ownerTelegramId = (owner as { stampy_customers?: { telegram_id: number } | null } | null)?.stampy_customers
       ?.telegram_id;
     if (ownerTelegramId === telegramId) {
       return { tenantId: tokenRow.tenant_id, outcome: { kind: "already_counted" } };

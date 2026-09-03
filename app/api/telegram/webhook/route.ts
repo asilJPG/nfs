@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   if (update.my_chat_member) {
     const blocked = ["kicked", "left"].includes(update.my_chat_member.new_chat_member.status);
     await supabaseAdmin()
-      .from("customers")
+      .from("stampy_customers")
       .update({
         can_message: !blocked,
         blocked_at: blocked ? new Date().toISOString() : null,
@@ -66,20 +66,20 @@ async function lastCardOf(telegramId: number | undefined): Promise<string | null
 
   const db = supabaseAdmin();
   const { data: customer } = await db
-    .from("customers")
+    .from("stampy_customers")
     .select("id")
     .eq("telegram_id", telegramId)
     .maybeSingle();
   if (!customer) return null;
 
   const { data } = await db
-    .from("memberships")
-    .select("tenants(slug)")
+    .from("stampy_memberships")
+    .select("stampy_tenants(slug)")
     .eq("customer_id", customer.id)
     .order("last_stamp_at", { ascending: false, nullsFirst: false })
     .limit(1)
-    .returns<{ tenants: { slug: string } | null }[]>();
+    .returns<{ stampy_tenants: { slug: string } | null }[]>();
 
-  const slug = data?.[0]?.tenants?.slug;
+  const slug = data?.[0]?.stampy_tenants?.slug;
   return slug ? `t_${slug}` : null;
 }

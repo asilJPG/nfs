@@ -9,9 +9,9 @@ export default async function VenuesPage() {
   const supabase = await supabaseServer();
 
   const [{ data: venues }, { data: team }] = await Promise.all([
-    supabase.from("venues").select("*").eq("tenant_id", tenant.id).order("created_at"),
+    supabase.from("stampy_venues").select("*").eq("tenant_id", tenant.id).order("created_at"),
     supabase
-      .from("staff_users")
+      .from("stampy_staff_users")
       .select("*")
       .eq("tenant_id", tenant.id)
       .eq("active", true)

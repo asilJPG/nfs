@@ -22,7 +22,7 @@ export async function updateTag(input: z.input<typeof tagSchema>): Promise<Resul
 
   const supabase = await supabaseServer();
   const { error } = await supabase
-    .from("nfc_tags")
+    .from("stampy_nfc_tags")
     .update({
       venue_id: parsed.data.venueId,
       label: parsed.data.label,
@@ -55,7 +55,7 @@ export async function requestKit(input: z.input<typeof kitSchema>): Promise<Resu
   if (!parsed.success) return { ok: false, message: "Заполните имя, телефон и адрес доставки." };
 
   const supabase = await supabaseServer();
-  const { error } = await supabase.from("kit_orders").insert({
+  const { error } = await supabase.from("stampy_kit_orders").insert({
     tenant_id: tenant.id,
     venue_id: parsed.data.venueId,
     contact_name: parsed.data.contactName,

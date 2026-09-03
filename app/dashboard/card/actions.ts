@@ -48,7 +48,7 @@ export async function saveCardSettings(input: CardSettingsInput): Promise<SaveRe
   const supabase = await supabaseServer();
 
   const { error: tenantError } = await supabase
-    .from("tenants")
+    .from("stampy_tenants")
     .update({
       name: parsed.data.name,
       logo_url: parsed.data.logoUrl,
@@ -62,7 +62,7 @@ export async function saveCardSettings(input: CardSettingsInput): Promise<SaveRe
   }
 
   const { error: programError } = await supabase
-    .from("loyalty_programs")
+    .from("stampy_loyalty_programs")
     .update(parsed.data.program)
     .eq("tenant_id", tenant.id)
     .eq("active", true);

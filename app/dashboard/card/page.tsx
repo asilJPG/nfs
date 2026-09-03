@@ -9,7 +9,7 @@ export default async function CardSettingsPage() {
   const supabase = await supabaseServer();
 
   const { data: program } = await supabase
-    .from("loyalty_programs")
+    .from("stampy_loyalty_programs")
     .select("stamps_required, reward_title, reward_description, reward_expires_days, stamp_cooldown_minutes")
     .eq("tenant_id", tenant.id)
     .eq("active", true)

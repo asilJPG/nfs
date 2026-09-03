@@ -214,20 +214,20 @@ type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
 export type Database = {
   public: {
     Tables: {
-      tenants: Table<Tenant>;
-      venues: Table<Venue>;
-      staff_users: Table<StaffUser>;
-      loyalty_programs: Table<LoyaltyProgram>;
-      customers: Table<Customer>;
-      memberships: Table<Membership>;
-      stamps: Table<Stamp>;
-      rewards: Table<Reward>;
-      nfc_tags: Table<NfcTag>;
-      stamp_tokens: Table<StampToken>;
-      broadcasts: Table<Broadcast>;
-      broadcast_targets: Table<BroadcastTarget>;
-      kit_orders: Table<KitOrder>;
-      platform_admins: Table<{ auth_user_id: string; email: string; created_at: string }>;
+      stampy_tenants: Table<Tenant>;
+      stampy_venues: Table<Venue>;
+      stampy_staff_users: Table<StaffUser>;
+      stampy_loyalty_programs: Table<LoyaltyProgram>;
+      stampy_customers: Table<Customer>;
+      stampy_memberships: Table<Membership>;
+      stampy_stamps: Table<Stamp>;
+      stampy_rewards: Table<Reward>;
+      stampy_nfc_tags: Table<NfcTag>;
+      stampy_stamp_tokens: Table<StampToken>;
+      stampy_broadcasts: Table<Broadcast>;
+      stampy_broadcast_targets: Table<BroadcastTarget>;
+      stampy_kit_orders: Table<KitOrder>;
+      stampy_platform_admins: Table<{ auth_user_id: string; email: string; created_at: string }>;
     };
     Views: Record<string, never>;
     Functions: {

@@ -15,33 +15,33 @@ returns jsonb language plpgsql security definer set search_path = public, auth a
 declare
   v_uid    uuid := auth.uid();
   v_email  text;
-  v_tenant tenants;
-  v_venue  venues;
+  v_tenant stampy_tenants;
+  v_venue  stampy_venues;
 begin
   if v_uid is null then
     raise exception 'not authenticated' using errcode = '42501';
   end if;
-  if exists (select 1 from staff_users where auth_user_id = v_uid) then
+  if exists (select 1 from stampy_staff_users where auth_user_id = v_uid) then
     return jsonb_build_object('ok', false, 'code', 'already_has_tenant');
   end if;
-  if exists (select 1 from tenants where slug = lower(trim(p_slug))) then
+  if exists (select 1 from stampy_tenants where slug = lower(trim(p_slug))) then
     return jsonb_build_object('ok', false, 'code', 'slug_taken');
   end if;
 
   select email into v_email from auth.users where id = v_uid;
 
-  insert into tenants (slug, name, brand)
+  insert into stampy_tenants (slug, name, brand)
   values (lower(trim(p_slug)), trim(p_name), coalesce(p_brand, public.default_brand()))
   returning * into v_tenant;
 
-  insert into venues (tenant_id, name)
+  insert into stampy_venues (tenant_id, name)
   values (v_tenant.id, coalesce(nullif(trim(p_venue_name), ''), trim(p_name)))
   returning * into v_venue;
 
-  insert into loyalty_programs (tenant_id, stamps_required, reward_title)
+  insert into stampy_loyalty_programs (tenant_id, stamps_required, reward_title)
   values (v_tenant.id, greatest(2, least(20, p_stamps)), trim(p_reward));
 
-  insert into staff_users (tenant_id, auth_user_id, email, role)
+  insert into stampy_staff_users (tenant_id, auth_user_id, email, role)
   values (v_tenant.id, v_uid, v_email, 'owner');
 
   return jsonb_build_object('ok', true, 'tenant_id', v_tenant.id, 'slug', v_tenant.slug,
@@ -77,13 +77,13 @@ begin
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
-  select stamps_required into v_required from loyalty_programs
+  select stamps_required into v_required from stampy_loyalty_programs
   where tenant_id = p_tenant and active;
 
   return query
   select c.id, c.telegram_id
-  from memberships m
-  join customers c on c.id = m.customer_id
+  from stampy_memberships m
+  join stampy_customers c on c.id = m.customer_id
   where m.tenant_id = p_tenant
     and c.can_message
     and case v_type
@@ -97,7 +97,7 @@ begin
         v_required is not null and m.stamps_count >= v_required - v_remaining
                                and m.stamps_count < v_required
       when 'has_reward' then
-        exists (select 1 from rewards r where r.membership_id = m.id and r.status = 'earned')
+        exists (select 1 from stampy_rewards r where r.membership_id = m.id and r.status = 'earned')
       else false
     end;
 end $$;
@@ -118,20 +118,20 @@ begin
   end if;
 
   select jsonb_build_object(
-    'stamps', (select count(*) from stamps s
+    'stamps', (select count(*) from stampy_stamps s
                 where s.tenant_id = p_tenant and s.created_at >= p_from and s.created_at < p_to),
-    'unique_visitors', (select count(distinct s.membership_id) from stamps s
+    'unique_visitors', (select count(distinct s.membership_id) from stampy_stamps s
                 where s.tenant_id = p_tenant and s.created_at >= p_from and s.created_at < p_to),
-    'new_customers', (select count(*) from memberships m
+    'new_customers', (select count(*) from stampy_memberships m
                 where m.tenant_id = p_tenant and m.first_seen_at >= p_from and m.first_seen_at < p_to),
-    'active_cards', (select count(*) from memberships m
+    'active_cards', (select count(*) from stampy_memberships m
                 where m.tenant_id = p_tenant and m.last_stamp_at >= now() - interval '60 days'),
-    'total_cards', (select count(*) from memberships m where m.tenant_id = p_tenant),
-    'rewards_earned', (select count(*) from rewards r
+    'total_cards', (select count(*) from stampy_memberships m where m.tenant_id = p_tenant),
+    'rewards_earned', (select count(*) from stampy_rewards r
                 where r.tenant_id = p_tenant and r.earned_at >= p_from and r.earned_at < p_to),
-    'rewards_redeemed', (select count(*) from rewards r
+    'rewards_redeemed', (select count(*) from stampy_rewards r
                 where r.tenant_id = p_tenant and r.redeemed_at >= p_from and r.redeemed_at < p_to),
-    'rewards_outstanding', (select count(*) from rewards r
+    'rewards_outstanding', (select count(*) from stampy_rewards r
                 where r.tenant_id = p_tenant and r.status = 'earned')
   ) into v;
   return v;
@@ -159,13 +159,13 @@ begin
     select (s.created_at at time zone p_tz)::date as day,
            s.membership_id,
            m.first_seen_at
-    from stamps s
-    join memberships m on m.id = s.membership_id
+    from stampy_stamps s
+    join stampy_memberships m on m.id = s.membership_id
     where s.tenant_id = p_tenant and s.created_at >= p_from and s.created_at < p_to
   )
   select d.day,
          (select count(*) from visits v where v.day = d.day),
-         (select count(*) from memberships m
+         (select count(*) from stampy_memberships m
            where m.tenant_id = p_tenant
              and (m.first_seen_at at time zone p_tz)::date = d.day),
          (select count(distinct v.membership_id) from visits v
@@ -190,7 +190,7 @@ begin
   select extract(dow from s.created_at at time zone p_tz)::int,
          extract(hour from s.created_at at time zone p_tz)::int,
          count(*)
-  from stamps s
+  from stampy_stamps s
   where s.tenant_id = p_tenant and s.created_at >= p_from and s.created_at < p_to
   group by 1, 2
   order by 1, 2;
@@ -211,7 +211,7 @@ begin
   with base as (
     select m.id,
            date_trunc('month', m.first_seen_at at time zone p_tz)::date as cohort
-    from memberships m
+    from stampy_memberships m
     where m.tenant_id = p_tenant
       and m.first_seen_at >= date_trunc('month', now() at time zone p_tz)
                              - make_interval(months => p_months - 1)
@@ -227,7 +227,7 @@ begin
               date_trunc('month', s.created_at at time zone p_tz),
               b.cohort::timestamp)))::int as month_offset
     from base b
-    join stamps s on s.membership_id = b.id
+    join stampy_stamps s on s.membership_id = b.id
     where s.tenant_id = p_tenant
   )
   select s.cohort, s.cohort_size, a.month_offset, count(distinct a.id)

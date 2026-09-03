@@ -29,13 +29,13 @@ export async function GET(request: NextRequest) {
   const now = new Date().toISOString();
 
   await db
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .update({ status: "sending", started_at: now })
     .eq("status", "scheduled")
     .lte("scheduled_at", now);
 
   const { data: active } = await db
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .select("id, body, image_url, button")
     .eq("status", "sending")
     .order("started_at", { ascending: true })
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
   for (const broadcast of active ?? []) {
     const { data: targets } = await db
-      .from("broadcast_targets")
+      .from("stampy_broadcast_targets")
       .select("id, telegram_id, customer_id")
       .eq("broadcast_id", broadcast.id)
       .eq("status", "pending")
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       if (result.ok) {
         sent += 1;
         await db
-          .from("broadcast_targets")
+          .from("stampy_broadcast_targets")
           .update({ status: "sent", sent_at: new Date().toISOString() })
           .eq("id", target.id);
       } else if (result.kind === "rate_limited") {
@@ -80,18 +80,18 @@ export async function GET(request: NextRequest) {
         failed += 1;
         await Promise.all([
           db
-            .from("broadcast_targets")
+            .from("stampy_broadcast_targets")
             .update({ status: "blocked", error: result.description })
             .eq("id", target.id),
           db
-            .from("customers")
+            .from("stampy_customers")
             .update({ can_message: false, blocked_at: new Date().toISOString() })
             .eq("id", target.customer_id),
         ]);
       } else {
         failed += 1;
         await db
-          .from("broadcast_targets")
+          .from("stampy_broadcast_targets")
           .update({ status: "failed", error: result.description })
           .eq("id", target.id);
       }
@@ -110,24 +110,24 @@ async function refreshCounts(broadcastId: string) {
   const db = supabaseAdmin();
   const [{ count: sentCount }, { count: failedCount }, { count: pendingCount }] = await Promise.all([
     db
-      .from("broadcast_targets")
+      .from("stampy_broadcast_targets")
       .select("id", { count: "exact", head: true })
       .eq("broadcast_id", broadcastId)
       .eq("status", "sent"),
     db
-      .from("broadcast_targets")
+      .from("stampy_broadcast_targets")
       .select("id", { count: "exact", head: true })
       .eq("broadcast_id", broadcastId)
       .in("status", ["failed", "blocked"]),
     db
-      .from("broadcast_targets")
+      .from("stampy_broadcast_targets")
       .select("id", { count: "exact", head: true })
       .eq("broadcast_id", broadcastId)
       .eq("status", "pending"),
   ]);
 
   await db
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .update({
       sent_count: sentCount ?? 0,
       failed_count: failedCount ?? 0,
@@ -140,7 +140,7 @@ async function refreshCounts(broadcastId: string) {
 
 async function finish(broadcastId: string) {
   await supabaseAdmin()
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .update({ status: "done", finished_at: new Date().toISOString() })
     .eq("id", broadcastId);
 }

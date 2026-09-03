@@ -50,7 +50,7 @@ export async function sendBroadcast(input: z.input<typeof draftSchema>): Promise
 
   const supabase = await supabaseServer();
   const { data: draft, error } = await supabase
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .insert({
       tenant_id: tenant.id,
       body: parsed.data.body,
@@ -77,7 +77,7 @@ export async function sendBroadcast(input: z.input<typeof draftSchema>): Promise
 
   const result = queued as { ok: boolean; code?: string; recipients?: number };
   if (!result.ok) {
-    await supabase.from("broadcasts").delete().eq("id", draft.id);
+    await supabase.from("stampy_broadcasts").delete().eq("id", draft.id);
     return { ok: false, message: QUEUE_ERRORS[result.code ?? ""] ?? "Не получилось." };
   }
 
@@ -95,7 +95,7 @@ export async function cancelBroadcast(broadcastId: string): Promise<Result> {
   const supabase = await supabaseServer();
 
   const { error } = await supabase
-    .from("broadcasts")
+    .from("stampy_broadcasts")
     .update({ status: "failed", finished_at: new Date().toISOString() })
     .eq("id", broadcastId)
     .eq("tenant_id", tenant.id)

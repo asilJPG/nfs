@@ -44,31 +44,31 @@ async function main() {
   // ---------------------------------------------------------------- setup ---
 
   const shopA = await one<{ id: string }>(
-    `insert into tenants (slug, name, subscription_status, subscription_until)
+    `insert into stampy_tenants (slug, name, subscription_status, subscription_until)
      values ('shop-a', 'Кофейня A', 'active', now() + interval '1 year') returning id`,
   );
   const shopB = await one<{ id: string }>(
-    `insert into tenants (slug, name, subscription_status, subscription_until)
+    `insert into stampy_tenants (slug, name, subscription_status, subscription_until)
      values ('shop-b', 'Кофейня B', 'active', now() + interval '1 year') returning id`,
   );
 
   const venueA = await one<{ id: string }>(
-    `insert into venues (tenant_id, name) values ($1, 'Точка A') returning id`,
+    `insert into stampy_venues (tenant_id, name) values ($1, 'Точка A') returning id`,
     [shopA.id],
   );
 
   const programA = await one<{ id: string }>(
-    `insert into loyalty_programs (tenant_id, stamps_required, reward_title, stamp_cooldown_minutes)
+    `insert into stampy_loyalty_programs (tenant_id, stamps_required, reward_title, stamp_cooldown_minutes)
      values ($1, 3, 'Бесплатный кофе', 0) returning id`,
     [shopA.id],
   );
   await db.query(
-    `insert into loyalty_programs (tenant_id, stamps_required, reward_title) values ($1, 5, 'Кофе B')`,
+    `insert into stampy_loyalty_programs (tenant_id, stamps_required, reward_title) values ($1, 5, 'Кофе B')`,
     [shopB.id],
   );
 
   const tagA = await one<{ id: string }>(
-    `insert into nfc_tags (uid, tenant_id, venue_id) values ('04A1B2C3D4E580', $1, $2) returning id`,
+    `insert into stampy_nfc_tags (uid, tenant_id, venue_id) values ('04A1B2C3D4E580', $1, $2) returning id`,
     [shopA.id, venueA.id],
   );
 
@@ -79,11 +79,11 @@ async function main() {
     `insert into auth.users (email) values ('b@example.com') returning id`,
   );
   await db.query(
-    `insert into staff_users (tenant_id, auth_user_id, email, role) values ($1, $2, 'a@example.com', 'owner')`,
+    `insert into stampy_staff_users (tenant_id, auth_user_id, email, role) values ($1, $2, 'a@example.com', 'owner')`,
     [shopA.id, ownerA.id],
   );
   await db.query(
-    `insert into staff_users (tenant_id, auth_user_id, email, role) values ($1, $2, 'b@example.com', 'owner')`,
+    `insert into stampy_staff_users (tenant_id, auth_user_id, email, role) values ($1, $2, 'b@example.com', 'owner')`,
     [shopB.id, ownerB.id],
   );
 
@@ -92,7 +92,7 @@ async function main() {
     tokenCounter += 1;
     const token = `token-${tokenCounter}`;
     await db.query(
-      `insert into stamp_tokens (token, tenant_id, tag_id, venue_id, tap_counter, expires_at)
+      `insert into stampy_stamp_tokens (token, tenant_id, tag_id, venue_id, tap_counter, expires_at)
        values ($1, $2, $3, $4, $5, now() + interval '3 minutes')`,
       [token, shopA.id, tagA.id, venueA.id, tokenCounter],
     );
@@ -132,20 +132,20 @@ async function main() {
   );
 
   const rewardCount = await one<{ count: number | string }>(
-    `select count(*) from rewards where tenant_id = $1 and status = 'earned'`,
+    `select count(*) from stampy_rewards where tenant_id = $1 and status = 'earned'`,
     [shopA.id],
   );
   check("награда одна, не больше", Number(rewardCount.count) === 1, rewardCount);
 
   const expired = await one<{ token: string }>(
-    `insert into stamp_tokens (token, tenant_id, tag_id, tap_counter, expires_at)
+    `insert into stampy_stamp_tokens (token, tenant_id, tag_id, tap_counter, expires_at)
      values ('token-expired', $1, $2, 99, now() - interval '1 minute') returning token`,
     [shopA.id, tagA.id],
   );
   const expiredResult = await claim(expired.token);
   check("просроченный токен отклоняется", expiredResult.code === "token_expired", expiredResult);
 
-  await db.query(`update loyalty_programs set stamp_cooldown_minutes = 15 where id = $1`, [
+  await db.query(`update stampy_loyalty_programs set stamp_cooldown_minutes = 15 where id = $1`, [
     programA.id,
   ]);
   const cooled = await claim(await mintToken());
@@ -156,11 +156,11 @@ async function main() {
   );
 
   const cooledToken = await one<{ consumed_at: string | null }>(
-    `select consumed_at from stamp_tokens order by created_at desc limit 1`,
+    `select consumed_at from stampy_stamp_tokens order by created_at desc limit 1`,
   );
   check("токен гасится даже при отказе по паузе", cooledToken.consumed_at !== null, cooledToken);
 
-  await db.query(`update loyalty_programs set stamp_cooldown_minutes = 0 where id = $1`, [
+  await db.query(`update stampy_loyalty_programs set stamp_cooldown_minutes = 0 where id = $1`, [
     programA.id,
   ]);
 
@@ -169,7 +169,7 @@ async function main() {
   // -------------------------------------------------------------- rewards ---
 
   const reward = await one<{ id: string }>(
-    `select id from rewards where tenant_id = $1 and status = 'earned' limit 1`,
+    `select id from stampy_rewards where tenant_id = $1 and status = 'earned' limit 1`,
     [shopA.id],
   );
 
@@ -217,7 +217,7 @@ async function main() {
 
   await asService();
   const card = await one<{ public_code: string }>(
-    `select public_code from memberships where tenant_id = $1 limit 1`,
+    `select public_code from stampy_memberships where tenant_id = $1 limit 1`,
     [shopA.id],
   );
 
@@ -236,27 +236,27 @@ async function main() {
   }
   check("штамп в чужой кофейне запрещён", crossTenantBlocked);
 
-  const visibleA = await one<{ count: number | string }>(`select count(*) from memberships`);
+  const visibleA = await one<{ count: number | string }>(`select count(*) from stampy_memberships`);
   check("владелец A видит только свои карты", Number(visibleA.count) === 1, visibleA);
 
   await asStaff(ownerB.id);
-  const visibleB = await one<{ count: number | string }>(`select count(*) from memberships`);
+  const visibleB = await one<{ count: number | string }>(`select count(*) from stampy_memberships`);
   check("владелец B не видит карты A", Number(visibleB.count) === 0, visibleB);
 
-  const stampsB = await one<{ count: number | string }>(`select count(*) from stamps`);
+  const stampsB = await one<{ count: number | string }>(`select count(*) from stampy_stamps`);
   check("владелец B не видит штампы A", Number(stampsB.count) === 0, stampsB);
 
   await asStaff(ownerA.id);
   let planLocked = false;
   try {
-    await db.query(`update tenants set plan = 'marketing' where id = $1`, [shopA.id]);
+    await db.query(`update stampy_tenants set plan = 'marketing' where id = $1`, [shopA.id]);
   } catch {
     planLocked = true;
   }
   check("кофейня не может сама сменить тариф", planLocked);
 
   const renamed = await db
-    .query(`update tenants set name = 'Кофейня A+' where id = $1`, [shopA.id])
+    .query(`update stampy_tenants set name = 'Кофейня A+' where id = $1`, [shopA.id])
     .then(() => true)
     .catch(() => false);
   check("но может переименоваться и сменить оформление", renamed);
@@ -266,17 +266,17 @@ async function main() {
   // ------------------------------------------------------- subscription ----
 
   await asService();
-  await db.query(`update tenants set subscription_status = 'suspended' where id = $1`, [shopA.id]);
+  await db.query(`update stampy_tenants set subscription_status = 'suspended' where id = $1`, [shopA.id]);
   const suspended = await claim(await mintToken());
   check("при неактивной подписке штамп не начисляется", suspended.code === "tenant_inactive", suspended);
 
   const survived = await one<{ lifetime_stamps: number }>(
-    `select lifetime_stamps from memberships where tenant_id = $1`,
+    `select lifetime_stamps from stampy_memberships where tenant_id = $1`,
     [shopA.id],
   );
   check("накопленное при этом не пропадает", survived.lifetime_stamps > 0, survived);
 
-  await db.query(`update tenants set subscription_status = 'active' where id = $1`, [shopA.id]);
+  await db.query(`update stampy_tenants set subscription_status = 'active' where id = $1`, [shopA.id]);
 
   await asStaff(ownerA.id);
   const overview = await one<{ analytics_overview: Record<string, number> }>(
@@ -323,11 +323,11 @@ async function main() {
   await asService();
   const ledger = await one<{ stamps_count: number; ledger: number | string; rewards: number | string; required: number }>(
     `select m.stamps_count,
-            (select count(*) from stamps s where s.membership_id = m.id) as ledger,
-            (select count(*) from rewards r where r.membership_id = m.id) as rewards,
+            (select count(*) from stampy_stamps s where s.membership_id = m.id) as ledger,
+            (select count(*) from stampy_rewards r where r.membership_id = m.id) as rewards,
             p.stamps_required as required
-     from memberships m
-     join loyalty_programs p on p.tenant_id = m.tenant_id and p.active
+     from stampy_memberships m
+     join stampy_loyalty_programs p on p.tenant_id = m.tenant_id and p.active
      where m.tenant_id = $1`,
     [shopA.id],
   );

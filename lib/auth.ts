@@ -14,7 +14,7 @@ type Client = Awaited<ReturnType<typeof supabaseServer>>;
  */
 async function findOrClaimStaff(supabase: Client, userId: string): Promise<StaffUser | null> {
   const { data } = await supabase
-    .from("staff_users")
+    .from("stampy_staff_users")
     .select("*")
     .eq("auth_user_id", userId)
     .eq("active", true)
@@ -25,7 +25,7 @@ async function findOrClaimStaff(supabase: Client, userId: string): Promise<Staff
   if (!claimed) return null;
 
   const { data: linked } = await supabase
-    .from("staff_users")
+    .from("stampy_staff_users")
     .select("*")
     .eq("id", claimed)
     .maybeSingle();
@@ -47,7 +47,7 @@ export async function requireStaff(): Promise<StaffContext> {
   if (!staff) redirect("/onboarding");
 
   const { data: tenant } = await supabase
-    .from("tenants")
+    .from("stampy_tenants")
     .select("*")
     .eq("id", staff.tenant_id)
     .maybeSingle();
@@ -71,7 +71,7 @@ export async function requirePlatformAdmin() {
   if (!user) redirect("/login");
 
   const { data } = await supabase
-    .from("platform_admins")
+    .from("stampy_platform_admins")
     .select("auth_user_id")
     .eq("auth_user_id", user.id)
     .maybeSingle();
@@ -91,6 +91,6 @@ export async function currentStaff(): Promise<StaffContext | null> {
   const staff = await findOrClaimStaff(supabase, user.id);
   if (!staff) return null;
 
-  const { data: tenant } = await supabase.from("tenants").select("*").eq("id", staff.tenant_id).single();
+  const { data: tenant } = await supabase.from("stampy_tenants").select("*").eq("id", staff.tenant_id).single();
   return tenant ? { staff, tenant } : null;
 }

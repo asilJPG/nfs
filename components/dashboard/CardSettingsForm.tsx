@@ -54,13 +54,13 @@ export function CardSettingsForm({ tenant, program }: Props) {
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "png";
     const path = `${tenant.id}/logo-${Date.now()}.${extension}`;
 
-    const { error } = await supabase.storage.from("logos").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("stampy-logos").upload(path, file, { upsert: true });
     setUploading(false);
     if (error) {
       setResult({ ok: false, message: `Не удалось загрузить логотип: ${error.message}` });
       return;
     }
-    const { data } = supabase.storage.from("logos").getPublicUrl(path);
+    const { data } = supabase.storage.from("stampy-logos").getPublicUrl(path);
     setLogoUrl(data.publicUrl);
   }
 
