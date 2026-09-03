@@ -44,7 +44,8 @@ export const env = {
     return required("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
   },
   get botUsername() {
-    return required("NEXT_PUBLIC_BOT_USERNAME");
+    // BotFather показывает имя с @, а в ссылке t.me его быть не должно.
+    return required("NEXT_PUBLIC_BOT_USERNAME").replace(/^@/, "");
   },
   get miniAppShortName() {
     return optional("NEXT_PUBLIC_MINIAPP_SHORT_NAME") ?? "app";

@@ -10,3 +10,5 @@ supabase/.temp
 
 # Личный файл правил, не часть проекта
 all_rules.md
+
+.vercel

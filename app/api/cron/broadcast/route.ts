@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/telegram/api";
+import { triggerBroadcastQueue } from "@/lib/broadcastQueue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,12 +16,25 @@ const MAX_BROADCASTS_PER_RUN = 5;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Drains the broadcast queue. Runs every minute from Vercel Cron; each run
- * handles one batch per active broadcast, so a large audience simply takes
- * several runs. Safe to run concurrently with itself: a target that is already
- * sent is filtered out by status.
+ * Опустошает очередь рассылки: один вызов — по батчу на каждую активную
+ * рассылку. Вызывать можно параллельно самим с собой, уже отправленные адресаты
+ * отсекаются по статусу.
+ *
+ * Планировщик Vercel на тарифе Hobby умеет только раз в сутки, поэтому на него
+ * рассылка не опирается: очередь заводится сразу после создания рассылки и сама
+ * дотягивает себя следующим вызовом, пока остаются неотправленные. Ежедневный
+ * cron остаётся страховкой на случай, если цепочка где-то оборвалась.
  */
 export async function GET(request: NextRequest) {
+  return drain(request);
+}
+
+/** Тот же обработчик для внутреннего запуска сразу после постановки в очередь. */
+export async function POST(request: NextRequest) {
+  return drain(request);
+}
+
+async function drain(request: NextRequest) {
   if (request.headers.get("authorization") !== `Bearer ${env.cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -103,7 +117,18 @@ export async function GET(request: NextRequest) {
     if (rateLimited) break;
   }
 
-  return NextResponse.json({ sent, failed, rateLimited });
+  // Осталось неотправленное — продолжаем следующим вызовом, не дожидаясь его.
+  // При лимите Telegram цепочку не продолжаем: подхватит суточный cron.
+  const { count: stillPending } = await db
+    .from("stampy_broadcast_targets")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  if (!rateLimited && (stillPending ?? 0) > 0) {
+    void triggerBroadcastQueue();
+  }
+
+  return NextResponse.json({ sent, failed, rateLimited, pending: stillPending ?? 0 });
 }
 
 async function refreshCounts(broadcastId: string) {

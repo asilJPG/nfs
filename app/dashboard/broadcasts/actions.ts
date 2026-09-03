@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { can } from "@/lib/plan";
+import { triggerBroadcastQueue } from "@/lib/broadcastQueue";
 import type { Segment } from "@/types/db";
 
 export type Result = { ok: boolean; message: string };
@@ -80,6 +81,9 @@ export async function sendBroadcast(input: z.input<typeof draftSchema>): Promise
     await supabase.from("stampy_broadcasts").delete().eq("id", draft.id);
     return { ok: false, message: QUEUE_ERRORS[result.code ?? ""] ?? "Не получилось." };
   }
+
+  // Не ждём суточный cron: очередь стартует прямо сейчас.
+  if (!parsed.data.scheduledAt) triggerBroadcastQueue();
 
   revalidatePath("/dashboard/broadcasts");
   return {
