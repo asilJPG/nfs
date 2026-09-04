@@ -321,6 +321,19 @@ export type Database = {
         Args: { p_id: string; p_status: "new" | "contacted" | "converted" | "rejected" };
         Returns: void;
       };
+      admin_create_tenant: {
+        Args: {
+          p_owner_auth_user: string;
+          p_name: string;
+          p_slug: string;
+          p_username: string;
+          p_venue_name?: string | null;
+          p_brand?: Brand | null;
+          p_stamps?: number;
+          p_reward?: string;
+        };
+        Returns: { ok: boolean; code?: string; slug?: string; tenant_id?: string; venue_id?: string; trial_ends_at?: string };
+      };
       admin_tenant_summary: {
         Args: Record<string, never>;
         Returns: TenantSummary[];

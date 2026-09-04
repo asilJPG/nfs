@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 import {
+  createTenantFromApplication,
   registerTag,
   setApplicationStatus,
   setKitStatus,
   setSubscription,
   type Result,
 } from "@/app/admin/actions";
+import { slugify } from "@/lib/slug";
 import type { KitOrder, SubscriptionStatus, TenantPlan, TenantSummary } from "@/types/db";
 
 type Application = {
@@ -62,41 +64,12 @@ export function AdminConsole({ tenants, kits, applications }: Props) {
           <h2 className="mb-3 font-medium">Заявки на подключение ({applications.length})</h2>
           <ul className="flex flex-col gap-2">
             {applications.map((application) => (
-              <li key={application.id} className="rounded-2xl border border-line p-3 text-sm">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">
-                    {application.cafe_name}
-                    {application.city && <span className="text-ink-soft"> · {application.city}</span>}
-                  </p>
-                  <span className="text-xs text-ink-soft">
-                    {new Date(application.created_at).toLocaleString("ru-RU")}
-                  </span>
-                </div>
-                <p className="text-ink-soft">
-                  {application.contact_name} · {application.phone}
-                  {application.telegram && <> · {application.telegram}</>}
-                </p>
-                {application.message && <p className="mt-1 text-ink-soft">{application.message}</p>}
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(["contacted", "converted", "rejected"] as const).map((status) => (
-                    <button
-                      key={status}
-                      onClick={() => run(() => setApplicationStatus(application.id, status))}
-                      disabled={pending || application.status === status}
-                      className="rounded-xl border border-line px-3 py-1.5 text-xs disabled:opacity-40"
-                    >
-                      {status === "contacted"
-                        ? "Связались"
-                        : status === "converted"
-                          ? "Подключили"
-                          : "Отклонить"}
-                    </button>
-                  ))}
-                  <span className="ml-auto self-center text-xs text-ink-soft">
-                    {application.status === "new" ? "Новая" : "На связи"}
-                  </span>
-                </div>
-              </li>
+              <ApplicationRow
+                key={application.id}
+                application={application}
+                pending={pending}
+                onSave={run}
+              />
             ))}
           </ul>
         </section>
@@ -263,3 +236,146 @@ function TenantRow({
 }
 
 const input = "rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-bean";
+
+function ApplicationRow({
+  application,
+  pending,
+  onSave,
+}: {
+  application: Application;
+  pending: boolean;
+  onSave: (action: () => Promise<Result>) => void;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState(application.cafe_name);
+  const [slug, setSlug] = useState(slugify(application.cafe_name));
+  const [login, setLogin] = useState(slugify(application.cafe_name).replace(/-/g, ""));
+  const [password, setPassword] = useState("");
+  const [stamps, setStamps] = useState(6);
+  const [reward, setReward] = useState("Бесплатный кофе");
+  const [venueName, setVenueName] = useState("");
+
+  return (
+    <li className="rounded-2xl border border-line p-3 text-sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="font-medium">
+          {application.cafe_name}
+          {application.city && <span className="text-ink-soft"> · {application.city}</span>}
+        </p>
+        <span className="text-xs text-ink-soft">
+          {new Date(application.created_at).toLocaleString("ru-RU")}
+        </span>
+      </div>
+      <p className="text-ink-soft">
+        {application.contact_name} · {application.phone}
+        {application.telegram && <> · {application.telegram}</>}
+      </p>
+      {application.message && <p className="mt-1 text-ink-soft">{application.message}</p>}
+
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          onClick={() => setCreating((open) => !open)}
+          disabled={pending}
+          className="rounded-xl bg-bean px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+        >
+          {creating ? "Свернуть" : "Создать кофейню"}
+        </button>
+        {(["contacted", "rejected"] as const).map((status) => (
+          <button
+            key={status}
+            onClick={() => onSave(() => setApplicationStatus(application.id, status))}
+            disabled={pending || application.status === status}
+            className="rounded-xl border border-line px-3 py-1.5 text-xs disabled:opacity-40"
+          >
+            {status === "contacted" ? "Связались" : "Отклонить"}
+          </button>
+        ))}
+        <span className="ml-auto self-center text-xs text-ink-soft">
+          {application.status === "new" ? "Новая" : "На связи"}
+        </span>
+      </div>
+
+      {creating && (
+        <div className="mt-3 grid gap-2 rounded-2xl border border-line bg-cream/40 p-3">
+          <label className="text-xs text-ink-soft">
+            Название
+            <input value={name} onChange={(e) => setName(e.target.value)} className={input + " w-full mt-1"} />
+          </label>
+          <label className="text-xs text-ink-soft">
+            Slug (адрес карты)
+            <input
+              value={slug}
+              onChange={(e) => setSlug(slugify(e.target.value))}
+              className={input + " w-full mt-1 font-mono"}
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs text-ink-soft">
+              Логин владельца
+              <input
+                value={login}
+                onChange={(e) => setLogin(e.target.value.toLowerCase())}
+                className={input + " w-full mt-1 font-mono"}
+              />
+            </label>
+            <label className="text-xs text-ink-soft">
+              Пароль
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="от 8 символов"
+                className={input + " w-full mt-1 font-mono"}
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-[80px_1fr_1fr] gap-2">
+            <label className="text-xs text-ink-soft">
+              Штампов
+              <input
+                type="number"
+                min={2}
+                max={20}
+                value={stamps}
+                onChange={(e) => setStamps(Number(e.target.value))}
+                className={input + " w-full mt-1"}
+              />
+            </label>
+            <label className="text-xs text-ink-soft">
+              Награда
+              <input value={reward} onChange={(e) => setReward(e.target.value)} className={input + " w-full mt-1"} />
+            </label>
+            <label className="text-xs text-ink-soft">
+              Точка (необязательно)
+              <input
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                className={input + " w-full mt-1"}
+              />
+            </label>
+          </div>
+          <button
+            onClick={() =>
+              onSave(() =>
+                createTenantFromApplication({
+                  applicationId: application.id,
+                  name,
+                  slug,
+                  login,
+                  password,
+                  venueName: venueName || undefined,
+                  stamps,
+                  reward,
+                }),
+              )
+            }
+            disabled={pending || name.length < 2 || slug.length < 3 || login.length < 3 || password.length < 8}
+            className="rounded-2xl bg-bean py-2.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {pending ? "Создаём…" : "Создать и подключить"}
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
