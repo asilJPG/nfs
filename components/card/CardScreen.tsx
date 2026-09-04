@@ -84,7 +84,13 @@ export function CardScreen() {
     app.ready();
     app.expand();
     initDataRef.current = app.initData;
-    void load(app.initDataUnsafe?.start_param);
+    // start_param приходит только для t.me/bot/appname?startapp=...
+    // Кнопка web_app в клавиатуре открывает URL напрямую — параметр читаем оттуда.
+    const startParam =
+      app.initDataUnsafe?.start_param ??
+      new URLSearchParams(window.location.search).get("startapp") ??
+      undefined;
+    void load(startParam);
   }, [load]);
 
   if (screen.step === "loading") return <Splash />;
