@@ -81,14 +81,14 @@ export function verifyInitData(raw: string | null | undefined): InitData {
   const expected = createHmac("sha256", secret).update(checkString).digest();
   const given = Buffer.from(hash, "hex");
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
-    console.error("initData bad_signature", {
+    const err = new InitDataError("bad_signature");
+    (err as unknown as { detail: unknown }).detail = {
       tokenLen: env.botToken.length,
       tokenTail: env.botToken.slice(-6),
       hashGiven: hash,
       hashExpected: expected.toString("hex"),
-      checkString,
-    });
-    throw new InitDataError("bad_signature");
+    };
+    throw err;
   }
 
   const authDateRaw = Number(params.get("auth_date"));

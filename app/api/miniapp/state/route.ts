@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     user = resolveUser(parsed.data.initData);
   } catch (error) {
     const code = error instanceof InitDataError ? error.code : "invalid";
+    const detail = (error as { detail?: unknown }).detail;
     return NextResponse.json(
       {
         error: code,
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
           initDataLen: parsed.data.initData.length,
           initDataHead: parsed.data.initData.slice(0, 200),
           nodeEnv: process.env.NODE_ENV,
+          ...(detail && typeof detail === "object" ? detail : {}),
         },
       },
       { status: 401 },
