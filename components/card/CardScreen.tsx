@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StampGrid } from "./StampGrid";
 import { RewardSheet } from "./RewardSheet";
-import type { MiniAppState } from "@/lib/miniapp/state";
+import type { CardBadge, MiniAppState } from "@/lib/miniapp/state";
 import type { Reward } from "@/types/db";
 
 type ClaimOutcome =
@@ -16,6 +16,7 @@ type Screen =
   | { step: "loading" }
   | { step: "outside" }
   | { step: "failed"; message: string }
+  | { step: "cards"; cards: CardBadge[] }
   | { step: "ready"; state: MiniAppState; claim: ClaimOutcome | null };
 
 const FAILURES: Record<string, string> = {
@@ -50,9 +51,11 @@ export function CardScreen() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        const base = FAILURES[payload.error] ?? FAILURES.server;
-        const debug = payload.debug ? `\n\nDEBUG: ${JSON.stringify(payload.debug)}` : "";
-        setScreen({ step: "failed", message: base + debug });
+        setScreen({ step: "failed", message: FAILURES[payload.error] ?? FAILURES.server });
+        return;
+      }
+      if ("cards" in payload) {
+        setScreen({ step: "cards", cards: payload.cards });
         return;
       }
       applyBrand(payload.state.tenant.brand);
@@ -96,6 +99,7 @@ export function CardScreen() {
   if (screen.step === "loading") return <Splash />;
   if (screen.step === "outside") return <OutsideTelegram />;
   if (screen.step === "failed") return <Message text={screen.message} />;
+  if (screen.step === "cards") return <CardsList cards={screen.cards} onPick={(slug) => load(`t_${slug}`)} />;
 
   const { state, claim } = screen;
   const { tenant, program, card } = state;
@@ -172,16 +176,6 @@ export function CardScreen() {
               <span className="text-sm font-medium">Использовать →</span>
             </button>
           ))}
-        </section>
-      )}
-
-      {card && (
-        <section
-          className="flex items-center justify-between rounded-3xl px-5 py-4 text-sm shadow-sm"
-          style={{ background: "var(--brand-surface)" }}
-        >
-          <span className="opacity-60">Код карты для бариста</span>
-          <span className="font-mono text-base font-semibold tracking-widest">{card.public_code}</span>
         </section>
       )}
 
@@ -289,6 +283,66 @@ function Message({ text }: { text: string }) {
     <div className="grid min-h-dvh place-items-center px-4 text-center">
       <p className="max-w-full whitespace-pre-wrap break-all text-sm opacity-70">{text}</p>
     </div>
+  );
+}
+
+function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: string) => void }) {
+  if (cards.length === 0) {
+    return (
+      <div className="grid min-h-dvh place-items-center px-8 text-center">
+        <div className="max-w-xs">
+          <p className="mb-3 text-4xl">☕</p>
+          <h1 className="mb-2 text-lg font-semibold">Ещё нет карт</h1>
+          <p className="text-sm opacity-70">
+            Приложите телефон к NFC-подставке на стойке кофейни — карта появится сама.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-6">
+      <h1 className="text-xl font-semibold">Ваши карты</h1>
+      <ul className="flex flex-col gap-3">
+        {cards.map((card) => {
+          const filled = card.stamps_count;
+          const required = card.stamps_required ?? 0;
+          const progress = required > 0 ? `${filled} / ${required}` : `${filled} штампов`;
+          return (
+            <li key={card.slug}>
+              <button
+                onClick={() => onPick(card.slug)}
+                className="flex w-full items-center gap-4 rounded-3xl px-4 py-4 text-left shadow-sm"
+                style={{
+                  background: card.brand?.surface ?? "white",
+                  color: card.brand?.text ?? "inherit",
+                }}
+              >
+                <div
+                  className="grid size-12 place-items-center overflow-hidden rounded-2xl text-lg font-semibold"
+                  style={{
+                    background: card.brand?.primary ?? "#6F4E37",
+                    color: card.brand?.surface ?? "white",
+                  }}
+                >
+                  {card.logo_url ? (
+                    <img src={card.logo_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{card.name.slice(0, 1).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">{card.name}</p>
+                  <p className="text-sm opacity-70">{progress}</p>
+                </div>
+                <span className="text-lg opacity-40">→</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </main>
   );
 }
 

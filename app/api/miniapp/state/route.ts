@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { InitDataError, profileOf, resolveUser } from "@/lib/telegram/initData";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { loadState, tenantIdBySlug, type MiniAppState } from "@/lib/miniapp/state";
+import { listCards, loadState, tenantIdBySlug, type CardBadge, type MiniAppState } from "@/lib/miniapp/state";
 import { rememberedTenant, rememberTenant } from "@/lib/session";
 import type { ClaimStampResult, Reward } from "@/types/db";
 
@@ -20,7 +20,9 @@ export type ClaimOutcome =
   | { kind: "cooldown"; retry_after_seconds: number }
   | { kind: "error"; code: string };
 
-export type StateResponse = { state: MiniAppState; claim: ClaimOutcome | null };
+export type StateResponse =
+  | { state: MiniAppState; claim: ClaimOutcome | null }
+  | { cards: CardBadge[] };
 
 const SLUG_PREFIX = "t_";
 
@@ -40,19 +42,7 @@ export async function POST(request: NextRequest) {
     user = resolveUser(parsed.data.initData);
   } catch (error) {
     const code = error instanceof InitDataError ? error.code : "invalid";
-    const detail = (error as { detail?: unknown }).detail;
-    return NextResponse.json(
-      {
-        error: code,
-        debug: {
-          initDataLen: parsed.data.initData.length,
-          initDataHead: parsed.data.initData.slice(0, 200),
-          nodeEnv: process.env.NODE_ENV,
-          ...(detail && typeof detail === "object" ? detail : {}),
-        },
-      },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: code }, { status: 401 });
   }
 
   const db = supabaseAdmin();
@@ -78,7 +68,11 @@ export async function POST(request: NextRequest) {
 
   if (!tenantId) tenantId = await rememberedTenant();
   if (!tenantId) {
-    return NextResponse.json({ error: "no_tenant" }, { status: 404 });
+    // Пустой /start — показать все карты гостя.
+    const cards = await listCards(user.id);
+    return NextResponse.json({ cards } satisfies StateResponse, {
+      headers: { "cache-control": "no-store" },
+    });
   }
 
   const state = await loadState(tenantId, user.id);

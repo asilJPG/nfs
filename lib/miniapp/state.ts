@@ -131,3 +131,59 @@ export async function tenantIdBySlug(slug: string): Promise<string | null> {
     .maybeSingle();
   return data?.id ?? null;
 }
+
+export type CardBadge = {
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  brand: Brand;
+  stamps_count: number;
+  stamps_required: number | null;
+};
+
+/** Все карты гостя — для главного экрана без выбранной кофейни. */
+export async function listCards(telegramId: number): Promise<CardBadge[]> {
+  const db = supabaseAdmin();
+  const { data: customer } = await db
+    .from("stampy_customers")
+    .select("id")
+    .eq("telegram_id", telegramId)
+    .maybeSingle();
+  if (!customer) return [];
+
+  const { data } = await db
+    .from("stampy_memberships")
+    .select("stamps_count, stampy_tenants(slug, name, logo_url, brand, stampy_loyalty_programs(stamps_required, active))")
+    .eq("customer_id", customer.id)
+    .order("last_stamp_at", { ascending: false, nullsFirst: false })
+    .returns<
+      {
+        stamps_count: number;
+        stampy_tenants:
+          | {
+              slug: string;
+              name: string;
+              logo_url: string | null;
+              brand: Brand;
+              stampy_loyalty_programs: { stamps_required: number; active: boolean }[] | null;
+            }
+          | null;
+      }[]
+    >();
+
+  return (data ?? []).flatMap((row) => {
+    const t = row.stampy_tenants;
+    if (!t) return [];
+    const program = t.stampy_loyalty_programs?.find((p) => p.active);
+    return [
+      {
+        slug: t.slug,
+        name: t.name,
+        logo_url: t.logo_url,
+        brand: t.brand,
+        stamps_count: row.stamps_count,
+        stamps_required: program?.stamps_required ?? null,
+      },
+    ];
+  });
+}

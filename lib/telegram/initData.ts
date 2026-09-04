@@ -80,16 +80,7 @@ export function verifyInitData(raw: string | null | undefined): InitData {
   const expected = createHmac("sha256", secret).update(checkString).digest();
   const given = Buffer.from(hash, "hex");
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
-    const err = new InitDataError("bad_signature");
-    (err as unknown as { detail: unknown }).detail = {
-      tokenLen: env.botToken.length,
-      tokenTail: env.botToken.slice(-6),
-      hashGiven: hash,
-      hashExpected: expected.toString("hex"),
-      checkString: checkString.slice(0, 400),
-      keys: [...new URLSearchParams(raw).keys()],
-    };
-    throw err;
+    throw new InitDataError("bad_signature");
   }
 
   const authDateRaw = Number(params.get("auth_date"));
