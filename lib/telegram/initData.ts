@@ -86,6 +86,8 @@ export function verifyInitData(raw: string | null | undefined): InitData {
       tokenTail: env.botToken.slice(-6),
       hashGiven: hash,
       hashExpected: expected.toString("hex"),
+      checkString: checkString.slice(0, 400),
+      keys: [...new URLSearchParams(raw).keys()],
     };
     throw err;
   }
