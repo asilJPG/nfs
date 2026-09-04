@@ -92,7 +92,7 @@ export async function registerTag(input: {
 }
 
 const createTenantSchema = z.object({
-  applicationId: z.string().uuid(),
+  applicationId: z.string().uuid().optional(),
   name: z.string().trim().min(2).max(80),
   slug: z.string().trim().regex(SLUG_PATTERN, "Адрес: латиница, цифры и дефис, от 3 символов"),
   login: z.string().trim().toLowerCase().regex(LOGIN_PATTERN, "Логин: латиница, цифры, точка, дефис"),
@@ -114,7 +114,7 @@ const CREATE_ERRORS: Record<string, string> = {
  * владельцу, создаёт тенант через admin_create_tenant, помечает заявку converted.
  */
 export async function createTenantFromApplication(input: {
-  applicationId: string;
+  applicationId?: string;
   name: string;
   slug: string;
   login: string;
@@ -174,10 +174,12 @@ export async function createTenantFromApplication(input: {
     return { ok: false, message: CREATE_ERRORS[result.code ?? ""] ?? "Не получилось." };
   }
 
-  await supabase.rpc("admin_set_application_status", {
-    p_id: parsed.data.applicationId,
-    p_status: "converted",
-  });
+  if (parsed.data.applicationId) {
+    await supabase.rpc("admin_set_application_status", {
+      p_id: parsed.data.applicationId,
+      p_status: "converted",
+    });
+  }
 
   revalidatePath("/admin");
   return {

@@ -193,6 +193,87 @@ insert into stampy_platform_admins (auth_user_id, email)
 select id, email from auth.users where email = '<ваш-логин>@stampy.local';
 ```
 
+## Сессия 4 сентября 2026 — что поменялось
+
+- **QR вместо 4 цифр.** `issue_redeem_code` теперь выдаёт 32-символьный hex-токен
+  (миграция `0010_qr_redeem.sql`). Мини-апп рисует QR через `qrcode`, `/staff`
+  сканирует камерой (`BarcodeDetector`, fallback-сообщение для старых браузеров).
+  Ручной ввод кода награды и ручное начисление штампа удалены полностью
+  (`manualStampAction` + вкладки в StaffConsole вырезаны).
+- **Саморегистрация выкинута.** `/register` удалён, вместо неё `/apply` —
+  простая форма-заявка (название, город, имя, телефон, Telegram, сообщение),
+  пишется в новую таблицу `stampy_applications` (миграция `0011_applications.sql`,
+  RLS: анонимный insert через service_role, чтение/апдейт — только платформенные
+  админы через `admin_set_application_status`).
+- **`/admin` теперь платформенный CRM.** Три новые секции:
+  1. **Заявки на подключение** — контакты гостя, кнопки «Связались/Отклонить»
+     и «Создать кофейню» с формой прямо в списке (префилл из заявки).
+  2. **Создать кофейню вручную** — тот же флоу без заявки, для админа.
+  3. Существующий раздел про метки, комплекты и подписки.
+  Всё создание идёт через `admin_create_tenant` (миграция
+  `0012_admin_create_tenant.sql`) — как `create_tenant`, но от лица указанного
+  auth-пользователя, а не `auth.uid()`, потому что админ не должен становиться
+  владельцем кофейни. Auth-аккаунт владельцу заводится через
+  `supabase.auth.admin.createUser(loginToAuthEmail(login), password)`.
+- **Первый платформенный админ.** Заводится не SQL-запросом, а через Auth Admin
+  API (см. в конце). Логин `admin`, пароль `admin12`, привязан к
+  `admin@stampy.local`. `/login` теперь редиректит платформенных админов сразу в
+  `/admin`, а не в `/dashboard`.
+- **Бот ожил.** Вебхук привязан к `nfs-tau.vercel.app`. Кнопка «Открыть карту»
+  теперь `web_app` инлайн — не требует настройки Mini App short_name в
+  BotFather. Menu Button бота — постоянная кнопка «Мои карты» рядом с полем
+  ввода, тоже открывает `/card` как web_app. Команды `/start` и `/help` в
+  автокомплит через `setMyCommands`. Пустой `/start` показывает все карты
+  гостя (новый ветка в `/api/miniapp/state`: если tenant не определён —
+  возвращает `{ cards: [...] }` через `listCards()`). Одна карта — сразу
+  открывается, без промежуточного экрана.
+- **Мелочи.** Секция «Код карты для бариста» с карты гостя убрана (после
+  перехода на QR больше не нужна). `env.ts` теперь `.trim()`-ит все значения —
+  Vercel иногда сохраняет с висячим переносом. `verifyInitData` больше не
+  удаляет поле `signature` перед HMAC — Telegram теперь его тоже включает в
+  check_data, без этого фикса подпись не сходилась.
+
+### Заметки на будущее
+
+- **NFC_MASTER_KEY на Vercel и локально сейчас разные** — mock-tag не будет
+  проверяться на проде. Синхронизировать, когда дойдёт до реальных меток.
+- **BotFather Mini App short_name** можно вообще не настраивать: web_app-кнопки
+  из инлайн-клавиатуры и menu button работают напрямую по URL. `miniAppLink()`
+  в `lib/env.ts` остаётся для рассылок (там url-кнопка требует t.me-формата).
+- **`admin_set_kit_status` в стаффе не используется** — кнопки на кассе для
+  этого нет. Заказы комплектов админ обрабатывает в `/admin`.
+
+### Команды для быстрого сброса стенда
+
+```bash
+# в Supabase SQL Editor
+delete from stampy_customers;
+delete from stampy_tenants;
+delete from stampy_applications;
+# каскад через FK почистит memberships/stamps/rewards/venues/programs/staff/tags/kit_orders
+```
+
+Auth-пользователи владельцев остаются висеть в `auth.users` — их удалять
+отдельно через Supabase Dashboard → Authentication → Users, либо оставить как
+есть (без строки в `stampy_staff_users` они безобидны).
+
+### Первый платформенный админ (без SQL)
+
+```bash
+SERVICE_KEY=...  # SUPABASE_SERVICE_ROLE_KEY
+URL=https://qrfdpzigcarbethrsioe.supabase.co
+
+# создать auth-юзера
+curl -X POST "$URL/auth/v1/admin/users" -H "apikey: $SERVICE_KEY" \
+  -H "Authorization: Bearer $SERVICE_KEY" -H "content-type: application/json" \
+  -d '{"email":"admin@stampy.local","password":"admin12","email_confirm":true}'
+
+# записать его в платформенные админы (id из ответа выше)
+curl -X POST "$URL/rest/v1/stampy_platform_admins" -H "apikey: $SERVICE_KEY" \
+  -H "Authorization: Bearer $SERVICE_KEY" -H "content-type: application/json" \
+  -d '{"auth_user_id":"<id>","email":"admin@stampy.local"}'
+```
+
 ## Ссылки
 
 - `docs/deploy.md` — деплой на Vercel, переменные окружения, cron.

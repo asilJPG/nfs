@@ -155,6 +155,8 @@ export function AdminConsole({ tenants, kits, applications }: Props) {
         </section>
       )}
 
+      <CreateTenantSection pending={pending} onSave={run} />
+
       <section className="flex flex-col gap-2">
         <h2 className="font-medium">Кофейни ({tenants.length})</h2>
         {tenants.map((tenant) => (
@@ -236,6 +238,142 @@ function TenantRow({
 }
 
 const input = "rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-bean";
+
+function CreateTenantSection({
+  pending,
+  onSave,
+}: {
+  pending: boolean;
+  onSave: (action: () => Promise<Result>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
+  const [stamps, setStamps] = useState(6);
+  const [reward, setReward] = useState("Бесплатный кофе");
+  const [venueName, setVenueName] = useState("");
+
+  return (
+    <section className="rounded-2xl border border-line bg-white p-4">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="font-medium">Создать кофейню вручную</span>
+        <span className="text-ink-soft">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-3 grid gap-2">
+          <label className="text-xs text-ink-soft">
+            Название
+            <input
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (!slug) setSlug(slugify(e.target.value));
+              }}
+              className={input + " w-full mt-1"}
+            />
+          </label>
+          <label className="text-xs text-ink-soft">
+            Slug (адрес карты)
+            <input
+              value={slug}
+              onChange={(e) => setSlug(slugify(e.target.value))}
+              placeholder="my-cafe"
+              className={input + " w-full mt-1 font-mono"}
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="text-xs text-ink-soft">
+              Логин владельца
+              <input
+                value={login}
+                onChange={(e) => setLogin(e.target.value.toLowerCase())}
+                className={input + " w-full mt-1 font-mono"}
+              />
+            </label>
+            <label className="text-xs text-ink-soft">
+              Пароль
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="от 8 символов"
+                className={input + " w-full mt-1 font-mono"}
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-[80px_1fr_1fr] gap-2">
+            <label className="text-xs text-ink-soft">
+              Штампов
+              <input
+                type="number"
+                min={2}
+                max={20}
+                value={stamps}
+                onChange={(e) => setStamps(Number(e.target.value))}
+                className={input + " w-full mt-1"}
+              />
+            </label>
+            <label className="text-xs text-ink-soft">
+              Награда
+              <input
+                value={reward}
+                onChange={(e) => setReward(e.target.value)}
+                className={input + " w-full mt-1"}
+              />
+            </label>
+            <label className="text-xs text-ink-soft">
+              Точка (необязательно)
+              <input
+                value={venueName}
+                onChange={(e) => setVenueName(e.target.value)}
+                className={input + " w-full mt-1"}
+              />
+            </label>
+          </div>
+          <button
+            onClick={() =>
+              onSave(async () => {
+                const result = await createTenantFromApplication({
+                  name,
+                  slug,
+                  login,
+                  password,
+                  venueName: venueName || undefined,
+                  stamps,
+                  reward,
+                });
+                if (result.ok) {
+                  setName("");
+                  setSlug("");
+                  setLogin("");
+                  setPassword("");
+                  setVenueName("");
+                }
+                return result;
+              })
+            }
+            disabled={
+              pending ||
+              name.length < 2 ||
+              slug.length < 3 ||
+              login.length < 3 ||
+              password.length < 8
+            }
+            className="rounded-2xl bg-bean py-2.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {pending ? "Создаём…" : "Создать"}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function ApplicationRow({
   application,
