@@ -309,30 +309,41 @@ function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: strin
     );
   }
 
+  // Стопка карт как в Wallet: каждая перекрывает предыдущую, видна только верхняя полоска.
+  const PEEK = 78;
+  const CARD_HEIGHT = 220;
+  const stackHeight = CARD_HEIGHT + PEEK * (cards.length - 1);
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4 py-6">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-4 py-6">
       <h1 className="text-xl font-semibold">Ваши карты</h1>
-      <ul className="flex flex-col gap-3">
-        {cards.map((card) => {
+      <div className="relative" style={{ height: stackHeight }}>
+        {cards.map((card, index) => {
           const filled = card.stamps_count;
           const required = card.stamps_required ?? 0;
-          const progress = required > 0 ? `${filled} / ${required}` : `${filled} штампов`;
+          const bg = card.brand?.primary ?? "#6F4E37";
+          const surface = card.brand?.surface ?? "#FFFFFF";
           return (
-            <li key={card.slug}>
-              <button
-                onClick={() => onPick(card.slug)}
-                className="flex w-full items-center gap-4 rounded-3xl px-4 py-4 text-left shadow-sm"
-                style={{
-                  background: card.brand?.surface ?? "white",
-                  color: card.brand?.text ?? "inherit",
-                }}
-              >
+            <button
+              key={card.slug}
+              onClick={() => onPick(card.slug)}
+              className="absolute inset-x-0 flex flex-col justify-between overflow-hidden rounded-3xl p-5 text-left shadow-xl transition-transform"
+              style={{
+                top: index * PEEK,
+                height: CARD_HEIGHT,
+                background: `linear-gradient(135deg, ${bg}, ${shade(bg, -0.15)})`,
+                color: surface,
+                zIndex: index + 1,
+              }}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-widest opacity-70">Карта лояльности</p>
+                  <h2 className="mt-1 text-2xl font-semibold">{card.name}</h2>
+                </div>
                 <div
                   className="grid size-12 place-items-center overflow-hidden rounded-2xl text-lg font-semibold"
-                  style={{
-                    background: card.brand?.primary ?? "#6F4E37",
-                    color: card.brand?.surface ?? "white",
-                  }}
+                  style={{ background: surface, color: bg }}
                 >
                   {card.logo_url ? (
                     <img src={card.logo_url} alt="" className="h-full w-full object-cover" />
@@ -340,18 +351,44 @@ function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: strin
                     <span>{card.name.slice(0, 1).toUpperCase()}</span>
                   )}
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium">{card.name}</p>
-                  <p className="text-sm opacity-70">{progress}</p>
+              </div>
+
+              {required > 0 && (
+                <div>
+                  <div className="mb-2 flex items-baseline justify-between text-sm opacity-90">
+                    <span>Штампов</span>
+                    <span className="font-mono text-base font-semibold">
+                      {filled} / {required}
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full" style={{ background: `${surface}33` }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, (filled / required) * 100)}%`,
+                        background: surface,
+                      }}
+                    />
+                  </div>
                 </div>
-                <span className="text-lg opacity-40">→</span>
-              </button>
-            </li>
+              )}
+            </button>
           );
         })}
-      </ul>
+      </div>
     </main>
   );
+}
+
+/** Осветляет/затемняет hex-цвет для градиента фона карты. */
+function shade(hex: string, amount: number): string {
+  const raw = hex.replace("#", "");
+  if (raw.length !== 6) return hex;
+  const n = parseInt(raw, 16);
+  const r = Math.max(0, Math.min(255, ((n >> 16) & 0xff) + Math.round(255 * amount)));
+  const g = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + Math.round(255 * amount)));
+  const b = Math.max(0, Math.min(255, (n & 0xff) + Math.round(255 * amount)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
 function OutsideTelegram() {
