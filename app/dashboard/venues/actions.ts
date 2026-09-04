@@ -80,10 +80,26 @@ export async function createStaff(input: {
   role: StaffRole;
   venueId: string | null;
 }): Promise<Result> {
-  const { tenant } = await requireRole("owner", "manager");
+  const { tenant, staff: caller } = await requireRole("owner", "manager");
   const parsed = staffSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте поля." };
+  }
+
+  // управляющий заводит только бариста; управляющих и владельцев — только владелец
+  if (parsed.data.role !== "cashier" && caller.role !== "owner") {
+    return { ok: false, message: "Управляющих заводит только владелец." };
+  }
+
+  if (parsed.data.venueId) {
+    const check = await supabaseServer();
+    const { data: venue } = await check
+      .from("stampy_venues")
+      .select("id")
+      .eq("id", parsed.data.venueId)
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+    if (!venue) return { ok: false, message: "Точка не найдена." };
   }
 
   const login = normalizeLogin(parsed.data.login);
@@ -125,7 +141,7 @@ export async function createStaff(input: {
 
 // пароль забыли — владелец назначает новый
 export async function resetStaffPassword(staffId: string, password: string): Promise<Result> {
-  const { tenant } = await requireRole("owner", "manager");
+  const { tenant, staff: caller } = await requireRole("owner", "manager");
   if (password.length < MIN_PASSWORD_LENGTH) {
     return { ok: false, message: `Пароль от ${MIN_PASSWORD_LENGTH} символов.` };
   }
@@ -133,12 +149,20 @@ export async function resetStaffPassword(staffId: string, password: string): Pro
   const supabase = await supabaseServer();
   const { data: member } = await supabase
     .from("stampy_staff_users")
-    .select("auth_user_id, username")
+    .select("auth_user_id, username, role")
     .eq("id", staffId)
     .eq("tenant_id", tenant.id)
     .maybeSingle();
 
   if (!member?.auth_user_id) return { ok: false, message: "Сотрудник не найден." };
+
+  // управляющий не может ронять пароль ни владельцу, ни другому управляющему
+  if (member.role === "owner" && caller.role !== "owner") {
+    return { ok: false, message: "Пароль владельца может менять только сам владелец." };
+  }
+  if (member.role === "manager" && caller.role !== "owner" && caller.id !== staffId) {
+    return { ok: false, message: "Пароль управляющего меняет владелец." };
+  }
 
   const { error } = await supabaseAdmin().auth.admin.updateUserById(member.auth_user_id, {
     password,

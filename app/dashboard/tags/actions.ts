@@ -21,6 +21,18 @@ export async function updateTag(input: z.input<typeof tagSchema>): Promise<Resul
   if (!parsed.success) return { ok: false, message: "Проверьте поля метки." };
 
   const supabase = await supabaseServer();
+
+  // venue должен быть из этой же кофейни — RLS этого не проверяет
+  if (parsed.data.venueId) {
+    const { data: venue } = await supabase
+      .from("stampy_venues")
+      .select("id")
+      .eq("id", parsed.data.venueId)
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+    if (!venue) return { ok: false, message: "Точка не найдена." };
+  }
+
   const { error } = await supabase
     .from("stampy_nfc_tags")
     .update({
@@ -55,6 +67,17 @@ export async function requestKit(input: z.input<typeof kitSchema>): Promise<Resu
   if (!parsed.success) return { ok: false, message: "Заполните имя, телефон и адрес доставки." };
 
   const supabase = await supabaseServer();
+
+  if (parsed.data.venueId) {
+    const { data: venue } = await supabase
+      .from("stampy_venues")
+      .select("id")
+      .eq("id", parsed.data.venueId)
+      .eq("tenant_id", tenant.id)
+      .maybeSingle();
+    if (!venue) return { ok: false, message: "Точка не найдена." };
+  }
+
   const { error } = await supabase.from("stampy_kit_orders").insert({
     tenant_id: tenant.id,
     venue_id: parsed.data.venueId,

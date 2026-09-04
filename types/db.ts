@@ -321,6 +321,10 @@ export type Database = {
         Args: { p_id: string; p_status: "new" | "contacted" | "converted" | "rejected" };
         Returns: void;
       };
+      claim_broadcast_batch: {
+        Args: { p_broadcast: string; p_batch: number };
+        Returns: { id: string; telegram_id: number; customer_id: string }[];
+      };
       admin_update_tenant: {
         Args: { p_tenant: string; p_name: string; p_slug: string };
         Returns: { ok: boolean; code?: string };

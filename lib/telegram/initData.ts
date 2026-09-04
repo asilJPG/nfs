@@ -25,10 +25,13 @@ export class InitDataError extends Error {
   }
 }
 
-const MAX_AGE_SECONDS = 24 * 60 * 60;
+// скриншот с initData валиден до истечения этого окна — держим коротким
+const MAX_AGE_SECONDS = 10 * 60;
 
-// dev-режим: карта в обычном браузере, без Telegram. В prod-сборке молча возвращает null
+// dev-режим: карта в обычном браузере, без Telegram.
+// Только при явном STAMPY_DEV_MODE=1 — NODE_ENV полагаться нельзя (бывает "prod", пусто и т.п.)
 export function devUser(): TelegramUser | null {
+  if (process.env.STAMPY_DEV_MODE !== "1") return null;
   if (process.env.NODE_ENV === "production") return null;
 
   const id = Number(process.env.DEV_TELEGRAM_ID);

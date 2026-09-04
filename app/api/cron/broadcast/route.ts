@@ -51,12 +51,11 @@ async function drain(request: NextRequest) {
   let rateLimited = false;
 
   for (const broadcast of active ?? []) {
-    const { data: targets } = await db
-      .from("stampy_broadcast_targets")
-      .select("id, telegram_id, customer_id")
-      .eq("broadcast_id", broadcast.id)
-      .eq("status", "pending")
-      .limit(BATCH);
+    // атомарный захват — параллельный drain уже не возьмёт эти же строки
+    const { data: targets } = await db.rpc("claim_broadcast_batch", {
+      p_broadcast: broadcast.id,
+      p_batch: BATCH,
+    });
 
     if (!targets?.length) {
       await finish(broadcast.id);
