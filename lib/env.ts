@@ -1,13 +1,13 @@
 import "server-only";
 
 function required(name: string): string {
-  const value = process.env[name];
+  const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing environment variable: ${name}`);
   return value;
 }
 
 function optional(name: string): string | undefined {
-  return process.env[name] || undefined;
+  return process.env[name]?.trim() || undefined;
 }
 
 /** Server-only secrets. Reading a missing one throws at call time, not at import time. */
