@@ -9,7 +9,7 @@ export default async function AdminPage() {
   await requirePlatformAdmin();
   const supabase = await supabaseServer();
 
-  const [{ data: tenants }, { data: kits }, { data: applications }] = await Promise.all([
+  const [{ data: tenants }, { data: kits }, { data: applications }, { data: tags }] = await Promise.all([
     supabase.rpc("admin_tenant_summary"),
     supabase
       .from("stampy_kit_orders")
@@ -20,8 +20,21 @@ export default async function AdminPage() {
     supabase
       .from("stampy_applications")
       .select("*")
-      .in("status", ["new", "contacted"])
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("stampy_nfc_tags")
+      .select("uid, label, tenant_id, created_at, stampy_tenants(name)")
+      .order("created_at", { ascending: false })
+      .returns<
+        {
+          uid: string;
+          label: string | null;
+          tenant_id: string | null;
+          created_at: string;
+          stampy_tenants: { name: string } | null;
+        }[]
+      >(),
   ]);
 
   const kitRows = (kits ?? []).map((kit) => ({
@@ -43,6 +56,13 @@ export default async function AdminPage() {
         tenants={(tenants ?? []) as TenantSummary[]}
         kits={kitRows}
         applications={applications ?? []}
+        tags={(tags ?? []).map((t) => ({
+          uid: t.uid,
+          label: t.label,
+          tenant_id: t.tenant_id,
+          tenant_name: t.stampy_tenants?.name ?? null,
+          created_at: t.created_at,
+        }))}
       />
     </main>
   );

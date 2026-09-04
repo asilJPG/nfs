@@ -321,6 +321,22 @@ export type Database = {
         Args: { p_id: string; p_status: "new" | "contacted" | "converted" | "rejected" };
         Returns: void;
       };
+      admin_update_tenant: {
+        Args: { p_tenant: string; p_name: string; p_slug: string };
+        Returns: { ok: boolean; code?: string };
+      };
+      admin_delete_tenant: {
+        Args: { p_tenant: string };
+        Returns: { ok: boolean };
+      };
+      admin_delete_tag: {
+        Args: { p_uid: string };
+        Returns: { ok: boolean };
+      };
+      admin_tenant_owner: {
+        Args: { p_tenant: string };
+        Returns: string | null;
+      };
       admin_create_tenant: {
         Args: {
           p_owner_auth_user: string;

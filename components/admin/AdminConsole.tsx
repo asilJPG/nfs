@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import {
   createTenantFromApplication,
+  deleteTag,
+  deleteTenant,
   registerTag,
+  renameTenant,
+  resetOwnerPassword,
   setApplicationStatus,
   setKitStatus,
   setSubscription,
@@ -24,10 +28,19 @@ type Application = {
   created_at: string;
 };
 
+type Tag = {
+  uid: string;
+  label: string | null;
+  tenant_id: string | null;
+  tenant_name: string | null;
+  created_at: string;
+};
+
 type Props = {
   tenants: TenantSummary[];
   kits: (KitOrder & { tenant_name: string })[];
   applications: Application[];
+  tags: Tag[];
 };
 
 const STATUSES: SubscriptionStatus[] = ["trial", "active", "past_due", "suspended"];
@@ -38,7 +51,11 @@ const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   suspended: "Заморожена",
 };
 
-export function AdminConsole({ tenants, kits, applications }: Props) {
+export function AdminConsole({ tenants, kits, applications, tags }: Props) {
+  const [appFilter, setAppFilter] = useState<"open" | "all">("open");
+  const visibleApps = applications.filter((a) =>
+    appFilter === "open" ? a.status === "new" || a.status === "contacted" : true,
+  );
   const [notice, setNotice] = useState<Result | null>(null);
   const [pending, startTransition] = useTransition();
   const [uid, setUid] = useState("");
@@ -61,15 +78,61 @@ export function AdminConsole({ tenants, kits, applications }: Props) {
 
       {applications.length > 0 && (
         <section className="rounded-2xl border border-line bg-white p-4">
-          <h2 className="mb-3 font-medium">Заявки на подключение ({applications.length})</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium">Заявки ({visibleApps.length})</h2>
+            <div className="flex gap-1 rounded-xl bg-line/60 p-1 text-xs">
+              {(["open", "all"] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setAppFilter(option)}
+                  className={`rounded-lg px-3 py-1.5 ${
+                    appFilter === option ? "bg-white shadow-sm" : "text-ink-soft"
+                  }`}
+                >
+                  {option === "open" ? "Активные" : "Все"}
+                </button>
+              ))}
+            </div>
+          </div>
           <ul className="flex flex-col gap-2">
-            {applications.map((application) => (
+            {visibleApps.map((application) => (
               <ApplicationRow
                 key={application.id}
                 application={application}
                 pending={pending}
                 onSave={run}
               />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {tags.length > 0 && (
+        <section className="rounded-2xl border border-line bg-white p-4">
+          <h2 className="mb-3 font-medium">NFC-метки ({tags.length})</h2>
+          <ul className="flex flex-col gap-1 text-sm">
+            {tags.map((tag) => (
+              <li
+                key={tag.uid}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2"
+              >
+                <div>
+                  <span className="font-mono text-xs">{tag.uid}</span>
+                  {tag.label && <span className="ml-2 text-ink-soft">· {tag.label}</span>}
+                  <span className="ml-2 text-ink-soft">
+                    {tag.tenant_name ? `→ ${tag.tenant_name}` : "не привязана"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    if (confirm(`Удалить метку ${tag.uid}?`)) run(() => deleteTag(tag.uid));
+                  }}
+                  disabled={pending}
+                  className="rounded-lg border border-line px-2 py-1 text-xs text-red-700 disabled:opacity-40"
+                >
+                  Удалить
+                </button>
+              </li>
             ))}
           </ul>
         </section>
@@ -179,6 +242,11 @@ function TenantRow({
   const [status, setStatus] = useState<SubscriptionStatus>(tenant.subscription_status);
   const [plan, setPlan] = useState<TenantPlan>(tenant.plan);
   const [months, setMonths] = useState(1);
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(tenant.name);
+  const [slug, setSlug] = useState(tenant.slug);
+  const [resettingPw, setResettingPw] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   return (
     <article className="rounded-2xl border border-line bg-white p-4">
@@ -191,6 +259,98 @@ function TenantRow({
           {tenant.customers} карт · {tenant.stamps_30d} штампов за 30 дн. · {tenant.tags} меток
         </p>
       </div>
+
+      <div className="mb-2 flex flex-wrap gap-2 text-xs">
+        <button
+          onClick={() => setEditing((o) => !o)}
+          disabled={pending}
+          className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"
+        >
+          {editing ? "Скрыть" : "Переименовать / slug"}
+        </button>
+        <button
+          onClick={() => setResettingPw((o) => !o)}
+          disabled={pending}
+          className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"
+        >
+          Сбросить пароль
+        </button>
+        <button
+          onClick={() => {
+            if (
+              confirm(
+                `Удалить кофейню «${tenant.name}» со всеми данными и аккаунтом владельца?`,
+              )
+            ) {
+              onSave(() => deleteTenant(tenant.id));
+            }
+          }}
+          disabled={pending}
+          className="ml-auto rounded-lg border border-red-200 px-3 py-1.5 text-red-700 disabled:opacity-40"
+        >
+          Удалить
+        </button>
+      </div>
+
+      {editing && (
+        <div className="mb-3 grid gap-2 rounded-xl border border-line bg-cream/40 p-3">
+          <label className="text-xs text-ink-soft">
+            Название
+            <input value={name} onChange={(e) => setName(e.target.value)} className={input + " w-full mt-1"} />
+          </label>
+          <label className="text-xs text-ink-soft">
+            Slug
+            <input
+              value={slug}
+              onChange={(e) => setSlug(slugify(e.target.value))}
+              className={input + " w-full mt-1 font-mono"}
+            />
+          </label>
+          <button
+            onClick={() =>
+              onSave(async () => {
+                const r = await renameTenant({ tenantId: tenant.id, name, slug });
+                if (r.ok) setEditing(false);
+                return r;
+              })
+            }
+            disabled={pending || name.length < 2 || slug.length < 3}
+            className="rounded-xl bg-bean py-2 text-xs font-medium text-white disabled:opacity-50"
+          >
+            Сохранить
+          </button>
+        </div>
+      )}
+
+      {resettingPw && (
+        <div className="mb-3 grid gap-2 rounded-xl border border-line bg-cream/40 p-3">
+          <label className="text-xs text-ink-soft">
+            Новый пароль владельца (от 8 символов)
+            <input
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={input + " w-full mt-1 font-mono"}
+            />
+          </label>
+          <button
+            onClick={() =>
+              onSave(async () => {
+                const r = await resetOwnerPassword({ tenantId: tenant.id, password: newPassword });
+                if (r.ok) {
+                  setResettingPw(false);
+                  setNewPassword("");
+                }
+                return r;
+              })
+            }
+            disabled={pending || newPassword.length < 8}
+            className="rounded-xl bg-bean py-2 text-xs font-medium text-white disabled:opacity-50"
+          >
+            Установить
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-2 sm:grid-cols-[auto_auto_auto_auto]">
         <select

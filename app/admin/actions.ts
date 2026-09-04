@@ -188,6 +188,99 @@ export async function createTenantFromApplication(input: {
   };
 }
 
+const renameSchema = z.object({
+  tenantId: z.string().uuid(),
+  name: z.string().trim().min(2).max(80),
+  slug: z.string().trim().regex(SLUG_PATTERN, "Slug: латиница, цифры и дефис"),
+});
+
+export async function renameTenant(input: {
+  tenantId: string;
+  name: string;
+  slug: string;
+}): Promise<Result> {
+  await requirePlatformAdmin();
+  const parsed = renameSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте поля." };
+
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.rpc("admin_update_tenant", {
+    p_tenant: parsed.data.tenantId,
+    p_name: parsed.data.name,
+    p_slug: parsed.data.slug,
+  });
+  if (error) {
+    console.error("admin_update_tenant failed", error);
+    return { ok: false, message: "Не удалось обновить кофейню." };
+  }
+  const result = data as { ok: boolean; code?: string };
+  if (!result.ok) {
+    return { ok: false, message: result.code === "slug_taken" ? "Такой slug уже занят." : "Не получилось." };
+  }
+  revalidatePath("/admin");
+  return { ok: true, message: "Кофейня обновлена." };
+}
+
+export async function deleteTenant(tenantId: string): Promise<Result> {
+  await requirePlatformAdmin();
+  const supabase = await supabaseServer();
+
+  // Достаём auth_user_id владельца до удаления, чтобы потом снести аккаунт.
+  const { data: ownerId } = await supabase.rpc("admin_tenant_owner", { p_tenant: tenantId });
+
+  const { error } = await supabase.rpc("admin_delete_tenant", { p_tenant: tenantId });
+  if (error) {
+    console.error("admin_delete_tenant failed", error);
+    return { ok: false, message: "Не удалось удалить кофейню." };
+  }
+
+  if (ownerId) {
+    await supabaseAdmin().auth.admin.deleteUser(ownerId as string);
+  }
+
+  revalidatePath("/admin");
+  return { ok: true, message: "Кофейня удалена." };
+}
+
+const passwordSchema = z.object({
+  tenantId: z.string().uuid(),
+  password: z.string().min(MIN_PASSWORD_LENGTH),
+});
+
+export async function resetOwnerPassword(input: {
+  tenantId: string;
+  password: string;
+}): Promise<Result> {
+  await requirePlatformAdmin();
+  const parsed = passwordSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: `Пароль от ${MIN_PASSWORD_LENGTH} символов.` };
+
+  const supabase = await supabaseServer();
+  const { data: ownerId } = await supabase.rpc("admin_tenant_owner", { p_tenant: parsed.data.tenantId });
+  if (!ownerId) return { ok: false, message: "Владелец не найден." };
+
+  const { error } = await supabaseAdmin().auth.admin.updateUserById(ownerId as string, {
+    password: parsed.data.password,
+  });
+  if (error) {
+    console.error("updateUserById failed", error);
+    return { ok: false, message: "Не удалось сменить пароль." };
+  }
+  return { ok: true, message: "Пароль обновлён." };
+}
+
+export async function deleteTag(uid: string): Promise<Result> {
+  await requirePlatformAdmin();
+  const supabase = await supabaseServer();
+  const { error } = await supabase.rpc("admin_delete_tag", { p_uid: uid });
+  if (error) {
+    console.error("admin_delete_tag failed", error);
+    return { ok: false, message: "Не удалось удалить метку." };
+  }
+  revalidatePath("/admin");
+  return { ok: true, message: "Метка удалена." };
+}
+
 export async function setApplicationStatus(
   id: string,
   status: "new" | "contacted" | "converted" | "rejected",
