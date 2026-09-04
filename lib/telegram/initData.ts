@@ -69,7 +69,6 @@ export function verifyInitData(raw: string | null | undefined): InitData {
   if (!hash) throw new InitDataError("malformed");
 
   params.delete("hash");
-  params.delete("signature"); // Ed25519 third-party check, not part of the HMAC
 
   const checkString = [...params.entries()]
     .map(([key, value]) => [key, value] as const)
