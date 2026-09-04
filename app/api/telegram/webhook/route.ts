@@ -13,6 +13,7 @@ type Update = {
     text?: string;
   };
   my_chat_member?: {
+    chat: { id: number; type: string };
     from: { id: number };
     new_chat_member: { status: string };
   };
@@ -33,14 +34,17 @@ export async function POST(request: NextRequest) {
   if (!update) return NextResponse.json({ ok: true });
 
   if (update.my_chat_member) {
-    const blocked = ["kicked", "left"].includes(update.my_chat_member.new_chat_member.status);
-    await supabaseAdmin()
-      .from("stampy_customers")
-      .update({
-        can_message: !blocked,
-        blocked_at: blocked ? new Date().toISOString() : null,
-      })
-      .eq("telegram_id", update.my_chat_member.from.id);
+    // важно: в private chat_id === telegram_id гостя, from.id — актёр (может отличаться в группах)
+    if (update.my_chat_member.chat.type === "private") {
+      const blocked = ["kicked", "left"].includes(update.my_chat_member.new_chat_member.status);
+      await supabaseAdmin()
+        .from("stampy_customers")
+        .update({
+          can_message: !blocked,
+          blocked_at: blocked ? new Date().toISOString() : null,
+        })
+        .eq("telegram_id", update.my_chat_member.chat.id);
+    }
     return NextResponse.json({ ok: true });
   }
 

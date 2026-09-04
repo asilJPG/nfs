@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sendMessage } from "@/lib/telegram/api";
+import { env } from "@/lib/env";
 
 export type ApplyResult = { ok: true } | { ok: false; message: string };
 
@@ -48,5 +50,28 @@ export async function submitApplication(input: unknown): Promise<ApplyResult> {
     console.error("submitApplication failed", error);
     return { ok: false, message: "Не удалось отправить. Попробуйте ещё раз." };
   }
+
+  // уведомление в Telegram — если задан ADMIN_TELEGRAM_ID
+  const adminId = Number(process.env.ADMIN_TELEGRAM_ID);
+  if (Number.isFinite(adminId) && adminId > 0) {
+    const text =
+      `<b>Новая заявка</b>\n` +
+      `${escapeHtml(parsed.data.cafe_name)}` +
+      (parsed.data.city ? ` · ${escapeHtml(parsed.data.city)}` : "") +
+      `\n${escapeHtml(parsed.data.contact_name)} · ${escapeHtml(parsed.data.phone)}` +
+      (parsed.data.telegram ? ` · ${escapeHtml(parsed.data.telegram)}` : "") +
+      (parsed.data.message ? `\n\n${escapeHtml(parsed.data.message)}` : "");
+
+    void sendMessage({
+      chatId: adminId,
+      text,
+      button: { text: "Открыть админку", url: `${env.appUrl.replace(/\/$/, "")}/admin` },
+    });
+  }
+
   return { ok: true };
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

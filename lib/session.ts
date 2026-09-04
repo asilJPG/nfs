@@ -3,7 +3,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
 
-const COOKIE = "stampy_tenant";
+// __Host- префикс: только https, только path=/, только для этого хоста, без domain=
+const COOKIE = "__Host-stampy_tenant";
+const LEGACY_COOKIE = "stampy_tenant";
 const MAX_AGE = 60 * 60 * 24 * 365;
 
 function sign(value: string): string {
@@ -23,7 +25,8 @@ export async function rememberTenant(tenantId: string): Promise<void> {
 }
 
 export async function rememberedTenant(): Promise<string | null> {
-  const raw = (await cookies()).get(COOKIE)?.value;
+  const store = await cookies();
+  const raw = store.get(COOKIE)?.value ?? store.get(LEGACY_COOKIE)?.value;
   if (!raw) return null;
 
   const separator = raw.lastIndexOf(".");
