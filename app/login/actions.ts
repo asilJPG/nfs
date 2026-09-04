@@ -27,5 +27,18 @@ export async function signIn(input: z.input<typeof schema>): Promise<SignInError
   // Не подсказываем, что именно не совпало — логин или пароль.
   if (error) return { message: "Неверный логин или пароль." };
 
+  // Платформенных админов пускаем сразу в /admin, кофейне — в /dashboard.
+  if (!parsed.data.next) {
+    const { data: user } = await supabase.auth.getUser();
+    if (user.user) {
+      const { data: isAdmin } = await supabase
+        .from("stampy_platform_admins")
+        .select("auth_user_id")
+        .eq("auth_user_id", user.user.id)
+        .maybeSingle();
+      if (isAdmin) redirect("/admin");
+    }
+  }
+
   redirect(parsed.data.next ?? "/dashboard");
 }
