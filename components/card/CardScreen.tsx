@@ -94,9 +94,12 @@ export function CardScreen() {
     initDataRef.current = app.initData;
     // start_param приходит только для t.me/bot/appname?startapp=...
     // Кнопка web_app в клавиатуре открывает URL напрямую — параметр читаем оттуда.
+    const url = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const startParam =
       app.initDataUnsafe?.start_param ??
-      new URLSearchParams(window.location.search).get("startapp") ??
+      url.get("startapp") ??
+      hash.get("tgWebAppStartParam") ??
       undefined;
     void load(startParam);
   }, [load]);
