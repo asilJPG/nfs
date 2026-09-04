@@ -55,6 +55,11 @@ export function CardScreen() {
         return;
       }
       if ("cards" in payload) {
+        // Одна карта — сразу открываем её, без промежуточного списка.
+        if (payload.cards.length === 1) {
+          void load(`t_${payload.cards[0].slug}`);
+          return;
+        }
         setScreen({ step: "cards", cards: payload.cards });
         return;
       }

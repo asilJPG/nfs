@@ -48,22 +48,36 @@ export async function POST(request: NextRequest) {
   }
 
   const message = update.message;
-  if (message?.text?.startsWith("/start")) {
-    const payload = message.text.slice("/start".length).trim();
-    const target = payload.startsWith("t_") ? payload : await lastCardOf(message.from?.id);
+  const text = message?.text?.trim() ?? "";
+
+  if (text.startsWith("/start")) {
+    const payload = text.slice("/start".length).trim();
+    const target = payload.startsWith("t_") ? payload : await lastCardOf(message!.from?.id);
+    const base = env.appUrl.replace(/\/$/, "");
 
     if (target) {
-      const url = `${env.appUrl.replace(/\/$/, "")}/card?startapp=${encodeURIComponent(target)}`;
-      await answerStart(message.chat.id, WELCOME_WITH_CARD, {
+      await answerStart(message!.chat.id, WELCOME_WITH_CARD, {
         text: "Открыть карту",
-        webAppUrl: url,
+        webAppUrl: `${base}/card?startapp=${encodeURIComponent(target)}`,
       });
     } else {
-      await answerStart(message.chat.id, WELCOME_EMPTY, {
+      await answerStart(message!.chat.id, WELCOME_EMPTY, {
         text: "Открыть Stampy",
-        webAppUrl: `${env.appUrl.replace(/\/$/, "")}/card`,
+        webAppUrl: `${base}/card`,
       });
     }
+  } else if (text.startsWith("/help")) {
+    await answerStart(
+      message!.chat.id,
+      "Как это работает:\n\n" +
+        "1. Приложите телефон к NFC-подставке на стойке кофейни — штамп начисляется сам.\n" +
+        "2. Когда карта заполнена — покажите QR бариста.\n" +
+        "3. Все ваши карты живут в этом мини-аппе — кнопка «Мои карты» внизу.",
+      {
+        text: "Мои карты",
+        webAppUrl: `${env.appUrl.replace(/\/$/, "")}/card`,
+      },
+    );
   }
 
   return NextResponse.json({ ok: true });
