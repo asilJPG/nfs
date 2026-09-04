@@ -9,7 +9,7 @@ export default async function AdminPage() {
   await requirePlatformAdmin();
   const supabase = await supabaseServer();
 
-  const [{ data: tenants }, { data: kits }] = await Promise.all([
+  const [{ data: tenants }, { data: kits }, { data: applications }] = await Promise.all([
     supabase.rpc("admin_tenant_summary"),
     supabase
       .from("stampy_kit_orders")
@@ -17,6 +17,11 @@ export default async function AdminPage() {
       .in("status", ["requested", "shipped"])
       .order("created_at")
       .returns<(KitOrder & { stampy_tenants: { name: string } | null })[]>(),
+    supabase
+      .from("stampy_applications")
+      .select("*")
+      .in("status", ["new", "contacted"])
+      .order("created_at", { ascending: false }),
   ]);
 
   const kitRows = (kits ?? []).map((kit) => ({
@@ -34,7 +39,11 @@ export default async function AdminPage() {
           </button>
         </form>
       </div>
-      <AdminConsole tenants={(tenants ?? []) as TenantSummary[]} kits={kitRows} />
+      <AdminConsole
+        tenants={(tenants ?? []) as TenantSummary[]}
+        kits={kitRows}
+        applications={applications ?? []}
+      />
     </main>
   );
 }

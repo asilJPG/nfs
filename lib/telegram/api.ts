@@ -79,11 +79,17 @@ export async function setWebhook(url: string): Promise<TelegramResponse> {
   });
 }
 
-export async function answerStart(chatId: number, text: string, button: { text: string; url: string }) {
+export async function answerStart(
+  chatId: number,
+  text: string,
+  button: { text: string; webAppUrl: string },
+) {
   return call("sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: "HTML",
-    reply_markup: { inline_keyboard: [[{ text: button.text, url: button.url }]] },
+    reply_markup: {
+      inline_keyboard: [[{ text: button.text, web_app: { url: button.webAppUrl } }]],
+    },
   });
 }

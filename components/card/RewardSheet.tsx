@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import type { Reward } from "@/types/db";
 
 type Props = {
@@ -12,7 +13,7 @@ type Props = {
 type Phase =
   | { step: "idle" }
   | { step: "loading" }
-  | { step: "code"; value: string; expiresAt: number }
+  | { step: "qr"; token: string; dataUrl: string; expiresAt: number }
   | { step: "error"; message: string };
 
 const ERRORS: Record<string, string> = {
@@ -20,23 +21,23 @@ const ERRORS: Record<string, string> = {
   expired: "Срок награды истёк.",
   already_redeemed: "Награда уже использована.",
   already_expired: "Срок награды истёк.",
-  server: "Не получилось получить код. Попробуйте ещё раз.",
+  server: "Не получилось создать QR. Попробуйте ещё раз.",
 };
 
-/** Shows the barista a short-lived code. Nothing is spent until they type it in. */
+/** Shows the barista a short-lived QR. Nothing is spent until they scan it. */
 export function RewardSheet({ reward, initData, onClose }: Props) {
   const [phase, setPhase] = useState<Phase>({ step: "idle" });
   const [secondsLeft, setSecondsLeft] = useState(0);
 
   useEffect(() => {
-    if (phase.step !== "code") return;
+    if (phase.step !== "qr") return;
     const tick = () => setSecondsLeft(Math.max(0, Math.round((phase.expiresAt - Date.now()) / 1000)));
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [phase]);
 
-  async function requestCode() {
+  async function requestQr() {
     setPhase({ step: "loading" });
     try {
       const response = await fetch("/api/miniapp/redeem", {
@@ -49,8 +50,14 @@ export function RewardSheet({ reward, initData, onClose }: Props) {
         setPhase({ step: "error", message: ERRORS[payload.error] ?? ERRORS.server });
         return;
       }
+      const dataUrl = await QRCode.toDataURL(payload.code, { margin: 1, width: 320 });
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
-      setPhase({ step: "code", value: payload.code, expiresAt: new Date(payload.expiresAt).getTime() });
+      setPhase({
+        step: "qr",
+        token: payload.code,
+        dataUrl,
+        expiresAt: new Date(payload.expiresAt).getTime(),
+      });
     } catch {
       setPhase({ step: "error", message: ERRORS.server });
     }
@@ -66,43 +73,40 @@ export function RewardSheet({ reward, initData, onClose }: Props) {
         <p className="text-sm opacity-60">Награда готова</p>
         <h2 className="mt-1 text-xl font-semibold">{reward.title}</h2>
 
-        {phase.step === "code" ? (
+        {phase.step === "qr" ? (
           <>
-            <p className="mt-5 text-sm opacity-70">Назовите этот код бариста</p>
-            <p
-              className="my-3 font-mono text-6xl font-bold tracking-[0.2em]"
-              style={{ color: "var(--brand-primary)" }}
-            >
-              {phase.value}
-            </p>
+            <p className="mt-5 text-sm opacity-70">Покажите этот QR бариста</p>
+            <div className="mx-auto my-4 w-full max-w-[260px] rounded-2xl bg-white p-3">
+              <img src={phase.dataUrl} alt="QR" className="w-full" />
+            </div>
             <p className="text-sm opacity-60">
               {secondsLeft > 0
                 ? `Действует ещё ${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`
-                : "Код истёк — запросите новый"}
+                : "QR истёк — обновите"}
             </p>
             {secondsLeft === 0 && (
               <button
-                onClick={requestCode}
+                onClick={requestQr}
                 className="mt-4 w-full rounded-2xl py-3 font-medium"
                 style={{ background: "var(--brand-primary)", color: "var(--brand-surface)" }}
               >
-                Новый код
+                Новый QR
               </button>
             )}
           </>
         ) : (
           <>
             <p className="mt-4 text-sm opacity-70">
-              Нажмите, когда будете у кассы. Код живёт 5 минут, награда не сгорает.
+              Нажмите у кассы. QR живёт 5 минут, награда не сгорает.
             </p>
             {phase.step === "error" && <p className="mt-3 text-sm text-red-600">{phase.message}</p>}
             <button
-              onClick={requestCode}
+              onClick={requestQr}
               disabled={phase.step === "loading"}
               className="mt-5 w-full rounded-2xl py-3 font-medium disabled:opacity-60"
               style={{ background: "var(--brand-primary)", color: "var(--brand-surface)" }}
             >
-              {phase.step === "loading" ? "Получаем код…" : "Получить код"}
+              {phase.step === "loading" ? "Готовим QR…" : "Получить бесплатное кофе"}
             </button>
           </>
         )}

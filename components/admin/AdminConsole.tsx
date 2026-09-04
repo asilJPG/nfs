@@ -1,12 +1,31 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { registerTag, setKitStatus, setSubscription, type Result } from "@/app/admin/actions";
+import {
+  registerTag,
+  setApplicationStatus,
+  setKitStatus,
+  setSubscription,
+  type Result,
+} from "@/app/admin/actions";
 import type { KitOrder, SubscriptionStatus, TenantPlan, TenantSummary } from "@/types/db";
+
+type Application = {
+  id: string;
+  cafe_name: string;
+  city: string | null;
+  contact_name: string;
+  phone: string;
+  telegram: string | null;
+  message: string | null;
+  status: "new" | "contacted" | "converted" | "rejected";
+  created_at: string;
+};
 
 type Props = {
   tenants: TenantSummary[];
   kits: (KitOrder & { tenant_name: string })[];
+  applications: Application[];
 };
 
 const STATUSES: SubscriptionStatus[] = ["trial", "active", "past_due", "suspended"];
@@ -17,7 +36,7 @@ const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   suspended: "Заморожена",
 };
 
-export function AdminConsole({ tenants, kits }: Props) {
+export function AdminConsole({ tenants, kits, applications }: Props) {
   const [notice, setNotice] = useState<Result | null>(null);
   const [pending, startTransition] = useTransition();
   const [uid, setUid] = useState("");
@@ -36,6 +55,51 @@ export function AdminConsole({ tenants, kits }: Props) {
     <div className="flex flex-col gap-6">
       {notice && (
         <p className={`text-sm ${notice.ok ? "text-bean-dark" : "text-red-600"}`}>{notice.message}</p>
+      )}
+
+      {applications.length > 0 && (
+        <section className="rounded-2xl border border-line bg-white p-4">
+          <h2 className="mb-3 font-medium">Заявки на подключение ({applications.length})</h2>
+          <ul className="flex flex-col gap-2">
+            {applications.map((application) => (
+              <li key={application.id} className="rounded-2xl border border-line p-3 text-sm">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-medium">
+                    {application.cafe_name}
+                    {application.city && <span className="text-ink-soft"> · {application.city}</span>}
+                  </p>
+                  <span className="text-xs text-ink-soft">
+                    {new Date(application.created_at).toLocaleString("ru-RU")}
+                  </span>
+                </div>
+                <p className="text-ink-soft">
+                  {application.contact_name} · {application.phone}
+                  {application.telegram && <> · {application.telegram}</>}
+                </p>
+                {application.message && <p className="mt-1 text-ink-soft">{application.message}</p>}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(["contacted", "converted", "rejected"] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => run(() => setApplicationStatus(application.id, status))}
+                      disabled={pending || application.status === status}
+                      className="rounded-xl border border-line px-3 py-1.5 text-xs disabled:opacity-40"
+                    >
+                      {status === "contacted"
+                        ? "Связались"
+                        : status === "converted"
+                          ? "Подключили"
+                          : "Отклонить"}
+                    </button>
+                  ))}
+                  <span className="ml-auto self-center text-xs text-ink-soft">
+                    {application.status === "new" ? "Новая" : "На связи"}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <section className="rounded-2xl border border-line bg-white p-4">

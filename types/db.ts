@@ -205,6 +205,21 @@ export type KitOrder = {
   updated_at: string;
 };
 
+export type ApplicationStatus = "new" | "contacted" | "converted" | "rejected";
+
+export type Application = {
+  id: string;
+  cafe_name: string;
+  city: string | null;
+  contact_name: string;
+  phone: string;
+  telegram: string | null;
+  message: string | null;
+  status: ApplicationStatus;
+  created_at: string;
+  updated_at: string;
+};
+
 type Table<Row, Insert = Partial<Row>, Update = Partial<Row>> = {
   Row: Row;
   Insert: Insert;
@@ -229,6 +244,7 @@ export type Database = {
       stampy_broadcast_targets: Table<BroadcastTarget>;
       stampy_kit_orders: Table<KitOrder>;
       stampy_platform_admins: Table<{ auth_user_id: string; email: string; created_at: string }>;
+      stampy_applications: Table<Application>;
     };
     Views: Record<string, never>;
     Functions: {
@@ -300,6 +316,10 @@ export type Database = {
       admin_set_kit_status: {
         Args: { p_kit: string; p_status: KitStatus };
         Returns: { ok: boolean };
+      };
+      admin_set_application_status: {
+        Args: { p_id: string; p_status: "new" | "contacted" | "converted" | "rejected" };
+        Returns: void;
       };
       admin_tenant_summary: {
         Args: Record<string, never>;

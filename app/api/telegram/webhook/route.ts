@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { env, miniAppLink } from "@/lib/env";
+import { env } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { answerStart } from "@/lib/telegram/api";
 
@@ -18,9 +18,10 @@ type Update = {
   };
 };
 
-const WELCOME =
-  "Здравствуйте! Здесь живут ваши карты лояльности — штампы за покупки и бесплатные напитки.\n\n" +
-  "Чтобы завести карту, отсканируйте QR-код на стойке кофейни или приложите телефон к подставке.";
+const WELCOME_WITH_CARD = "Ваша карта готова — нажмите, чтобы открыть.";
+const WELCOME_EMPTY =
+  "Здесь живут ваши карты лояльности — штампы за покупки и бесплатные напитки.\n\n" +
+  "Приложите телефон к NFC-подставке на стойке кофейни, чтобы начать.";
 
 /**
  * Bot updates. Two things matter to us: greeting someone who found the bot on
@@ -51,10 +52,18 @@ export async function POST(request: NextRequest) {
     const payload = message.text.slice("/start".length).trim();
     const target = payload.startsWith("t_") ? payload : await lastCardOf(message.from?.id);
 
-    await answerStart(message.chat.id, WELCOME, {
-      text: target ? "Открыть карту" : "Открыть Stampy",
-      url: miniAppLink(target ?? ""),
-    });
+    if (target) {
+      const url = `${env.appUrl.replace(/\/$/, "")}/card?startapp=${encodeURIComponent(target)}`;
+      await answerStart(message.chat.id, WELCOME_WITH_CARD, {
+        text: "Открыть карту",
+        webAppUrl: url,
+      });
+    } else {
+      await answerStart(message.chat.id, WELCOME_EMPTY, {
+        text: "Открыть Stampy",
+        webAppUrl: `${env.appUrl.replace(/\/$/, "")}/card`,
+      });
+    }
   }
 
   return NextResponse.json({ ok: true });

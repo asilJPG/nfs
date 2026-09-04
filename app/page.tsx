@@ -24,7 +24,7 @@ const STEPS = [
   },
   {
     title: "Карта заполнилась — гость возвращается",
-    body: "Бариста вводит четыре цифры, и напиток уходит по акции. Всё видно в статистике.",
+    body: "Гость показывает QR, бариста сканирует камерой — награда выдана. Всё видно в статистике.",
   },
 ];
 
@@ -58,10 +58,10 @@ export default function LandingPage() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/register"
+              href="/apply"
               className="rounded-2xl bg-bean px-6 py-3.5 font-medium text-white"
             >
-              Попробовать 30 дней бесплатно
+              Подать заявку
             </Link>
             <a
               href="https://t.me/stampy_support"
@@ -71,7 +71,7 @@ export default function LandingPage() {
             </a>
           </div>
           <p className="mt-3 text-sm text-ink-soft">
-            Настройка занимает пару минут. Карта работает сразу — ещё до того, как приедут подставки.
+            Оставьте контакт — свяжемся, обсудим и подготовим карту под ваш бренд.
           </p>
         </div>
 
@@ -119,14 +119,14 @@ export default function LandingPage() {
         <div className="mx-auto max-w-2xl px-5 text-center">
           <h2 className="text-2xl font-semibold">Попробуйте на одной точке</h2>
           <p className="mt-3 text-ink-soft">
-            30 дней бесплатно, со всеми функциями. Комплект на прилавок — подставка с NFC и табличка
-            с QR — привезём после регистрации.
+            Оставьте заявку — свяжемся, обсудим карту и привезём комплект: подставку с NFC
+            и табличку с QR.
           </p>
           <Link
-            href="/register"
+            href="/apply"
             className="mt-6 inline-block rounded-2xl bg-bean px-6 py-3.5 font-medium text-white"
           >
-            Создать карту
+            Оставить заявку
           </Link>
         </div>
       </section>

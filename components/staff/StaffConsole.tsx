@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { manualStampAction, redeemAction, type ActionResult } from "@/app/staff/actions";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { redeemAction, type ActionResult } from "@/app/staff/actions";
 
 type Venue = { id: string; name: string };
 
@@ -11,28 +11,89 @@ type Props = {
   defaultVenueId: string | null;
 };
 
-type Tab = "redeem" | "stamp";
+type ScanState =
+  | { kind: "idle" }
+  | { kind: "starting" }
+  | { kind: "scanning" }
+  | { kind: "unsupported" }
+  | { kind: "denied"; message: string };
 
-/** The whole cashier surface: two big inputs, one answer at a time. */
+/** Cashier surface: one camera, one QR to scan, one answer. */
 export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
-  const [tab, setTab] = useState<Tab>("redeem");
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
-  const [value, setValue] = useState("");
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [scan, setScan] = useState<ScanState>({ kind: "idle" });
   const [pending, startTransition] = useTransition();
 
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    const input = value;
-    startTransition(async () => {
-      const action = tab === "redeem" ? redeemAction : manualStampAction;
-      const outcome = await action(input, venueId);
-      setResult(outcome);
-      if (outcome.ok) setValue("");
-    });
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const detectorRef = useRef<any>(null);
+  const rafRef = useRef<number | null>(null);
+  const busyRef = useRef(false);
+
+  function stopCamera() {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
   }
 
-  const isRedeem = tab === "redeem";
+  useEffect(() => () => stopCamera(), []);
+
+  async function startScanner() {
+    setResult(null);
+    if (typeof window === "undefined" || !("BarcodeDetector" in window)) {
+      setScan({ kind: "unsupported" });
+      return;
+    }
+    setScan({ kind: "starting" });
+    try {
+      const Detector = (window as any).BarcodeDetector;
+      detectorRef.current = new Detector({ formats: ["qr_code"] });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      const video = videoRef.current!;
+      video.srcObject = stream;
+      await video.play();
+      setScan({ kind: "scanning" });
+      tick();
+    } catch (error: any) {
+      setScan({ kind: "denied", message: error?.message ?? "Не удалось открыть камеру." });
+    }
+  }
+
+  function tick() {
+    const video = videoRef.current;
+    const detector = detectorRef.current;
+    if (!video || !detector || !streamRef.current) return;
+    detector
+      .detect(video)
+      .then((codes: any[]) => {
+        if (codes && codes[0]?.rawValue && !busyRef.current) {
+          handleToken(codes[0].rawValue);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (streamRef.current) rafRef.current = requestAnimationFrame(tick);
+      });
+  }
+
+  function handleToken(rawToken: string) {
+    busyRef.current = true;
+    const token = rawToken.trim();
+    startTransition(async () => {
+      const outcome = await redeemAction(token, venueId);
+      setResult(outcome);
+      stopCamera();
+      setScan({ kind: "idle" });
+      setTimeout(() => (busyRef.current = false), 300);
+    });
+  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-4 py-6">
@@ -41,60 +102,57 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
         <h1 className="text-xl font-semibold">Касса</h1>
       </header>
 
-      <div className="grid grid-cols-2 gap-1 rounded-2xl bg-line/60 p-1">
-        {(["redeem", "stamp"] as Tab[]).map((option) => (
-          <button
-            key={option}
-            onClick={() => {
-              setTab(option);
-              setValue("");
-              setResult(null);
-            }}
-            className={`rounded-xl py-2.5 text-sm font-medium transition ${
-              tab === option ? "bg-white text-ink shadow-sm" : "text-ink-soft"
-            }`}
-          >
-            {option === "redeem" ? "Выдать награду" : "Начислить штамп"}
-          </button>
-        ))}
+      {venues.length > 1 && (
+        <select
+          value={venueId ?? ""}
+          onChange={(event) => setVenueId(event.target.value || null)}
+          className="w-full rounded-2xl border border-line bg-white px-4 py-3"
+        >
+          {venues.map((venue) => (
+            <option key={venue.id} value={venue.id}>
+              {venue.name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-black">
+        <video
+          ref={videoRef}
+          playsInline
+          muted
+          className={`h-full w-full object-cover ${scan.kind === "scanning" ? "" : "hidden"}`}
+        />
+        {scan.kind !== "scanning" && (
+          <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm text-white/80">
+            {scan.kind === "starting" && "Запускаем камеру…"}
+            {scan.kind === "idle" && "Наведите камеру на QR гостя"}
+            {scan.kind === "unsupported" &&
+              "Этот браузер не умеет сканировать QR. Откройте кассу в Chrome (Android) или Safari (iOS 17+)."}
+            {scan.kind === "denied" && `Не удалось открыть камеру: ${scan.message}`}
+          </div>
+        )}
       </div>
 
-      <form onSubmit={submit} className="flex flex-col gap-3">
-        <label className="text-sm text-ink-soft">
-          {isRedeem ? "Код награды из телефона гостя" : "Код карты гостя (6 символов)"}
-        </label>
-        <input
-          value={value}
-          onChange={(event) => setValue(isRedeem ? event.target.value.replace(/\D/g, "").slice(0, 4) : event.target.value.toUpperCase().slice(0, 6))}
-          inputMode={isRedeem ? "numeric" : "text"}
-          autoComplete="off"
-          autoFocus
-          placeholder={isRedeem ? "0000" : "AB12CD"}
-          className="w-full rounded-2xl border border-line bg-white px-4 py-5 text-center font-mono text-4xl tracking-[0.3em] outline-none focus:border-bean"
-        />
-
-        {venues.length > 1 && (
-          <select
-            value={venueId ?? ""}
-            onChange={(event) => setVenueId(event.target.value || null)}
-            className="w-full rounded-2xl border border-line bg-white px-4 py-3"
-          >
-            {venues.map((venue) => (
-              <option key={venue.id} value={venue.id}>
-                {venue.name}
-              </option>
-            ))}
-          </select>
-        )}
-
+      {scan.kind === "scanning" ? (
         <button
-          type="submit"
-          disabled={pending || value.length === 0}
+          onClick={() => {
+            stopCamera();
+            setScan({ kind: "idle" });
+          }}
+          className="rounded-2xl border border-line py-4 text-lg font-medium"
+        >
+          Остановить
+        </button>
+      ) : (
+        <button
+          onClick={startScanner}
+          disabled={pending}
           className="rounded-2xl bg-bean py-4 text-lg font-medium text-white disabled:opacity-50"
         >
-          {pending ? "Проверяем…" : isRedeem ? "Погасить" : "Поставить штамп"}
+          {pending ? "Проверяем…" : "Сканировать QR"}
         </button>
-      </form>
+      )}
 
       {result && (
         <p
@@ -107,8 +165,7 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
       )}
 
       <p className="mt-auto text-center text-xs text-ink-soft">
-        Штампы обычно ставятся сами — гость прикладывает телефон к подставке. Ручное начисление
-        нужно, только если это не сработало.
+        Штампы гость ставит сам, приложив телефон к подставке. На кассе — только выдача наград по QR.
       </p>
     </main>
   );

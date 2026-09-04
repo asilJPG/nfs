@@ -178,8 +178,8 @@ async function main() {
     [reward.id, GUEST],
   ).then((row) => row.issue_redeem_code);
   check(
-    "код погашения выдан, 4 цифры",
-    issued.ok === true && /^\d{4}$/.test(String(issued.code_value)),
+    "QR-токен погашения выдан",
+    issued.ok === true && /^[0-9a-f]{32}$/.test(String(issued.code_value)),
     issued,
   );
 

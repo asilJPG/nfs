@@ -88,6 +88,24 @@ export async function registerTag(input: {
   return { ok: true, message: `Метка ${result.uid} зарегистрирована.` };
 }
 
+export async function setApplicationStatus(
+  id: string,
+  status: "new" | "contacted" | "converted" | "rejected",
+): Promise<Result> {
+  await requirePlatformAdmin();
+  const supabase = await supabaseServer();
+  const { error } = await supabase.rpc("admin_set_application_status", {
+    p_id: id,
+    p_status: status,
+  });
+  if (error) {
+    console.error("admin_set_application_status failed", error);
+    return { ok: false, message: "Не удалось обновить заявку." };
+  }
+  revalidatePath("/admin");
+  return { ok: true, message: "Заявка обновлена." };
+}
+
 export async function setKitStatus(kitId: string, status: KitStatus): Promise<Result> {
   await requirePlatformAdmin();
   const supabase = await supabaseServer();
