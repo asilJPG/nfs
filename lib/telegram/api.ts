@@ -32,10 +32,7 @@ export type OutgoingMessage = {
   button?: { text: string; url: string } | null;
 };
 
-/**
- * One broadcast message. Failures are classified so the queue can react:
- * `blocked` retires the customer, `rate_limited` pauses the batch.
- */
+// одно сообщение рассылки; blocked → выключаем гостя, rate_limited → тормозим батч
 export async function sendMessage(message: OutgoingMessage): Promise<SendResult> {
   const markup = message.button
     ? { inline_keyboard: [[{ text: message.button.text, url: message.button.url }]] }

@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Nightly housekeeping: expire stale rewards, drop spent tap tokens. */
+// ночная уборка: сгорание наград, чистка одноразовых токенов
 export async function GET(request: NextRequest) {
   if (request.headers.get("authorization") !== `Bearer ${env.cronSecret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

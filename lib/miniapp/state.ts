@@ -32,7 +32,7 @@ type TenantBadge = { slug: string; name: string; logo_url: string | null };
 
 const HISTORY_LIMIT = 20;
 
-/** Everything the card screen needs, in one place, for one customer. */
+// всё что нужно экрану карты — одним запросом на одного гостя
 export async function loadState(tenantId: string, telegramId: number | null): Promise<MiniAppState | null> {
   const db = supabaseAdmin();
 
@@ -141,7 +141,7 @@ export type CardBadge = {
   stamps_required: number | null;
 };
 
-/** Все карты гостя — для главного экрана без выбранной кофейни. */
+// все карты гостя — для главного экрана без выбранной кофейни
 export async function listCards(telegramId: number): Promise<CardBadge[]> {
   const db = supabaseAdmin();
   const { data: customer } = await db

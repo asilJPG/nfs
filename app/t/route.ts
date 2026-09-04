@@ -68,10 +68,7 @@ function problemPage(problem: TapProblem, status: number): Response {
   });
 }
 
-/**
- * The URL burned into every NTAG 424: the phone opens this in a browser, we
- * verify the tap, mint a single-use token and bounce into the Telegram mini app.
- */
+// сюда прошита ссылка каждой метки: проверяем подпись, выдаём одноразовый токен, кидаем в мини-апп
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const picc = params.get("picc_data") ?? params.get("e");
@@ -103,9 +100,7 @@ export async function GET(request: NextRequest) {
   if (!tag.active) return problemPage("tag_disabled", 410);
   if (!tag.tenant_id) return problemPage("tag_unassigned", 409);
 
-  // Monotonic counter is the replay defence: the chip only ever counts up, so a
-  // copied URL never gets past this UPDATE. Doing it as a conditional write
-  // keeps two simultaneous taps from both winning.
+  // счётчик метки только растёт — условный апдейт отсекает и повтор ссылки, и одновременный тап с двух устройств
   const { data: advanced, error: counterError } = await db
     .from("stampy_nfc_tags")
     .update({ last_counter: tap.counter, last_seen_at: new Date().toISOString() })

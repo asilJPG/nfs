@@ -7,12 +7,6 @@ export type StaffContext = { staff: StaffUser; tenant: Tenant };
 
 type Client = Awaited<ReturnType<typeof supabaseServer>>;
 
-/**
- * Invited staff have a row with no auth_user_id until they first sign in;
- * claim_staff_invite() links the two by email. Costs one extra round trip only
- * on that very first visit.
- */
-/** Аккаунт и строка сотрудника создаются вместе, поэтому связь всегда готова. */
 async function findStaff(supabase: Client, userId: string): Promise<StaffUser | null> {
   const { data } = await supabase
     .from("stampy_staff_users")
@@ -23,10 +17,7 @@ async function findStaff(supabase: Client, userId: string): Promise<StaffUser | 
   return data ?? null;
 }
 
-/**
- * The gate for every staff page. Sends anonymous visitors to the login screen
- * and brand-new accounts to onboarding, so a page body can assume both exist.
- */
+// ворота для всех страниц сотрудника — тело страницы уже может рассчитывать что staff и tenant есть
 export async function requireStaff(): Promise<StaffContext> {
   const supabase = await supabaseServer();
   const {
@@ -42,7 +33,7 @@ export async function requireStaff(): Promise<StaffContext> {
     .select("*")
     .eq("id", staff.tenant_id)
     .maybeSingle();
-  // Only reachable if the tenant row vanished under us; treat it as signed out.
+  // если tenant пропал под нами — считаем разлогиненным
   if (!tenant) redirect("/login");
 
   return { staff, tenant };
@@ -71,7 +62,7 @@ export async function requirePlatformAdmin() {
   return { user };
 }
 
-/** Null instead of a redirect — for pages that render differently when signed out. */
+// без редиректа — для страниц, которые рендерятся иначе если не залогинен
 export async function currentStaff(): Promise<StaffContext | null> {
   const supabase = await supabaseServer();
   const {

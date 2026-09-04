@@ -7,7 +7,7 @@ const PLAN_FEATURES: Record<string, Feature[]> = {
   marketing: ["broadcasts", "advanced_analytics", "extra_venues"],
 };
 
-/** A trial gets everything, so the shop can see what it is paying for. */
+// на триале доступно всё — чтобы кофейня видела за что платит
 export function can(
   tenant: Pick<Tenant, "plan" | "subscription_status" | "trial_ends_at" | "subscription_until">,
   feature: Feature,
@@ -17,7 +17,7 @@ export function can(
   return PLAN_FEATURES[tenant.plan]?.includes(feature) ?? false;
 }
 
-/** Mirrors public.tenant_is_serving() in SQL — keep the two in step. */
+// зеркало public.tenant_is_serving() из SQL — держать в синке
 export function isServing(
   tenant: Pick<Tenant, "subscription_status" | "trial_ends_at" | "subscription_until">,
 ): boolean {

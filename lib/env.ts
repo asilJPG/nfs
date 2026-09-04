@@ -10,7 +10,7 @@ function optional(name: string): string | undefined {
   return process.env[name]?.trim() || undefined;
 }
 
-/** Server-only secrets. Reading a missing one throws at call time, not at import time. */
+// серверные секреты, отсутствующий бросает при чтении, не на импорте
 export const env = {
   get supabaseUrl() {
     return required("NEXT_PUBLIC_SUPABASE_URL");
@@ -52,7 +52,7 @@ export const env = {
   },
 };
 
-/** Deep link that opens the mini app with a payload (`startapp`). */
+// диплинк в мини-апп с payload'ом
 export function miniAppLink(startParam: string): string {
   return `https://t.me/${env.botUsername}/${env.miniAppShortName}?startapp=${encodeURIComponent(startParam)}`;
 }

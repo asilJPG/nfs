@@ -1,17 +1,9 @@
 import { createCipheriv, createDecipheriv, createHmac, timingSafeEqual } from "node:crypto";
 
-/**
- * NTAG 424 DNA "SUN" (Secure Unique NFC) verification — NXP AN12196.
- *
- * The tag writes two mirrors into the URL on every tap:
- *   picc_data — AES-CBC(K_meta) over [tag byte | UID(7) | tap counter(3) | padding]
- *   cmac      — 8 bytes of CMAC under a session key derived from K_mac(UID) + counter
- *
- * K_meta is one key for the whole fleet, because the UID is only readable after
- * decrypting, so it cannot itself be derived from the UID. K_mac is per tag, so
- * a leaked MAC key forges taps for one tag and no others. Both come from
- * NFC_MASTER_KEY and are never stored — only the UID is.
- */
+// NTAG 424 DNA SUN, NXP AN12196:
+//   picc_data — AES-CBC(K_meta) над [tag | UID(7) | counter(3) | padding]
+//   cmac      — 8 байт CMAC под сессионным ключом от K_mac(UID) + counter
+// K_meta общий (UID видно только после расшифровки), K_mac per-tag. Оба выводятся из NFC_MASTER_KEY.
 
 const BLOCK = 16;
 const ZERO_BLOCK = Buffer.alloc(BLOCK);
@@ -41,7 +33,7 @@ function shiftLeft(input: Uint8Array): Buffer {
   return out;
 }
 
-/** RFC 4493 AES-128-CMAC. Node has no native CMAC. */
+// RFC 4493 AES-128-CMAC, у node нет нативного
 export function aesCmac(key: Uint8Array, message: Uint8Array): Buffer {
   const l = aesEcbEncrypt(key, ZERO_BLOCK);
   const k1 = shiftLeft(l);
@@ -110,7 +102,7 @@ export function decryptPiccData(piccHex: string, metaKey: Uint8Array): PiccData 
   };
 }
 
-/** Session key for the read MAC: SV2 = 3Ch C3h 00h 01h 00h 80h || UID || counter. */
+// сессионный ключ для read MAC: SV2 = 3C C3 00 01 00 80 || UID || counter
 function sessionMacKey(macKey: Uint8Array, picc: PiccData): Buffer {
   const sv2 = Buffer.concat([
     Buffer.from([0x3c, 0xc3, 0x00, 0x01, 0x00, 0x80]),
@@ -120,7 +112,7 @@ function sessionMacKey(macKey: Uint8Array, picc: PiccData): Buffer {
   return aesCmac(macKey, sv2);
 }
 
-/** The tag sends every other byte of the CMAC, starting at index 1. */
+// метка шлёт каждый второй байт CMAC начиная с 1
 function truncate(mac: Uint8Array): Buffer {
   const out = Buffer.alloc(8);
   for (let i = 0; i < 8; i++) out[i] = mac[i * 2 + 1];
@@ -143,11 +135,7 @@ export function encryptPiccData(metaKey: Uint8Array, picc: PiccData): string {
   return Buffer.concat([cipher.update(plain), cipher.final()]).toString("hex").toUpperCase();
 }
 
-/**
- * Full check of one tap. Throws SunError; the caller maps that to a 400 page.
- * Replay protection lives in the database (counter must exceed the stored one),
- * because only the database knows what has already been seen.
- */
+// проверка одного тапа. Защита от повтора — в базе (counter должен вырасти)
 export function verifyTap(master: Uint8Array, piccHex: string, cmacHex: string): PiccData {
   if (!/^[0-9a-fA-F]{16}$/.test(cmacHex)) throw new SunError("malformed");
 

@@ -1,10 +1,7 @@
 import "server-only";
 import QRCode from "qrcode";
 
-/**
- * Inline SVG, so the tent card prints crisply at any size and needs no request
- * to an image host from inside the dashboard.
- */
+// SVG, чтобы табличку можно было печатать любого размера без внешних запросов
 export async function qrSvg(text: string, size = 240): Promise<string> {
   return QRCode.toString(text, {
     type: "svg",

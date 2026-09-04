@@ -5,7 +5,7 @@ const CYRILLIC: Record<string, string> = {
   э: "e", ю: "yu", я: "ya", ў: "u", қ: "q", ғ: "g", ҳ: "h",
 };
 
-/** Latin, lowercase, hyphenated — matches the slug CHECK constraint on tenants. */
+// латиница, нижний регистр, дефисы — под CHECK на tenants.slug
 export function slugify(input: string): string {
   return input
     .toLowerCase()

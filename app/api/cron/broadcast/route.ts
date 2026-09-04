@@ -8,28 +8,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Telegram tolerates ~30 messages/second to different chats; stay under it. */
+// Telegram терпит ~30 msg/s в разные чаты, держимся под этим
 const GAP_MS = 40;
 const BATCH = 300;
 const MAX_BROADCASTS_PER_RUN = 5;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Опустошает очередь рассылки: один вызов — по батчу на каждую активную
- * рассылку. Вызывать можно параллельно самим с собой, уже отправленные адресаты
- * отсекаются по статусу.
- *
- * Планировщик Vercel на тарифе Hobby умеет только раз в сутки, поэтому на него
- * рассылка не опирается: очередь заводится сразу после создания рассылки и сама
- * дотягивает себя следующим вызовом, пока остаются неотправленные. Ежедневный
- * cron остаётся страховкой на случай, если цепочка где-то оборвалась.
- */
+// Vercel Hobby-cron раз в сутки, поэтому очередь сама себя дотягивает после каждого батча;
+// cron — страховка если цепочка оборвалась
 export async function GET(request: NextRequest) {
   return drain(request);
 }
 
-/** Тот же обработчик для внутреннего запуска сразу после постановки в очередь. */
 export async function POST(request: NextRequest) {
   return drain(request);
 }

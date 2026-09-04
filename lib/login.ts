@@ -1,17 +1,9 @@
-/**
- * Логин вместо почты.
- *
- * Supabase Auth идентифицирует пользователя только email-адресом, поэтому для
- * каждого сотрудника заводится служебный адрес `<login>@stampy.local`. Он
- * существует лишь внутри Auth: письма на него не уходят, пользователю он не
- * показывается, а сам вход выглядит как «логин + пароль».
- */
+// Supabase Auth умеет только email — заводим служебный <login>@stampy.local, наружу не светит
 const LOGIN_DOMAIN = "stampy.local";
 
 export const LOGIN_PATTERN = /^[a-z0-9][a-z0-9._-]{2,30}[a-z0-9]$/;
 export const MIN_PASSWORD_LENGTH = 8;
 
-/** Приводит то, что ввёл человек, к каноническому логину. */
 export function normalizeLogin(input: string): string {
   return input.trim().toLowerCase().replace(/\s+/g, "-");
 }

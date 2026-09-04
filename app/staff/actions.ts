@@ -12,7 +12,7 @@ const REDEEM_ERRORS: Record<string, string> = {
   reward_expired: "Срок награды истёк.",
 };
 
-/** Barista scans the QR the guest shows. */
+// бариста сканит QR гостя
 export async function redeemAction(token: string, venueId: string | null): Promise<ActionResult> {
   const { tenant } = await requireStaff();
   const cleaned = token.trim();

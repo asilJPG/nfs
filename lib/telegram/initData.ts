@@ -27,11 +27,7 @@ export class InitDataError extends Error {
 
 const MAX_AGE_SECONDS = 24 * 60 * 60;
 
-/**
- * Development escape hatch: lets the card render in a plain browser, with no
- * Telegram around it. Refuses to exist in a production build, and stays off
- * until DEV_TELEGRAM_ID is set on purpose.
- */
+// dev-режим: карта в обычном браузере, без Telegram. В prod-сборке молча возвращает null
 export function devUser(): TelegramUser | null {
   if (process.env.NODE_ENV === "production") return null;
 
@@ -46,7 +42,6 @@ export function devUser(): TelegramUser | null {
   };
 }
 
-/** verifyInitData, but falling back to the dev user when one is configured. */
 export function resolveUser(raw: string | null | undefined): TelegramUser {
   if (!raw || raw === "dev") {
     const fallback = devUser();
@@ -55,12 +50,8 @@ export function resolveUser(raw: string | null | undefined): TelegramUser {
   return verifyInitData(raw).user;
 }
 
-/**
- * Verifies the signed payload Telegram hands the mini app.
- * https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
- * This is the only proof of identity a customer ever presents — nothing that
- * comes out of here may be taken from the request body instead.
- */
+// единственный источник идентичности гостя — брать что-то из тела запроса вместо этого нельзя
+// https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
 export function verifyInitData(raw: string | null | undefined): InitData {
   if (!raw) throw new InitDataError("missing");
 
@@ -106,7 +97,7 @@ export function verifyInitData(raw: string | null | undefined): InitData {
   };
 }
 
-/** Profile fields we mirror into `customers`. */
+// поля профиля, которые дублируем в stampy_customers
 export function profileOf(user: TelegramUser) {
   return {
     first_name: user.first_name ?? null,

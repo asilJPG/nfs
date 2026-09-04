@@ -5,11 +5,7 @@ import type { Database } from "@/types/db";
 
 let cached: SupabaseClient<Database> | null = null;
 
-/**
- * Service-role client. Bypasses RLS, so it must never be handed a value that
- * came straight from a request without being checked first. Used for mini-app
- * traffic (authenticated by Telegram initData, not by Postgres) and for cron.
- */
+// service-role: обходит RLS, никогда не сувать сюда сырьё из запроса без проверки
 export function supabaseAdmin(): SupabaseClient<Database> {
   if (!cached) {
     cached = createClient<Database>(env.supabaseUrl, env.supabaseServiceKey, {

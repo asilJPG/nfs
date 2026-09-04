@@ -13,7 +13,7 @@ const schema = z.object({
 
 export type SignInError = { message: string };
 
-/** Вход по логину и паролю. Почта в этом флоу не участвует вообще. */
+// вход по логину и паролю — почта чисто служебная
 export async function signIn(input: z.input<typeof schema>): Promise<SignInError | never> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { message: "Введите логин и пароль." };

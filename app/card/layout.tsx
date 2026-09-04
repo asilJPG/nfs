@@ -14,11 +14,7 @@ const FALLBACK: Brand = {
   card_style: "circles",
 };
 
-/**
- * Returning customers get their shop's colours painted server-side, straight
- * from the cookie the last session left behind — no flash of our own palette
- * while the card loads.
- */
+// красим фон брендом из cookie, чтобы не мигало пока грузится карта
 export default async function CardLayout({ children }: { children: React.ReactNode }) {
   const tenantId = await rememberedTenant();
   let brand = FALLBACK;

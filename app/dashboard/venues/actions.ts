@@ -72,10 +72,7 @@ const staffSchema = z.object({
   venueId: z.string().uuid().nullable(),
 });
 
-/**
- * Заводит сотруднику аккаунт и строку в одной операции: владелец сам придумывает
- * логин и пароль и передаёт их лично. Ни одного письма не отправляется.
- */
+// владелец сам придумывает логин с паролем и передаёт лично
 export async function createStaff(input: {
   login: string;
   password: string;
@@ -126,7 +123,7 @@ export async function createStaff(input: {
   return { ok: true, message: `Готово. Логин ${login} — передайте пароль сотруднику лично.` };
 }
 
-/** Пароль забыли — владелец назначает новый, без всякой почты. */
+// пароль забыли — владелец назначает новый
 export async function resetStaffPassword(staffId: string, password: string): Promise<Result> {
   const { tenant } = await requireRole("owner", "manager");
   if (password.length < MIN_PASSWORD_LENGTH) {

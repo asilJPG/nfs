@@ -14,7 +14,7 @@ const tagSchema = z.object({
   active: z.boolean(),
 });
 
-/** A shop can place a tag and switch it off; it cannot re-key or reassign it. */
+// кофейня может привязать метку и выключить; перепрошить или переприсвоить — нельзя
 export async function updateTag(input: z.input<typeof tagSchema>): Promise<Result> {
   const { tenant } = await requireRole("owner", "manager");
   const parsed = tagSchema.safeParse(input);
@@ -48,7 +48,7 @@ const kitSchema = z.object({
   venueId: z.string().uuid().nullable(),
 });
 
-/** Orders the counter kit: branded NFC stand plus the QR tent card. */
+// заказ комплекта на прилавок — подставка с NFC + QR-табличка
 export async function requestKit(input: z.input<typeof kitSchema>): Promise<Result> {
   const { tenant } = await requireRole("owner", "manager");
   const parsed = kitSchema.safeParse(input);

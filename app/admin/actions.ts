@@ -56,10 +56,7 @@ const tagSchema = z.object({
   label: z.string().trim().max(60).optional(),
 });
 
-/**
- * Registers a physical tag after it has been programmed. Keys are never stored
- * or shown here — they are derived from NFC_MASTER_KEY by scripts/mock-tag.ts.
- */
+// UID меток заводим тут после прошивки, ключи не храним — они выводятся из NFC_MASTER_KEY
 export async function registerTag(input: {
   uid: string;
   tenantId: string | null;
@@ -109,10 +106,6 @@ const CREATE_ERRORS: Record<string, string> = {
   user_not_found: "Не удалось создать аккаунт владельца.",
 };
 
-/**
- * Платформенный админ вручную заводит кофейню по заявке: создаёт auth-аккаунт
- * владельцу, создаёт тенант через admin_create_tenant, помечает заявку converted.
- */
 export async function createTenantFromApplication(input: {
   applicationId?: string;
   name: string;

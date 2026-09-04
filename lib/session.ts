@@ -10,11 +10,7 @@ function sign(value: string): string {
   return createHmac("sha256", env.sessionSecret).update(value).digest("base64url");
 }
 
-/**
- * Remembers which coffee shop this phone was last looking at, so a returning
- * customer opening the mini app from the bot menu lands on the right card and
- * the server can paint the right brand colours before any JS runs.
- */
+// запоминаем последнюю открытую кофейню — чтобы бренд рисовался ещё до JS
 export async function rememberTenant(tenantId: string): Promise<void> {
   const store = await cookies();
   store.set(COOKIE, `${tenantId}.${sign(tenantId)}`, {

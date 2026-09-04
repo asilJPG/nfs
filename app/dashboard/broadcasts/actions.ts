@@ -39,7 +39,7 @@ export async function segmentSize(segment: Segment): Promise<number> {
   return data ?? 0;
 }
 
-/** Creates the draft and immediately materialises its audience. */
+// создаёт черновик и сразу материализует аудиторию
 export async function sendBroadcast(input: z.input<typeof draftSchema>): Promise<Result> {
   const { tenant, staff } = await requireRole("owner", "manager");
   if (!can(tenant, "broadcasts")) {

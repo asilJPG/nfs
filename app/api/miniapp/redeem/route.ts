@@ -12,7 +12,7 @@ const bodySchema = z.object({
   rewardId: z.string().uuid(),
 });
 
-/** Turns a reward into a 4-digit code the barista types in. Ownership is checked in SQL. */
+// выдаёт токен для QR — принадлежность награды проверяется в SQL
 export async function POST(request: NextRequest) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

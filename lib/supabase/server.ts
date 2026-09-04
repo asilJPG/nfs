@@ -4,7 +4,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { env } from "@/lib/env";
 import type { Database } from "@/types/db";
 
-/** Staff-facing client: runs as the signed-in user, so RLS applies. */
+// клиент для сотрудников — от лица залогиненного, RLS работает
 export async function supabaseServer() {
   const store = await cookies();
   return createServerClient<Database>(env.supabaseUrl, env.supabaseAnonKey, {
@@ -14,7 +14,7 @@ export async function supabaseServer() {
         try {
           for (const { name, value, options } of list) store.set(name, value, options);
         } catch {
-          // Called from a Server Component: middleware already refreshed the session.
+          // если вызвано из Server Component — сессию уже освежил middleware
         }
       },
     },

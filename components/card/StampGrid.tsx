@@ -11,11 +11,11 @@ type Props = {
   filled: number;
   total: number;
   style: Brand["card_style"];
-  /** Index that should play the stamping animation, if a stamp just landed. */
+  // индекс, который должен проиграть анимацию штампа
   justStamped?: number | null;
 };
 
-/** The paper punch card: one slot per stamp, filled left to right. */
+// та самая бумажная карточка: клетка на штамп, слева направо
 export function StampGrid({ filled, total, style, justStamped }: Props) {
   const columns = total <= 6 ? 3 : total <= 12 ? 4 : 5;
 

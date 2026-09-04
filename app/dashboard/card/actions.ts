@@ -32,11 +32,7 @@ const schema = z.object({
 
 export type CardSettingsInput = z.input<typeof schema>;
 
-/**
- * Saves brand and card rules together — they are one decision for the owner.
- * Changing stamps_required does not touch cards already in progress: existing
- * counts stay, the new target simply applies from the next stamp.
- */
+// stamps_required меняется без сброса — накопленное сохраняется, новый порог со следующего штампа
 export async function saveCardSettings(input: CardSettingsInput): Promise<SaveResult> {
   const { tenant } = await requireRole("owner", "manager");
 

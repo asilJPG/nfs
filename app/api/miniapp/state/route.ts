@@ -26,11 +26,6 @@ export type StateResponse =
 
 const SLUG_PREFIX = "t_";
 
-/**
- * The mini app's only entry point. It authenticates the customer with Telegram's
- * signed payload, works out which coffee shop this session is about, banks the
- * stamp if the customer arrived by tapping a tag, and returns the card.
- */
 export async function POST(request: NextRequest) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
