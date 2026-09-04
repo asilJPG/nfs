@@ -40,7 +40,17 @@ export async function POST(request: NextRequest) {
     user = resolveUser(parsed.data.initData);
   } catch (error) {
     const code = error instanceof InitDataError ? error.code : "invalid";
-    return NextResponse.json({ error: code }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: code,
+        debug: {
+          initDataLen: parsed.data.initData.length,
+          initDataHead: parsed.data.initData.slice(0, 200),
+          nodeEnv: process.env.NODE_ENV,
+        },
+      },
+      { status: 401 },
+    );
   }
 
   const db = supabaseAdmin();
