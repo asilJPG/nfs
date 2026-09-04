@@ -50,7 +50,9 @@ export function CardScreen() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        setScreen({ step: "failed", message: FAILURES[payload.error] ?? FAILURES.server });
+        const base = FAILURES[payload.error] ?? FAILURES.server;
+        const debug = payload.debug ? `\n\nDEBUG: ${JSON.stringify(payload.debug)}` : "";
+        setScreen({ step: "failed", message: base + debug });
         return;
       }
       applyBrand(payload.state.tenant.brand);
@@ -278,8 +280,8 @@ function Splash() {
 
 function Message({ text }: { text: string }) {
   return (
-    <div className="grid min-h-dvh place-items-center px-8 text-center">
-      <p className="max-w-xs text-sm opacity-70">{text}</p>
+    <div className="grid min-h-dvh place-items-center px-4 text-center">
+      <p className="max-w-full whitespace-pre-wrap break-all text-sm opacity-70">{text}</p>
     </div>
   );
 }
