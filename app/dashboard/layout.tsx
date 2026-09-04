@@ -15,7 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate font-semibold">{tenant.name}</p>
-            <p className="text-xs text-ink-soft">{staff.email}</p>
+            <p className="text-xs text-ink-soft">{staff.username}</p>
           </div>
           <form action="/auth/signout" method="post">
             <button className="rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft">

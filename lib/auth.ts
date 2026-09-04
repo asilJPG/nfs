@@ -35,7 +35,7 @@ export async function requireStaff(): Promise<StaffContext> {
   if (!user) redirect("/login");
 
   const staff = await findStaff(supabase, user.id);
-  if (!staff) redirect("/register");
+  if (!staff) redirect("/login");
 
   const { data: tenant } = await supabase
     .from("stampy_tenants")
