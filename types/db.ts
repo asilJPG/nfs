@@ -321,6 +321,22 @@ export type Database = {
         Args: { p_id: string; p_status: "new" | "contacted" | "converted" | "rejected" };
         Returns: void;
       };
+      admin_platform_overview: {
+        Args: Record<string, never>;
+        Returns: unknown;
+      };
+      admin_guests_search: {
+        Args: { p_query: string | null; p_limit: number };
+        Returns: unknown;
+      };
+      admin_guest_detail: {
+        Args: { p_customer: string };
+        Returns: unknown;
+      };
+      admin_set_guest_blocked: {
+        Args: { p_customer: string; p_blocked: boolean };
+        Returns: void;
+      };
       claim_broadcast_batch: {
         Args: { p_broadcast: string; p_batch: number };
         Returns: { id: string; telegram_id: number; customer_id: string }[];

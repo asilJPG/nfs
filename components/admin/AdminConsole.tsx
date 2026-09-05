@@ -16,7 +16,7 @@ import {
 import { slugify } from "@/lib/slug";
 import type { KitOrder, SubscriptionStatus, TenantPlan, TenantSummary } from "@/types/db";
 
-type Application = {
+export type Application = {
   id: string;
   cafe_name: string;
   city: string | null;
@@ -28,7 +28,7 @@ type Application = {
   created_at: string;
 };
 
-type Tag = {
+export type Tag = {
   uid: string;
   label: string | null;
   tenant_id: string | null;
@@ -230,7 +230,7 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
   );
 }
 
-function TenantRow({
+export function TenantRow({
   tenant,
   pending,
   onSave,
@@ -399,7 +399,7 @@ function TenantRow({
 
 const input = "rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-bean";
 
-function CreateTenantSection({
+export function CreateTenantSection({
   pending,
   onSave,
 }: {
@@ -535,7 +535,7 @@ function CreateTenantSection({
   );
 }
 
-function ApplicationRow({
+export function ApplicationRow({
   application,
   pending,
   onSave,

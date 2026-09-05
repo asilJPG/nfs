@@ -2,15 +2,29 @@ import Link from "next/link";
 import { requireStaff } from "@/lib/auth";
 import { can, daysLeftInTrial } from "@/lib/plan";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
+import { stopImpersonatingAction } from "@/app/admin/actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { staff, tenant } = await requireStaff();
+  const { staff, tenant, impersonating } = await requireStaff();
   const trialDays = daysLeftInTrial(tenant);
+  const stopImp = stopImpersonatingAction.bind(null, `/admin/tenants/${tenant.id}`);
 
   return (
     <div className="min-h-dvh bg-cream">
+      {impersonating && (
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-100 px-4 py-2 text-sm text-amber-900">
+          <span>
+            Вы смотрите как владелец <b>{tenant.name}</b>. Действия сохраняются.
+          </span>
+          <form action={stopImp}>
+            <button className="rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs">
+              Выйти из режима
+            </button>
+          </form>
+        </div>
+      )}
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">

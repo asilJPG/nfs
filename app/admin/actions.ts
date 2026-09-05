@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { LOGIN_PATTERN, MIN_PASSWORD_LENGTH, loginToAuthEmail, normalizeLogin } from "@/lib/login";
 import { SLUG_PATTERN } from "@/lib/slug";
+import { clearImpersonation, setImpersonation } from "@/lib/impersonate";
 import type { KitStatus, SubscriptionStatus, TenantPlan } from "@/types/db";
 
 export type Result = { ok: boolean; message: string };
@@ -290,6 +292,32 @@ export async function setApplicationStatus(
   }
   revalidatePath("/admin");
   return { ok: true, message: "Заявка обновлена." };
+}
+
+export async function impersonateTenantAction(tenantId: string): Promise<void> {
+  await requirePlatformAdmin();
+  await setImpersonation(tenantId);
+  redirect("/dashboard");
+}
+
+export async function stopImpersonatingAction(returnTo?: string): Promise<void> {
+  await clearImpersonation();
+  redirect(returnTo && returnTo.startsWith("/") ? returnTo : "/admin/tenants");
+}
+
+export async function setGuestBlocked(customerId: string, blocked: boolean): Promise<Result> {
+  await requirePlatformAdmin();
+  const supabase = await supabaseServer();
+  const { error } = await supabase.rpc("admin_set_guest_blocked", {
+    p_customer: customerId,
+    p_blocked: blocked,
+  });
+  if (error) {
+    console.error("admin_set_guest_blocked failed", error);
+    return { ok: false, message: "Не удалось обновить гостя." };
+  }
+  revalidatePath(`/admin/guests/${customerId}`);
+  return { ok: true, message: blocked ? "Гость заблокирован." : "Гость разблокирован." };
 }
 
 export async function setKitStatus(kitId: string, status: KitStatus): Promise<Result> {
