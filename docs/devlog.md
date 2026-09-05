@@ -274,6 +274,148 @@ curl -X POST "$URL/rest/v1/stampy_platform_admins" -H "apikey: $SERVICE_KEY" \
   -d '{"auth_user_id":"<id>","email":"admin@stampy.local"}'
 ```
 
+## Сессия 5 сентября 2026 — аудит и админка
+
+### Аудит безопасности
+
+Прогнал полный аудит (subagent) на 15 находок; закрыто 14, оставлена одна.
+
+**Закрытые:**
+
+1. **CRITICAL — угон владельца через управляющего.** `resetStaffPassword` под
+   `requireRole("owner","manager")` использовал service_role для смены пароля.
+   Управляющий мог сбросить пароль владельцу и войти как он. Фикс:
+   `app/dashboard/venues/actions.ts` — check ролей caller vs target перед
+   вызовом `auth.admin.updateUserById`. Управляющий больше не может ронять
+   пароль ни владельцу, ни другому управляющему.
+2. **HIGH — дубли рассылки при параллельных drain.** Два одновременных
+   `drain()` брали одни и те же `pending` таргеты. Фикс: RPC
+   `claim_broadcast_batch` (миграция `0014`) с `FOR UPDATE SKIP LOCKED` +
+   колонка `claimed_at`. Только один воркер получает батч, `claimed_at` старше
+   5 минут перезаявляется.
+3. **HIGH — `updateTag`/`requestKit`/`createStaff` принимали чужой `venue_id`.**
+   RLS проверял только `tenant_id`. Управляющий мог тыкать метку на venue
+   чужой кофейни. Фикс: явная проверка `(id, tenant_id)` перед update/insert.
+4. **HIGH — `initData` жил 24 часа.** Скриншот с `initData` = валидная
+   идентичность гостя на сутки. `lib/telegram/initData.ts`: `MAX_AGE_SECONDS`
+   → 10 мин.
+5. **HIGH — `devUser` байпас через `NODE_ENV`.** Если `NODE_ENV != "production"`
+   (пусто, `"prod"`, `"development"`), любой мог POSTить `{"initData":"dev"}`
+   и стать `DEV_TELEGRAM_ID`. Теперь гейт на явный `STAMPY_DEV_MODE=1`.
+6. **HIGH — `/apply` без rate-limit.** Скрапер мог залить 100k заявок. Cap 3
+   в сутки на телефон.
+7. **HIGH #15 — управляющий заводит управляющих.** `createStaff` теперь режет
+   `role !== "cashier"` для caller.role !== "owner".
+8. **MEDIUM — `gen_code` на `random()`.** Не CSPRNG. Заменено на
+   `gen_random_uuid()` в миграции `0015`. Работает и на PGlite (в
+   `verify-sql`), и на Supabase — без `pgcrypto` extension. `public_code`
+   карт больше не предсказуем.
+9. **MEDIUM — webhook `my_chat_member` писал по `from.id`.** В private ок,
+   в группах багало. Теперь `chat.id` и только для `chat.type === "private"`.
+10. **MEDIUM — `stamp_tokens` жили 2 суток.** TTL самого токена 3 мин, чистка
+    была раз в сутки → раздувалась таблица. `expire_stale` → 1 час.
+11. **MEDIUM — `redeem_reward` принимал чужой `p_venue`.** Cross-tenant leak
+    в аналитику. Проверка `(venue, tenant)` в SQL.
+12. **MEDIUM — `daily_broadcast_cap` считал рассылки, не сообщения.** Одна
+    кампания на всю базу гостей проходила. Миграция `0016`: новая колонка
+    `daily_recipient_cap` (по умолч. 5000), `queue_broadcast` считает
+    суммарных получателей за день.
+13. **LOW — cookie `stampy_tenant` без `__Host-` префикса.** Переименовано в
+    `__Host-stampy_tenant`, старое имя — fallback для чтения до истечения.
+14. **LOW — новые `admin_*` функции без явного `revoke`.** Миграция `0015`
+    добавляет `revoke ... from public, anon` + `grant ... to authenticated`
+    на всех: `admin_set_application_status`, `admin_create_tenant`,
+    `admin_update_tenant`, `admin_delete_tenant`, `admin_delete_tag`,
+    `admin_tenant_owner`.
+
+**Оставлено:** #10 (`admin_delete_tenant` + auth-юзер не атомарны). Сирота
+auth-аккаунт безобиден: без `stampy_staff_users` строки `requireStaff`
+редиректит на `/login`. Если когда-то станет мешать — nightly cleanup в
+`expire_stale`.
+
+### Telegram-уведомление о заявках
+
+`/apply` → если `ADMIN_TELEGRAM_ID` задан, бот шлёт админу сообщение с
+контактами и кнопкой «Открыть админку». Работает и в личку (id пользователя),
+и в группу/канал (id с минусом). Требует чтобы бот хотя бы раз получил
+сообщение от адресата (Telegram не даёт слать в никуда).
+
+### Переработка `/admin` — панель, а не сплошная страница
+
+**Табы** (`app/admin/layout.tsx` + `components/admin/AdminTabs.tsx`):
+Обзор / Кофейни / Гости / Заявки / Метки. Активная подчёркивается.
+
+**Обзор** (`/admin`) — тайлы, каждый кликабельный. RPC
+`admin_platform_overview` (миграция `0017`) возвращает одним jsonb: активных
+кофеен, платящих, новых за неделю, гостей всего/активны за 30 дн, штампов
+сегодня/за 7 дн, наград за 7 дн, заявок открытых, меток всего/без привязки.
+
+**Гости** (`/admin/guests`) — SSR-поиск с `?q=` через RPC
+`admin_guests_search(text, int)` (ILIKE по имени/username/telegram_id).
+Показывает агрегаты: карт, штампов, наград, дата последнего штампа.
+
+**Карточка гостя** (`/admin/guests/[id]`) — RPC `admin_guest_detail`
+возвращает jsonb с массивами cards + recent_stamps. Действие «заблокировать»
+через `admin_set_guest_blocked` — переводит `can_message = false` +
+`blocked_at`, чтобы рассылка не долбилась.
+
+**Карточка кофейни** (`/admin/tenants/[id]`) — точки, сотрудники, число
+меток, последние 25 штампов, кнопка **«Войти как владелец»**.
+
+**Импресонация** (`lib/impersonate.ts` + правки `lib/auth.ts`):
+
+- Подписанный cookie `__Host-stampy_impersonate` = `<tenantId>.<hmac>`,
+  подпись HMAC-SHA256 от `SESSION_SECRET`, TTL 2 часа.
+- `requireStaff`: если у платформенного админа выставлен cookie, вытаскиваем
+  владельца этого tenant'а из `stampy_staff_users` и возвращаем контекст с
+  `impersonating: true`. Сотрудник смотрит своими глазами (все действия
+  реально выполняются).
+- В шапке дашборда жёлтый баннер «Вы смотрите как владелец X · Выйти из
+  режима» → `stopImpersonatingAction` чистит cookie и возвращает на
+  `/admin/tenants/{id}`.
+
+### Рефакторинг компонентов админки
+
+`components/admin/AdminConsole.tsx` (679 строк) разбит: секции экспортируются
+(`TenantRow`, `ApplicationRow`, `CreateTenantSection`), под каждый таб —
+свой Panel (`TenantsPanel`, `ApplicationsPanel`, `TagsPanel`, `GuestsPanel`).
+Общий помощник `components/admin/shared.ts` с `useAdminAction()` hook
+(notice + pending + run) и стилевой константой `input`.
+
+Старый `AdminConsole` main-export остался, но никем не используется — можно
+удалить в следующую волну.
+
+### Косметика и чистка комментариев
+
+Прошёл grep'ом по `app/`/`lib/`/`components/` — снёс/переписал ~30 JSDoc-
+блоков в английском стиле с многострочным prose. Оставил только те, где
+объясняется WHY (не WHAT) — короткие русские однострочники. Файл в среднем
+стал на 5–10 строк короче.
+
+### Обновлённые ENV
+
+Локально в `.env.local` можно добавить (для запуска мини-аппа в браузере):
+
+```
+STAMPY_DEV_MODE=1
+DEV_TELEGRAM_ID=2141257356
+NEXT_PUBLIC_DEV_MINIAPP=1
+```
+
+Без `STAMPY_DEV_MODE=1` dev-режим не работает — `NODE_ENV` больше не гейт.
+
+На Vercel добавьте:
+
+```
+ADMIN_TELEGRAM_ID=<ваш id или -100... для группы>
+```
+
+### Что применить на Supabase (по порядку)
+
+`0014_broadcast_atomic_claim.sql`, `0015_audit_medium_fixes.sql`,
+`0016_audience_cap.sql`, `0017_platform_stats.sql` — все SQL-Editor'ом.
+`verify-sql` подтверждает применимость на PGlite.
+
 ## Ссылки
 
 - `docs/deploy.md` — деплой на Vercel, переменные окружения, cron.
