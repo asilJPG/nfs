@@ -187,71 +187,72 @@ export function CardScreen() {
 
       {claim && <ClaimBanner claim={claim} />}
 
-      {/* Основная карта: цветная плашка кофейни, внутри белая панель со штампами */}
+      {/* Карта по референсу кошелька: знак и название сверху, белая панель с
+          кодом в середине, снизу две колонки со статусом */}
       <section
-        className="rounded-[26px] p-5"
+        className="relative overflow-hidden rounded-[28px] p-5"
         style={{ background: cardFill, color: cardInk }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Monogram name={tenant.name} logoUrl={tenant.logo_url} ink={cardInk} />
+        {/* крупный знак кофейни фоном — на месте иллюстрации из референса */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-6 -top-8 text-[132px] font-black leading-none"
+          style={{ opacity: cardInk === "#141414" ? 0.07 : 0.1 }}
+        >
+          {tenant.name.slice(0, 1).toUpperCase()}
+        </span>
+
+        <div className="relative">
+          <Monogram name={tenant.name} logoUrl={tenant.logo_url} ink={cardInk} size={34} />
+
+          <h2 className="mt-3.5 truncate text-[21px] font-extrabold leading-tight tracking-tight">
+            {tenant.name}
+          </h2>
+          <p className="truncate text-[12px]" style={{ opacity: 0.7 }}>
+            {program.reward_title}
+          </p>
+
+          <div className="mt-4 rounded-[18px] bg-white px-4 pb-3 pt-4">
+            <StampGrid
+              filled={filled}
+              total={program.stamps_required}
+              style={tenant.brand.card_style}
+              justStamped={justStamped}
+            />
+            <p className="mt-3 text-center text-[11px] font-medium tracking-[0.32em] text-neutral-400">
+              {formatCode(card?.public_code)}
+            </p>
+          </div>
+
+          <div className="mt-4 flex items-end justify-between gap-4">
             <div className="min-w-0">
-              <h2 className="truncate text-[20px] font-extrabold leading-tight tracking-tight">
-                {tenant.name}
-              </h2>
-              <p className="truncate text-[12px]" style={{ opacity: 0.72 }}>
-                {program.reward_title}
+              <p className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
+                Собрано
+              </p>
+              <p className="text-[15px] font-bold tabular-nums">
+                {filled} из {program.stamps_required}
+              </p>
+            </div>
+            <div className="min-w-0 text-right">
+              <p className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
+                Статус
+              </p>
+              <p className="truncate text-[15px] font-bold">
+                {state.rewards.length > 0
+                  ? "награда готова"
+                  : remaining === 0
+                    ? "начисляется"
+                    : `ещё ${remaining} ${plural(remaining, "штамп", "штампа", "штампов")}`}
               </p>
             </div>
           </div>
-          <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
-            style={{
-              background: cardInk === "#141414" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)",
-            }}
-          >
-            {remaining === 0 ? "готово" : `ещё ${remaining}`}
-          </span>
-        </div>
 
-        <div className="mt-5 rounded-[16px] bg-white px-4 py-4">
-          <StampGrid
-            filled={filled}
-            total={program.stamps_required}
-            style={tenant.brand.card_style}
-            justStamped={justStamped}
-          />
-          <p className="mt-3 text-center text-[11px] font-medium text-neutral-400">
-            {remaining === 0
-              ? "Карта заполнена — заберите награду"
-              : `Ещё ${remaining} ${plural(remaining, "штамп", "штампа", "штампов")} до награды`}
-          </p>
+          {program.reward_description && (
+            <p className="mt-3 text-[11px] leading-relaxed" style={{ opacity: 0.7 }}>
+              {program.reward_description}
+            </p>
+          )}
         </div>
-
-        <div className="mt-4 flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
-              Собрано
-            </p>
-            <p className="text-[15px] font-bold tabular-nums">
-              {filled} из {program.stamps_required}
-            </p>
-          </div>
-          <div className="min-w-0 text-right">
-            <p className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
-              Награда
-            </p>
-            <p className="truncate text-[15px] font-bold">
-              {state.rewards.length > 0 ? "готова" : remaining === 0 ? "начисляется" : "копится"}
-            </p>
-          </div>
-        </div>
-
-        {program.reward_description && (
-          <p className="mt-3 text-[11px] leading-relaxed" style={{ opacity: 0.7 }}>
-            {program.reward_description}
-          </p>
-        )}
       </section>
 
       {state.rewards.length > 0 && (
@@ -324,8 +325,6 @@ export function CardScreen() {
         </section>
       )}
 
-      <AddCardHint />
-
       {openReward && (
         <RewardSheet
           reward={openReward}
@@ -363,22 +362,6 @@ function WalletHeader({ title, subtitle }: { title: string; subtitle?: string })
         )}
       </span>
     </header>
-  );
-}
-
-/** Пилюля внизу экрана — место кнопки «Add to Wallet» в референсе. */
-function AddCardHint() {
-  return (
-    <details className="group mt-1">
-      <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] py-3.5 text-[13px] font-semibold text-neutral-200 transition-colors hover:bg-white/10">
-        <span className="text-[15px] leading-none">+</span>
-        Добавить карту
-      </summary>
-      <p className="mt-2 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-[12px] leading-relaxed text-neutral-400">
-        Приложите телефон к NFC-подставке на стойке кофейни или отсканируйте QR-код рядом с кассой —
-        карта появится здесь сама.
-      </p>
-    </details>
   );
 }
 
@@ -472,7 +455,6 @@ function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: strin
           />
         ))}
       </div>
-      <AddCardHint />
     </main>
   );
 }
@@ -502,6 +484,12 @@ function applyBrand(brand: MiniAppState["tenant"]["brand"]) {
   // шапка и фон Telegram — под тёмную оболочку кошелька, не под бренд кофейни
   window.Telegram?.WebApp?.setBackgroundColor?.("#0e0f11");
   window.Telegram?.WebApp?.setHeaderColor?.("#0e0f11");
+}
+
+/** Код карты под штампами — аналог номера под штрихкодом в кошельке. */
+function formatCode(code: string | undefined): string {
+  if (!code) return "";
+  return code.toUpperCase().replace(/(.{4})(?=.)/g, "$1 ");
 }
 
 function plural(count: number, one: string, few: string, many: string): string {
