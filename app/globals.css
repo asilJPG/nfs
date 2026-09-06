@@ -374,6 +374,30 @@ body {
   animation: stamp-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Раздача карт при открытии кошелька: карты стартуют сложенными в стопку на
+   месте первой, чуть повёрнутыми, и разъезжаются по списку с задержкой. */
+@keyframes deal {
+  from {
+    transform: translateY(calc(var(--deal-index) * -164px)) scale(0.94)
+      rotate(calc(var(--deal-index) * -1.2deg));
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.animate-deal {
+  animation: deal 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--deal-index) * 70ms);
+  transform-origin: 50% 0;
+  will-change: transform;
+}
+
 @keyframes rise {
   from {
     transform: translateY(12px);
@@ -391,7 +415,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-stamp,
-  .animate-rise {
+  .animate-rise,
+  .animate-deal {
     animation: none;
   }
 }

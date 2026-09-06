@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   initData: z.string(),
   startParam: z.string().max(128).optional(),
+  wallet: z.boolean().optional(),
 });
 
 export type ClaimOutcome =
@@ -40,6 +41,15 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const code = error instanceof InitDataError ? error.code : "invalid";
     return NextResponse.json({ error: code }, { status: 401 });
+  }
+
+  // wallet: true — гость сам открыл список карт. Тут нельзя подставлять
+  // запомненную кофейню, иначе экран «Мои карты» никогда не показался бы.
+  if (parsed.data.wallet) {
+    const cards = await listCards(user.id);
+    return NextResponse.json({ cards } satisfies StateResponse, {
+      headers: { "cache-control": "no-store" },
+    });
   }
 
   const db = supabaseAdmin();

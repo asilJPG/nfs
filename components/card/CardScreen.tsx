@@ -61,11 +61,9 @@ export function CardScreen() {
         return;
       }
       if ("cards" in payload) {
-        // Одна карта — сразу открываем её, без промежуточного списка.
-        if (payload.cards.length === 1) {
-          void load(`t_${payload.cards[0].slug}`);
-          return;
-        }
+        // Кошелёк «Мои карты» — стартовый экран, даже если карта одна.
+        // Прямо в карту заходим только по тапу метки: тогда прилетает startParam
+        // и сервер отдаёт уже состояние карты, а не список.
         setScreen({ step: "cards", cards: payload.cards });
         return;
       }
@@ -74,6 +72,26 @@ export function CardScreen() {
       if (payload.claim?.kind === "stamped") {
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
       }
+    } catch {
+      setScreen({ step: "failed", message: FAILURES.server });
+    }
+  }, []);
+
+  // Кошелёк «Мои карты»: список всех карт гостя, без подстановки последней кофейни.
+  const loadWallet = useCallback(async () => {
+    setScreen({ step: "loading" });
+    try {
+      const response = await fetch("/api/miniapp/state", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ initData: initDataRef.current, wallet: true }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setScreen({ step: "failed", message: FAILURES[payload.error] ?? FAILURES.server });
+        return;
+      }
+      setScreen({ step: "cards", cards: payload.cards ?? [] });
     } catch {
       setScreen({ step: "failed", message: FAILURES.server });
     }
@@ -89,7 +107,9 @@ export function CardScreen() {
       // ?startapp=… stands in for the payload Telegram would have passed.
       if (process.env.NEXT_PUBLIC_DEV_MINIAPP === "1") {
         initDataRef.current = "dev";
-        void load(new URLSearchParams(window.location.search).get("startapp") ?? undefined);
+        const devStart = new URLSearchParams(window.location.search).get("startapp");
+        if (devStart) void load(devStart);
+        else void loadWallet();
         return;
       }
       setScreen({ step: "outside" });
@@ -107,8 +127,11 @@ export function CardScreen() {
       url.get("startapp") ??
       hash.get("tgWebAppStartParam") ??
       undefined;
-    void load(startParam);
-  }, [load]);
+    // Без параметра гость открыл мини-апп сам — показываем кошелёк.
+    // С параметром пришёл тап метки или ссылка на кофейню — открываем карту.
+    if (startParam) void load(startParam);
+    else void loadWallet();
+  }, [load, loadWallet]);
 
   // Polling пока карта открыта: если штамп прилетел откуда-то ещё (тап NFC, бариста
   // подтвердил), UI обновится сам без reload. Пауза когда открыт лист награды/история
@@ -183,7 +206,11 @@ export function CardScreen() {
 
   return (
     <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col gap-3 px-4 pb-6">
-      <WalletHeader title="Моя карта" subtitle={tenant.name} />
+      <WalletHeader
+        title="Моя карта"
+        subtitle={tenant.name}
+        onBack={() => void loadWallet()}
+      />
 
       {claim && <ClaimBanner claim={claim} />}
 
@@ -340,18 +367,39 @@ export function CardScreen() {
 }
 
 /** Шапка кошелька: крупный заголовок слева, аватар гостя справа — как в референсе. */
-function WalletHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+function WalletHeader({
+  title,
+  subtitle,
+  onBack,
+}: {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+}) {
   const user = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
   const photo = user?.photo_url ?? null;
   const initial = (user?.first_name ?? "").slice(0, 1).toUpperCase();
 
   return (
     <header className="flex items-center justify-between gap-3 pb-1 pt-5">
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-center gap-2.5">
+        {onBack && (
+          <button
+            onClick={onBack}
+            aria-label="Ко всем картам"
+            className="grid size-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/5 text-neutral-300 transition-colors hover:bg-white/10"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+              <path d="M15 5l-7 7 7 7" />
+            </svg>
+          </button>
+        )}
+        <div className="min-w-0">
         <h1 className="truncate text-[28px] font-extrabold leading-none tracking-tight text-white">
           {title}
         </h1>
         {subtitle && <p className="mt-1 truncate text-[12px] text-neutral-500">{subtitle}</p>}
+        </div>
       </div>
       <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-white/5 text-[13px] font-bold text-neutral-300">
         {photo ? (
@@ -439,9 +487,13 @@ function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: strin
         subtitle={`${cards.length} ${plural(cards.length, "карта", "карты", "карт")}`}
       />
       <div className="mt-2 flex flex-col gap-2">
-        {cards.map((card) => (
-          <WalletCardRow
+        {cards.map((card, index) => (
+          <div
             key={card.slug}
+            className="animate-deal"
+            style={{ ["--deal-index" as string]: index }}
+          >
+          <WalletCardRow
             card={{
               slug: card.slug,
               name: card.name,
@@ -453,6 +505,7 @@ function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: strin
             }}
             onClick={() => onPick(card.slug)}
           />
+          </div>
         ))}
       </div>
     </main>
