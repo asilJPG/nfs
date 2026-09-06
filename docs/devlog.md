@@ -480,6 +480,47 @@ NFC-loyalty оверкилл. Для демо владельцу написал�
 `0018_fix_queue_broadcast_cast.sql` — обязательно, без этого рассылки в
 draft висят.
 
+## Сессия ночь 6→7 сентября — оптимизация клиента
+
+Владелец пожаловался «жмёшь кнопку — грузит вечно», перед отходом ко сну
+попросил обнулить NFC-кнопку и вылизать перфоманс. Функционал не тронут.
+
+**Убрано:** кнопка «Провести штамп» + `NfcScanSheet`. Web NFC на iOS Safari
+(WebView Telegram) не работает, кнопка была бесполезна на целевой платформе.
+Polling из предыдущей сессии остался — штампы всё равно появляются в открытой
+карте когда мини-апп возвращается в фокус.
+
+**Скелетоны на всех маршрутах.** `components/ui/Skeleton.tsx` — базовые
+примитивы (`SkeletonBlock`, `SkeletonText`, `SkeletonTile`, `SkeletonList`,
+`SkeletonCard`). Из них собраны `loading.tsx` во всех разделах `/admin/*`,
+`/dashboard/*`, `/staff`. Next.js рендерит их мгновенно как fallback пока
+`page.tsx` тянет данные — до этого был белый экран.
+
+**Recharts вынесен из бандла дашборда.** `LazyDailyChart.tsx` — обёртка через
+`next/dynamic` с `ssr: false` и скелетон-fallback. Recharts (~180KB gzip)
+грузится только когда дашборд открыт, не при первом визите любого другого
+раздела. Бандл `/dashboard` упал с ~290KB до 108KB First Load.
+
+**RewardSheet тоже dynamic.** `qrcode` (~50KB) грузится только когда гость
+открывает награду.
+
+**next.config**: `reactStrictMode`, `compress`, `optimizePackageImports` для
+recharts/supabase/zod, `image formats: [avif, webp]`.
+
+Финальные размеры бандлов (после `npm run build`):
+
+| Маршрут | First Load |
+|---|---|
+| `/`, `/admin` | 106 KB |
+| `/apply`, `/login`, `/card`, `/dashboard/broadcasts`, `/dashboard` | 108 KB |
+| `/staff`, `/dashboard/tags`, `/dashboard/venues`, `/admin/tags` | 105 KB |
+| `/admin/tenants` | 111 KB |
+| `/dashboard/card` (color picker + preview) | 175 KB — оставлен, редко открывают |
+| Shared runtime | 103 KB |
+
+Полный отчёт с деталями сохранён в scratchpad
+`OPTIMIZATION_REPORT.md` (не в git — временный).
+
 ## Ссылки
 
 - `docs/deploy.md` — деплой на Vercel, переменные окружения, cron.
