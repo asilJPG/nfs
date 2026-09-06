@@ -19,8 +19,11 @@ export default async function VenuesPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">Точки и сотрудники</h1>
+    <div className="flex flex-col gap-6">
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">Точки и сотрудники</h1>
+        <p className="page-subtitle">Адреса кофейни и доступы к кассе</p>
+      </header>
       <VenuesManager venues={venues ?? []} staff={team ?? []} currentStaffId={staff.id} />
     </div>
   );

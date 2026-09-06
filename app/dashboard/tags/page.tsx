@@ -26,23 +26,28 @@ export default async function TagsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Метки и QR</h1>
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">Метки и QR</h1>
+        <p className="page-subtitle">Чем гость заводит карту и чем зарабатывает штампы</p>
+      </header>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-1 font-medium">QR для стойки</h2>
-        <p className="mb-4 text-sm text-ink-soft">
+      <section className="card p-5 md:p-6">
+        <h2 className="card-title mb-1">QR для стойки</h2>
+        <p className="mb-4 text-[13px] leading-relaxed text-ink-soft">
           С него гость заводит карту в первый раз — и им же можно воспользоваться, если NFC не
           сработал. Штампы даёт только подставка.
         </p>
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <div
-            className="w-[220px] shrink-0 rounded-2xl border border-line p-2"
+            className="w-[220px] shrink-0 rounded-2xl bg-white p-3"
             dangerouslySetInnerHTML={{ __html: qr }}
           />
           <div className="min-w-0">
-            <p className="mb-1 text-sm text-ink-soft">Ссылка на карту</p>
-            <code className="block break-all rounded-xl bg-cream px-3 py-2 text-sm">{joinLink}</code>
-            <p className="mt-3 text-sm text-ink-soft">
+            <p className="field-label">Ссылка на карту</p>
+            <code className="block break-all rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-xs text-violet-200">
+              {joinLink}
+            </code>
+            <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">
               Распечатайте QR и поставьте у кассы. Его же можно разместить в соцсетях.
             </p>
           </div>
@@ -50,7 +55,7 @@ export default async function TagsPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-medium">NFC-метки</h2>
+        <h2 className="card-title">NFC-метки</h2>
         <TagsManager tags={tags ?? []} venues={venues ?? []} hasPendingKit={(kits?.length ?? 0) > 0} />
       </section>
     </div>

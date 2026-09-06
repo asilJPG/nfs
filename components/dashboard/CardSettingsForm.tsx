@@ -74,11 +74,11 @@ export function CardSettingsForm({ tenant, program }: Props) {
   return (
     <form onSubmit={submit} className="grid gap-6 lg:grid-cols-[1fr_20rem]">
       <div className="flex flex-col gap-6">
-        <section className="rounded-2xl border border-line bg-white p-4">
-          <h2 className="mb-4 font-medium">Кофейня</h2>
+        <section className="card p-5">
+          <h2 className="card-title mb-4">Кофейня</h2>
 
           <label className="mb-4 block">
-            <span className="mb-1 block text-sm text-ink-soft">Название</span>
+            <span className="field-label">Название</span>
             <input value={name} onChange={(event) => setName(event.target.value)} className={input} />
           </label>
 
@@ -87,8 +87,8 @@ export function CardSettingsForm({ tenant, program }: Props) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt="" className="size-14 rounded-2xl border border-line object-cover" />
             ) : (
-              <div className="grid size-14 place-items-center rounded-2xl border border-dashed border-line text-ink-soft">
-                —
+              <div className="grid size-14 place-items-center rounded-2xl border border-dashed border-line-strong text-xs text-ink-faint">
+                лого
               </div>
             )}
             <div className="flex gap-2">
@@ -96,7 +96,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
                 type="button"
                 onClick={() => fileInput.current?.click()}
                 disabled={uploading}
-                className="rounded-xl border border-line px-3 py-2 text-sm disabled:opacity-60"
+                className="btn btn-ghost btn-sm"
               >
                 {uploading ? "Загружаем…" : "Загрузить логотип"}
               </button>
@@ -104,7 +104,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
                 <button
                   type="button"
                   onClick={() => setLogoUrl(null)}
-                  className="rounded-xl px-3 py-2 text-sm text-ink-soft"
+                  className="btn btn-ghost btn-sm"
                 >
                   Убрать
                 </button>
@@ -123,8 +123,8 @@ export function CardSettingsForm({ tenant, program }: Props) {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-line bg-white p-4">
-          <h2 className="mb-4 font-medium">Оформление</h2>
+        <section className="card p-5">
+          <h2 className="card-title mb-4">Оформление</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {COLORS.map((field) => (
               <label key={field.key} className="text-xs text-ink-soft">
@@ -133,7 +133,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
                   type="color"
                   value={brand[field.key]}
                   onChange={(event) => setBrand({ ...brand, [field.key]: event.target.value })}
-                  className="mt-1 h-10 w-full cursor-pointer rounded-xl border border-line bg-white"
+                  className="mt-1.5 h-10 w-full cursor-pointer rounded-xl border border-line bg-surface-2 p-1"
                 />
               </label>
             ))}
@@ -144,22 +144,24 @@ export function CardSettingsForm({ tenant, program }: Props) {
                 key={style}
                 type="button"
                 onClick={() => setBrand({ ...brand, card_style: style })}
-                className={`rounded-full border px-3 py-1.5 text-sm ${
-                  brand.card_style === style ? "border-bean bg-bean/10" : "border-line"
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  brand.card_style === style
+                    ? "border-violet-500/50 bg-violet-500/15 text-violet-200"
+                    : "border-line text-ink-soft hover:border-line-strong hover:text-slate-200"
                 }`}
               >
                 {STYLE_LABELS[style]}
               </button>
             ))}
           </div>
-          {warning && <p className="mt-3 text-sm text-amber-700">{warning}</p>}
+          {warning && <p className="note note-warn mt-4">{warning}</p>}
         </section>
 
-        <section className="rounded-2xl border border-line bg-white p-4">
-          <h2 className="mb-4 font-medium">Условия карты</h2>
+        <section className="card p-5">
+          <h2 className="card-title mb-4">Условия карты</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1 block text-sm text-ink-soft">Штампов до награды</span>
+              <span className="field-label">Штампов до награды</span>
               <input
                 type="number"
                 min={2}
@@ -170,7 +172,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-ink-soft">Награда</span>
+              <span className="field-label">Награда</span>
               <input
                 value={rules.reward_title}
                 onChange={(event) => setRules({ ...rules, reward_title: event.target.value })}
@@ -179,7 +181,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
               />
             </label>
             <label className="block sm:col-span-2">
-              <span className="mb-1 block text-sm text-ink-soft">Пояснение к награде</span>
+              <span className="field-label">Пояснение к награде</span>
               <input
                 value={rules.reward_description ?? ""}
                 onChange={(event) =>
@@ -191,7 +193,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-ink-soft">Награда сгорает через, дней</span>
+              <span className="field-label">Награда сгорает через, дней</span>
               <input
                 type="number"
                 min={1}
@@ -208,7 +210,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-sm text-ink-soft">Пауза между штампами, мин</span>
+              <span className="field-label">Пауза между штампами, мин</span>
               <input
                 type="number"
                 min={0}
@@ -219,7 +221,7 @@ export function CardSettingsForm({ tenant, program }: Props) {
                 }
                 className={input}
               />
-              <span className="mt-1 block text-xs text-ink-soft">
+              <span className="field-hint">
                 Защита от накрутки: второй штамп подряд не начислится раньше этого времени.
               </span>
             </label>
@@ -227,20 +229,20 @@ export function CardSettingsForm({ tenant, program }: Props) {
         </section>
 
         {result && (
-          <p className={`text-sm ${result.ok ? "text-bean-dark" : "text-red-600"}`}>{result.message}</p>
+          <p className={`note ${result.ok ? "note-ok" : "note-bad"}`}>{result.message}</p>
         )}
 
         <button
           type="submit"
           disabled={pending}
-          className="rounded-2xl bg-bean py-3.5 font-medium text-white disabled:opacity-50"
+          className="btn btn-primary btn-block"
         >
           {pending ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
 
       <aside className="lg:sticky lg:top-6 lg:self-start">
-        <p className="mb-2 text-sm text-ink-soft">Так карту увидит гость</p>
+        <p className="eyebrow mb-3">Так карту увидит гость</p>
         <CardPreview
           brand={brand}
           name={name}
@@ -253,4 +255,4 @@ export function CardSettingsForm({ tenant, program }: Props) {
   );
 }
 
-const input = "w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean";
+const input = "input";

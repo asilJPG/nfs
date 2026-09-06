@@ -9,7 +9,7 @@ type BlockProps = {
 export function SkeletonBlock({ className = "", style }: BlockProps) {
   return (
     <div
-      className={`animate-pulse rounded-2xl bg-line/60 ${className}`}
+      className={`animate-pulse rounded-2xl bg-white/[0.06] ${className}`}
       style={style}
       aria-hidden
     />
@@ -19,7 +19,7 @@ export function SkeletonBlock({ className = "", style }: BlockProps) {
 export function SkeletonText({ width = "8rem", className = "" }: { width?: string; className?: string }) {
   return (
     <div
-      className={`animate-pulse rounded bg-line/60 ${className}`}
+      className={`animate-pulse rounded bg-white/[0.06] ${className}`}
       style={{ width, height: "0.9em" }}
       aria-hidden
     />
@@ -28,7 +28,7 @@ export function SkeletonText({ width = "8rem", className = "" }: { width?: strin
 
 export function SkeletonTile() {
   return (
-    <div className="rounded-2xl border border-line bg-white p-4">
+    <div className="card p-5">
       <SkeletonText width="6rem" className="mb-3" />
       <SkeletonText width="4rem" className="mb-2 h-8" />
       <SkeletonText width="7rem" />
@@ -52,7 +52,7 @@ export function SkeletonList({ rows = 5, height = 56 }: { rows?: number; height?
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-line bg-white p-5">
+    <div className="card p-5">
       <div className="mb-4 flex items-baseline justify-between gap-2">
         <SkeletonText width="10rem" className="h-5" />
         <SkeletonText width="4rem" />

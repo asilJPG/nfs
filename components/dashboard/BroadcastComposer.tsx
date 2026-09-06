@@ -55,8 +55,9 @@ export function BroadcastComposer() {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-line bg-white p-4">
-      <h2 className="mb-3 font-medium">Новая рассылка</h2>
+    <form onSubmit={submit} className="card p-5 md:p-6">
+      <h2 className="card-title mb-1">Новая рассылка</h2>
+      <p className="mb-4 text-xs text-ink-soft">Выберите, кому уходит сообщение</p>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {PRESETS.map((preset, presetIndex) => (
@@ -64,8 +65,10 @@ export function BroadcastComposer() {
             key={preset.label}
             type="button"
             onClick={() => setIndex(presetIndex)}
-            className={`rounded-full border px-3 py-1.5 text-sm ${
-              index === presetIndex ? "border-bean bg-bean/10" : "border-line text-ink-soft"
+            className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              index === presetIndex
+                ? "border-violet-500/50 bg-violet-500/15 text-violet-200"
+                : "border-line text-ink-soft hover:border-line-strong hover:text-slate-200"
             }`}
           >
             {preset.label}
@@ -73,9 +76,13 @@ export function BroadcastComposer() {
         ))}
       </div>
 
-      <p className="mb-3 text-sm text-ink-soft">
-        {PRESETS[index].hint} ·{" "}
-        {size === null ? "считаем…" : `${size} ${plural(size, "получатель", "получателя", "получателей")}`}
+      <p className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-soft">
+        {PRESETS[index].hint}
+        <span className="badge badge-accent">
+          {size === null
+            ? "считаем…"
+            : `${size} ${plural(size, "получатель", "получателя", "получателей")}`}
+        </span>
       </p>
 
       <textarea
@@ -84,23 +91,21 @@ export function BroadcastComposer() {
         rows={5}
         maxLength={3500}
         placeholder="Соскучились? До конца недели дарим круассан к любому кофе ☕"
-        className="w-full rounded-2xl border border-line px-4 py-3 outline-none focus:border-bean"
+        className="input resize-y leading-relaxed"
       />
-      <p className="mt-1 text-xs text-ink-soft">
+      <p className="field-hint">
         Поддерживается простой HTML: &lt;b&gt;жирный&lt;/b&gt;, &lt;i&gt;курсив&lt;/i&gt;.
         Сообщение придёт от бота — гость увидит его как обычный чат.
       </p>
 
       {result && (
-        <p className={`mt-3 text-sm ${result.ok ? "text-bean-dark" : "text-red-600"}`}>
-          {result.message}
-        </p>
+        <p className={`note mt-4 ${result.ok ? "note-ok" : "note-bad"}`}>{result.message}</p>
       )}
 
       <button
         type="submit"
         disabled={pending || body.trim().length === 0 || size === 0}
-        className="mt-4 w-full rounded-2xl bg-bean py-3.5 font-medium text-white disabled:opacity-50"
+        className="btn btn-primary btn-block mt-5"
       >
         {pending ? "Отправляем…" : "Отправить"}
       </button>

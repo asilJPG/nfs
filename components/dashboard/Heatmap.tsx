@@ -5,11 +5,13 @@ import { useMemo, useState } from "react";
 type Cell = { dow: number; hour: number; stamps: number };
 
 /**
- * Hour × weekday intensity. Sequential encoding, so it is one hue light→dark
- * (blue ramp, steps 100→650); "no visits" is the surface, not a ramp step.
+ * Hour × weekday intensity. Sequential encoding: одна синяя шкала, на тёмной
+ * подложке она идёт от «почти фон» к яркому (шаги 650→100). «Нет визитов» — это
+ * поверхность, а не ступень шкалы: раньше пустые клетки были кремовыми и на
+ * тёмном фоне светились ярче самых горячих часов.
  */
-const RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"];
-const EMPTY = "#f6f1ec";
+const RAMP = ["#184f95", "#256abf", "#3987e5", "#5598e7", "#86b6ef", "#b7d3f6", "#cde2fb"];
+const EMPTY = "rgba(255, 255, 255, 0.045)";
 
 // Postgres dow: 0 = Sunday. Shown Monday-first, the way a shop reads its week.
 const DAYS = [
@@ -78,7 +80,7 @@ export function Heatmap({ data }: { data: Cell[] }) {
                       <div
                         onMouseEnter={() => setHovered({ dow: day.dow, hour, stamps: value })}
                         onMouseLeave={() => setHovered(null)}
-                        className="size-5 rounded-[3px]"
+                        className="size-5 rounded-[3px] transition-transform hover:scale-110"
                         style={{ background: colorFor(value) }}
                         title={`${day.label}, ${hour}:00 — ${value}`}
                       />

@@ -1,55 +1,367 @@
 @import "tailwindcss";
 
-/*
- * Two palettes live here:
- *  - the marketing/dashboard surface, which is ours and fixed;
- *  - the mini app, whose colours come from the tenant at render time
- *    (--brand-*, injected by the mini app layout).
- */
+/* ─────────────────────────────────────────────────────────────
+   Токены. Одна палитра на весь продукт: тёмная база + фиолетовый
+   акцент. Раньше половина экранов дашборда была размечена светлой
+   вёрсткой поверх тёмного фона — отсюда ощущение недоделанности.
+   ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-ink: #1b1410;
-  --color-ink-soft: #6b5c52;
-  --color-cream: #fffaf4;
-  --color-bean: #6f4e37;
-  --color-bean-dark: #503626;
-  --color-latte: #c8a27a;
-  --color-line: #eadfd4;
-  --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --radius-card: 1.25rem;
+  --color-ink: #f8fafc;
+  --color-ink-soft: #94a3b8;
+  --color-ink-faint: #64748b;
+  --color-cream: #0b0c10;
+
+  --color-base: #0b0c10;
+  --color-surface: #14161d;
+  --color-surface-2: #1a1d26;
+  --color-raised: #212430;
+
+  --color-bean: #7c3aed;
+  --color-bean-dark: #a78bfa;
+  --color-latte: #c4b5fd;
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --radius-card: 1.125rem;
 }
 
 :root {
-  --brand-primary: #6f4e37;
-  --brand-bg: #fff8f0;
-  --brand-surface: #ffffff;
-  --brand-text: #2a1e17;
-  --brand-accent: #c8a27a;
+  --brand-primary: #7c3aed;
+  --brand-bg: #0b0c10;
+  --brand-surface: #161822;
+  --brand-text: #ffffff;
+  --brand-accent: #a78bfa;
 }
 
 html,
 body {
   height: 100%;
+  background-color: #0b0c10;
+  color: #f8fafc;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  letter-spacing: -0.011em;
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Telegram gives the mini app real estate under the system bars. */
+::selection {
+  background: rgba(124, 58, 237, 0.35);
+}
+
+/* Скроллбар в тон панелям, а не системный */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .tg-safe {
   padding-top: max(env(safe-area-inset-top), 0.75rem);
-  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  padding-bottom: max(env(safe-area-inset-bottom), 1.25rem);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Примитивы. Одинаковые радиусы, границы, фокус и высоты во всех
+   разделах — вместо десятка вариаций «rounded-2xl border p-4».
+   ───────────────────────────────────────────────────────────── */
+@layer components {
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  .card-hover {
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+  }
+  .card-hover:hover {
+    border-color: var(--color-line-strong);
+    background: var(--color-surface-2);
+  }
+
+  .card-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: #f8fafc;
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+  }
+
+  .page-subtitle {
+    margin-top: 0.125rem;
+    font-size: 0.8125rem;
+    color: var(--color-ink-soft);
+  }
+
+  .eyebrow {
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+  }
+
+  .field-hint {
+    margin-top: 0.375rem;
+    display: block;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: var(--color-ink-faint);
+  }
+
+  .input {
+    width: 100%;
+    border-radius: 0.875rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface-2);
+    padding: 0.6875rem 0.875rem;
+    font-size: 0.875rem;
+    color: #f8fafc;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  }
+  .input::placeholder {
+    color: #576075;
+  }
+  .input:hover:not(:disabled) {
+    border-color: var(--color-line-strong);
+  }
+  .input:focus {
+    border-color: rgba(139, 92, 246, 0.7);
+    background: var(--color-raised);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+  }
+  .input:disabled {
+    opacity: 0.55;
+  }
+  select.input {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #8b93a7 50%),
+      linear-gradient(135deg, #8b93a7 50%, transparent 50%);
+    background-position: right 1rem center, right 0.75rem center;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 2rem;
+  }
+  select.input option {
+    background: #14161d;
+    color: #f8fafc;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.875rem;
+    padding: 0.6875rem 1.125rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+      box-shadow 0.15s ease, transform 0.1s ease;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.985);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 20px -8px rgba(124, 58, 237, 0.8);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    box-shadow: 0 10px 26px -8px rgba(124, 58, 237, 0.9);
+  }
+
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--color-line);
+    color: #cbd5e1;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--color-line-strong);
+    color: #ffffff;
+  }
+
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.24);
+    color: #fca5a5;
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fecaca;
+  }
+
+  .btn-sm {
+    padding: 0.4375rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 0.75rem;
+  }
+
+  .btn-block {
+    width: 100%;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge-ok {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #6ee7b7;
+  }
+  .badge-warn {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.25);
+    color: #fcd34d;
+  }
+  .badge-bad {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+  }
+  .badge-muted {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-line);
+    color: var(--color-ink-soft);
+  }
+  .badge-accent {
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+  }
+
+  .note {
+    border-radius: var(--radius-card);
+    border: 1px solid;
+    padding: 0.875rem 1rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .note-warn {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+  }
+  .note-bad {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+  }
+  .note-ok {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+  }
+
+  .empty {
+    border-radius: var(--radius-card);
+    border: 1px dashed var(--color-line-strong);
+    background: rgba(255, 255, 255, 0.015);
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+
+  /* Стеклянная карточка публичных экранов: лендинг, вход, заявка, мини-апп */
+  .premium-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 1.5rem;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    transition: border-color 0.2s ease;
+  }
+  .premium-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  /* Совместимость: этими классами размечены платформенные экраны */
+  .admin-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+  .admin-button-primary {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 0.875rem;
+  }
+  .admin-button-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-line);
+    color: #e2e8f0;
+    font-weight: 500;
+    border-radius: 0.875rem;
+  }
 }
 
 @keyframes stamp-in {
   0% {
-    transform: scale(0.2) rotate(-25deg);
+    transform: scale(0.3) rotate(-15deg);
     opacity: 0;
   }
   60% {
-    transform: scale(1.15) rotate(6deg);
+    transform: scale(1.1) rotate(4deg);
     opacity: 1;
   }
   100% {
@@ -59,7 +371,7 @@ body {
 }
 
 .animate-stamp {
-  animation: stamp-in 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: stamp-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes rise {
@@ -74,7 +386,7 @@ body {
 }
 
 .animate-rise {
-  animation: rise 320ms ease-out both;
+  animation: rise 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

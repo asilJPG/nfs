@@ -18,7 +18,6 @@ type ScanState =
   | { kind: "unsupported" }
   | { kind: "denied"; message: string };
 
-/** Cashier surface: one camera, one QR to scan, one answer. */
 export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -96,27 +95,30 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-4 py-6">
-      <header>
-        <p className="text-sm text-ink-soft">{tenantName}</p>
-        <h1 className="text-xl font-semibold">Касса</h1>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-4 py-8 bg-base text-white font-sans">
+      <header className="flex items-center justify-between">
+        <div>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-ink-faint font-semibold">{tenantName}</span>
+          <h1 className="text-xl font-bold tracking-tight text-white">Касса бариста</h1>
+        </div>
+        <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
       </header>
 
       {venues.length > 1 && (
         <select
           value={venueId ?? ""}
           onChange={(event) => setVenueId(event.target.value || null)}
-          className="w-full rounded-2xl border border-line bg-white px-4 py-3"
+          className="input"
         >
           {venues.map((venue) => (
             <option key={venue.id} value={venue.id}>
-              {venue.name}
+              Точка: {venue.name}
             </option>
           ))}
         </select>
       )}
 
-      <div className="relative aspect-square w-full overflow-hidden rounded-3xl bg-black">
+      <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-line bg-surface shadow-2xl">
         <video
           ref={videoRef}
           playsInline
@@ -124,12 +126,13 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
           className={`h-full w-full object-cover ${scan.kind === "scanning" ? "" : "hidden"}`}
         />
         {scan.kind !== "scanning" && (
-          <div className="flex h-full w-full items-center justify-center px-6 text-center text-sm text-white/80">
+          <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center text-xs text-ink-soft">
+            <span className="text-3xl mb-3 opacity-60">📷</span>
             {scan.kind === "starting" && "Запускаем камеру…"}
-            {scan.kind === "idle" && "Наведите камеру на QR гостя"}
+            {scan.kind === "idle" && "Наведите камеру на QR-код на экране гостя"}
             {scan.kind === "unsupported" &&
-              "Этот браузер не умеет сканировать QR. Откройте кассу в Chrome (Android) или Safari (iOS 17+)."}
-            {scan.kind === "denied" && `Не удалось открыть камеру: ${scan.message}`}
+              "Сканер не поддерживается в этом браузере. Откройте страницу в Chrome на Android или Safari на iOS 17+."}
+            {scan.kind === "denied" && `Ошибка камеры: ${scan.message}`}
           </div>
         )}
       </div>
@@ -140,33 +143,36 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
             stopCamera();
             setScan({ kind: "idle" });
           }}
-          className="rounded-2xl border border-line py-4 text-lg font-medium"
+          className="rounded-2xl border border-line bg-surface py-4 text-xs font-semibold text-slate-300 hover:bg-white/10 transition-colors"
         >
-          Остановить
+          Остановить сканер
         </button>
       ) : (
         <button
           onClick={startScanner}
           disabled={pending}
-          className="rounded-2xl bg-bean py-4 text-lg font-medium text-white disabled:opacity-50"
+          className="btn btn-primary py-4"
         >
-          {pending ? "Проверяем…" : "Сканировать QR"}
+          {pending ? "Проверяем QR…" : "Сканировать QR-код"}
         </button>
       )}
 
       {result && (
-        <p
-          className={`animate-rise rounded-2xl px-4 py-4 text-center font-medium ${
-            result.ok ? "bg-bean/10 text-bean-dark" : "bg-red-50 text-red-700"
+        <div
+          className={`animate-rise rounded-2xl p-4 text-center text-xs font-semibold border ${
+            result.ok
+              ? "bg-emerald-950/60 text-emerald-400 border-emerald-800/40"
+              : "bg-red-950/60 text-red-400 border-red-900/40"
           }`}
         >
           {result.message}
-        </p>
+        </div>
       )}
 
-      <p className="mt-auto text-center text-xs text-ink-soft">
-        Штампы гость ставит сам, приложив телефон к подставке. На кассе — только выдача наград по QR.
+      <p className="mt-auto text-center text-[11px] text-ink-faint font-mono leading-relaxed">
+        Штампы начисляются автоматически при прикладывании телефона к метке NTAG 424.
       </p>
     </main>
   );
 }
+

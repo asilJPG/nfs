@@ -10,6 +10,14 @@ type Props = {
   hasPendingKit: boolean;
 };
 
+const dateTime = new Intl.DateTimeFormat("ru-RU", {
+  timeZone: "Asia/Tashkent",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 export function TagsManager({ tags, venues, hasPendingKit }: Props) {
   const [notice, setNotice] = useState<Result | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -33,14 +41,12 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {notice && (
-        <p className={`text-sm ${notice.ok ? "text-bean-dark" : "text-red-600"}`}>{notice.message}</p>
-      )}
+      {notice && <p className={`note ${notice.ok ? "note-ok" : "note-bad"}`}>{notice.message}</p>}
 
       {tags.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-line p-6 text-center">
-          <p className="font-medium">Меток пока нет</p>
-          <p className="mt-1 text-sm text-ink-soft">
+        <div className="empty">
+          <p className="card-title">Меток пока нет</p>
+          <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-ink-soft">
             {hasPendingKit
               ? "Заявка на комплект принята — метки появятся здесь, когда мы их привяжем."
               : "Закажите комплект на прилавок: подставка с NFC и табличка с QR."}
@@ -64,7 +70,7 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
       )}
 
       {!hasPendingKit && (
-        <section className="rounded-2xl border border-line bg-white p-4">
+        <section className="card p-5">
           {kitOpen ? (
             <form
               onSubmit={(event) => {
@@ -82,32 +88,37 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
                   () => setKitOpen(false),
                 );
               }}
-              className="grid gap-2 sm:grid-cols-2"
+              className="grid gap-3 sm:grid-cols-2"
             >
-              <h2 className="font-medium sm:col-span-2">Заказать комплект</h2>
+              <div className="sm:col-span-2">
+                <h2 className="card-title">Заказать комплект</h2>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  Подставка с NFC и табличка с QR — привезём и привяжем к вашей кофейне.
+                </p>
+              </div>
               <input
                 value={kit.contactName}
                 onChange={(event) => setKit({ ...kit, contactName: event.target.value })}
                 placeholder="Контактное лицо"
-                className={input}
+                className="input"
               />
               <input
                 value={kit.phone}
                 onChange={(event) => setKit({ ...kit, phone: event.target.value })}
                 placeholder="+998 90 123 45 67"
-                className={input}
+                className="input"
               />
               <input
                 value={kit.address}
                 onChange={(event) => setKit({ ...kit, address: event.target.value })}
                 placeholder="Адрес доставки"
-                className={`${input} sm:col-span-2`}
+                className="input sm:col-span-2"
               />
               {venues.length > 1 && (
                 <select
                   value={kit.venueId}
                   onChange={(event) => setKit({ ...kit, venueId: event.target.value })}
-                  className={`${input} sm:col-span-2`}
+                  className="input sm:col-span-2"
                 >
                   <option value="">Для какой точки</option>
                   {venues.map((venue) => (
@@ -117,18 +128,27 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
                   ))}
                 </select>
               )}
-              <button
-                type="submit"
-                disabled={pending}
-                className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50 sm:col-span-2"
-              >
-                {busy === "kit" ? "Отправляем…" : "Отправить заявку"}
-              </button>
+              <div className="flex gap-2 sm:col-span-2">
+                <button type="submit" disabled={pending} className="btn btn-primary flex-1">
+                  {busy === "kit" ? "Отправляем…" : "Отправить заявку"}
+                </button>
+                <button type="button" onClick={() => setKitOpen(false)} className="btn btn-ghost">
+                  Отмена
+                </button>
+              </div>
             </form>
           ) : (
-            <button onClick={() => setKitOpen(true)} className="text-sm font-medium text-bean-dark">
-              Заказать комплект на прилавок →
-            </button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="card-title">Нужны ещё метки?</h2>
+                <p className="mt-0.5 text-xs text-ink-soft">
+                  Комплект на прилавок: подставка с NFC и табличка с QR.
+                </p>
+              </div>
+              <button onClick={() => setKitOpen(true)} className="btn btn-ghost btn-sm">
+                Заказать комплект
+              </button>
+            </div>
           )}
         </section>
       )}
@@ -154,13 +174,18 @@ function TagRow({
   const dirty = (tag.venue_id ?? "") !== venueId || (tag.label ?? "") !== label;
 
   return (
-    <li className="rounded-2xl border border-line bg-white p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <li className="card p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-sm">{tag.uid}</p>
-          <p className="text-xs text-ink-soft">
+          <div className="flex items-center gap-2">
+            <p className="truncate font-mono text-sm text-white">{tag.uid}</p>
+            <span className={`badge ${tag.active ? "badge-ok" : "badge-muted"}`}>
+              {tag.active ? "работает" : "выключена"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-ink-soft">
             {tag.last_seen_at
-              ? `Последнее касание: ${new Date(tag.last_seen_at).toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" })}`
+              ? `Последнее касание: ${dateTime.format(new Date(tag.last_seen_at))}`
               : "Ещё не использовалась"}
             {" · "}
             {tag.last_counter} касаний
@@ -169,16 +194,14 @@ function TagRow({
         <button
           onClick={() => onSave(`tag-active:${tag.id}`, venueId || null, label || null, !tag.active)}
           disabled={pending}
-          className={`shrink-0 rounded-xl border px-3 py-1.5 text-sm ${
-            tag.active ? "border-line text-ink-soft" : "border-bean text-bean-dark"
-          }`}
+          className="btn btn-ghost btn-sm shrink-0"
         >
           {busy === `tag-active:${tag.id}` ? "…" : tag.active ? "Отключить" : "Включить"}
         </button>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-        <select value={venueId} onChange={(event) => setVenueId(event.target.value)} className={input}>
+        <select value={venueId} onChange={(event) => setVenueId(event.target.value)} className="input">
           <option value="">Точка не выбрана</option>
           {venues.map((venue) => (
             <option key={venue.id} value={venue.id}>
@@ -190,12 +213,12 @@ function TagRow({
           value={label}
           onChange={(event) => setLabel(event.target.value)}
           placeholder="Подпись, напр. «у кассы»"
-          className={input}
+          className="input"
         />
         <button
           onClick={() => onSave(`tag-save:${tag.id}`, venueId || null, label || null, tag.active)}
           disabled={pending || !dirty}
-          className="rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
+          className="btn btn-primary"
         >
           {busy === `tag-save:${tag.id}` ? "Сохраняем…" : "Сохранить"}
         </button>
@@ -203,5 +226,3 @@ function TagRow({
     </li>
   );
 }
-
-const input = "rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean";

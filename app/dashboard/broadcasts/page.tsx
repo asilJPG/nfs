@@ -28,15 +28,15 @@ export default async function BroadcastsPage() {
 
   if (!can(tenant, "broadcasts")) {
     return (
-      <div className="rounded-2xl border border-dashed border-line p-8 text-center">
-        <h1 className="text-lg font-semibold">Рассылки</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
+      <div className="empty">
+        <h1 className="card-title">Рассылки</h1>
+        <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-ink-soft">
           Напоминайте о себе тем, кто давно не заходил, и тем, кому остался один штамп до награды.
           Доступно на тарифе с маркетингом.
         </p>
         <Link
           href="/dashboard/billing"
-          className="mt-4 inline-block rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-white"
+          className="btn btn-primary btn-sm mt-5"
         >
           Посмотреть тарифы
         </Link>
@@ -54,35 +54,40 @@ export default async function BroadcastsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Рассылки</h1>
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">Рассылки</h1>
+        <p className="page-subtitle">Сообщение уходит гостям в Telegram от имени кофейни</p>
+      </header>
 
       <BroadcastComposer />
 
       <section className="flex flex-col gap-2">
-        <h2 className="font-medium">История</h2>
+        <h2 className="card-title">История</h2>
         {(broadcasts ?? []).length === 0 && (
-          <p className="text-sm text-ink-soft">Рассылок пока не было.</p>
+          <p className="empty text-[13px] text-ink-soft">Рассылок пока не было.</p>
         )}
         {(broadcasts ?? []).map((broadcast: Broadcast) => (
-          <article key={broadcast.id} className="rounded-2xl border border-line bg-white p-4">
+          <article key={broadcast.id} className="card p-4">
             <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-              <span className="text-ink-soft">
+              <span className="font-medium text-slate-300">
                 {SEGMENT_LABELS[broadcast.segment.type] ?? broadcast.segment.type}
               </span>
               <span
-                className={`rounded-full px-2.5 py-0.5 text-xs ${
+                className={`badge ${
                   broadcast.status === "done"
-                    ? "bg-bean/10 text-bean-dark"
+                    ? "badge-ok"
                     : broadcast.status === "failed"
-                      ? "bg-red-50 text-red-700"
-                      : "bg-line/60 text-ink-soft"
+                      ? "badge-bad"
+                      : "badge-muted"
                 }`}
               >
                 {STATUS_LABELS[broadcast.status]}
               </span>
             </div>
-            <p className="whitespace-pre-wrap text-sm">{broadcast.body}</p>
-            <p className="mt-2 text-xs text-ink-soft">
+            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-slate-200">
+              {broadcast.body}
+            </p>
+            <p className="mt-3 text-xs text-ink-faint">
               {new Date(broadcast.created_at).toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" })}
               {" · "}
               доставлено {broadcast.sent_count}

@@ -5,6 +5,8 @@ import { can } from "@/lib/plan";
 import { LazyDailyChart } from "@/components/dashboard/LazyDailyChart";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { StatTile } from "@/components/dashboard/StatTile";
+import { RangeFilter } from "@/components/dashboard/RangeFilter";
+import { RewardMeter } from "@/components/dashboard/RewardMeter";
 import type { AnalyticsDay, AnalyticsOverview } from "@/types/db";
 
 export const dynamic = "force-dynamic";
@@ -52,71 +54,71 @@ export default async function OverviewPage({
   const daily = (dailyResult.data ?? []) as AnalyticsDay[];
   const heatmap = (heatmapResult.data ?? []) as { dow: number; hour: number; stamps: number }[];
 
-  const redemptionRate =
-    overview && overview.rewards_earned > 0
-      ? Math.round((overview.rewards_redeemed / overview.rewards_earned) * 100)
-      : null;
+  const earned = overview?.rewards_earned ?? 0;
+  const redeemed = overview?.rewards_redeemed ?? 0;
+  const outstanding = overview?.rewards_outstanding ?? 0;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Обзор</h1>
-        <div className="flex gap-1 rounded-xl bg-line/50 p-1">
-          {RANGES.map((range) => (
-            <Link
-              key={range}
-              href={`/dashboard?days=${range}`}
-              className={`rounded-lg px-3 py-1.5 text-sm ${
-                days === range ? "bg-white shadow-sm" : "text-ink-soft"
-              }`}
-            >
-              {range} дн.
-            </Link>
-          ))}
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
+        <div>
+          <h1 className="page-title">Обзор</h1>
+          <p className="page-subtitle">
+            Что происходило с картами за {days} дн. · время по Ташкенту
+          </p>
         </div>
-      </div>
+        <RangeFilter ranges={RANGES} active={days} />
+      </header>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Штампов" value={overview?.stamps ?? 0} />
-        <StatTile label="Уникальных гостей" value={overview?.unique_visitors ?? 0} />
-        <StatTile label="Новых карт" value={overview?.new_customers ?? 0} />
-        <StatTile label="Всего карт" value={overview?.total_cards ?? 0} />
-        <StatTile label="Наград выдано" value={overview?.rewards_earned ?? 0} />
-        <StatTile label="Наград погашено" value={overview?.rewards_redeemed ?? 0} />
-        <StatTile
-          label="Доля погашения"
-          value={redemptionRate === null ? "—" : `${redemptionRate}%`}
-          hint="Сколько заработанных наград гости реально забрали"
-        />
-        <StatTile
-          label="Не погашено"
-          value={overview?.rewards_outstanding ?? 0}
-          hint="Ожидают выдачи прямо сейчас"
-        />
-      </div>
-
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-4 font-medium">Посещения по дням</h2>
-        <LazyDailyChart data={daily} />
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile label="Штампов собрано" value={overview?.stamps ?? 0} accent="violet" />
+        <StatTile label="Уникальных гостей" value={overview?.unique_visitors ?? 0} accent="sky" />
+        <StatTile label="Новых карт" value={overview?.new_customers ?? 0} accent="amber" />
+        <StatTile label="Всего карт" value={overview?.total_cards ?? 0} accent="pink" />
       </section>
 
+      <div className="grid gap-4 lg:grid-cols-3">
+        <section className="card flex flex-col p-5 md:p-6 lg:col-span-2">
+          <div className="mb-5 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="card-title">Посещения по дням</h2>
+              <p className="mt-0.5 text-xs text-ink-faint">Сколько штампов начислено за день</p>
+            </div>
+            <span className="badge badge-muted">{days} дн.</span>
+          </div>
+          <LazyDailyChart data={daily} />
+        </section>
+
+        <section className="card flex flex-col p-5 md:p-6">
+          <h2 className="card-title mb-5">Награды</h2>
+          <RewardMeter earned={earned} redeemed={redeemed} outstanding={outstanding} />
+          <Link href="/dashboard/card" className="btn btn-ghost btn-sm btn-block mt-6">
+            Настроить награду
+          </Link>
+        </section>
+      </div>
+
       {advanced ? (
-        <section className="rounded-2xl border border-line bg-white p-4">
-          <h2 className="mb-1 font-medium">Когда приходят гости</h2>
-          <p className="mb-4 text-sm text-ink-soft">Часы по Ташкенту, за выбранный период.</p>
+        <section className="card p-5 md:p-6">
+          <div className="mb-5">
+            <h2 className="card-title">Когда приходят гости</h2>
+            <p className="mt-0.5 text-xs text-ink-faint">Часы пик по Ташкенту</p>
+          </div>
           <Heatmap data={heatmap} />
         </section>
       ) : (
-        <section className="rounded-2xl border border-dashed border-line p-6 text-center">
-          <p className="font-medium">Тепловая карта посещений и когорты</p>
-          <p className="mt-1 text-sm text-ink-soft">
-            Доступны на тарифе с маркетингом.{" "}
-            <Link href="/dashboard/billing" className="underline">
-              Подробнее
-            </Link>
+        <section className="empty">
+          <h2 className="card-title">Тепловая карта посещений и когорты</h2>
+          <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-ink-soft">
+            Видно, в какие часы приходят гости и как возвращаются группы по месяцам. Доступно на
+            тарифе с маркетингом.
           </p>
+          <Link href="/dashboard/billing" className="btn btn-primary btn-sm mt-5">
+            Посмотреть тарифы
+          </Link>
         </section>
       )}
     </div>
   );
 }
+

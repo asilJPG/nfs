@@ -45,23 +45,22 @@ export default async function BillingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold">Подписка</h1>
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">Тариф и оплата</h1>
+        <p className="page-subtitle">Что подключено сейчас и что даёт следующий тариф</p>
+      </header>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
+      <section className="card p-5 md:p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-lg font-medium">
+          <p className="text-lg font-bold tracking-tight text-white">
             {tenant.plan === "marketing" ? "Лояльность + маркетинг" : "Лояльность"}
           </p>
-          <span
-            className={`rounded-full px-3 py-1 text-sm ${
-              serving ? "bg-bean/10 text-bean-dark" : "bg-red-50 text-red-700"
-            }`}
-          >
+          <span className={`badge ${serving ? "badge-ok" : "badge-bad"}`}>
             {STATUS_LABELS[tenant.subscription_status]}
           </span>
         </div>
 
-        <p className="mt-2 text-sm text-ink-soft">
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
           {tenant.subscription_status === "trial"
             ? trialDays && trialDays > 0
               ? `Бесплатно ещё ${trialDays} дн. Карта работает полностью, включая рассылки.`
@@ -72,7 +71,7 @@ export default async function BillingPage() {
         </p>
 
         {!serving && (
-          <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="note note-warn mt-4">
             Пока подписка неактивна, новые штампы не начисляются. Всё, что гости уже накопили,
             сохраняется и вернётся сразу после оплаты.
           </p>
@@ -83,35 +82,36 @@ export default async function BillingPage() {
         {PLANS.map((plan) => (
           <article
             key={plan.id}
-            className={`rounded-2xl border p-4 ${
-              tenant.plan === plan.id ? "border-bean bg-white" : "border-line bg-white"
+            className={`card p-5 ${
+              tenant.plan === plan.id ? "border-violet-500/40 bg-violet-500/[0.04]" : ""
             }`}
           >
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="font-medium">{plan.name}</h2>
-              {tenant.plan === plan.id && (
-                <span className="text-xs text-bean-dark">текущий</span>
-              )}
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <h2 className="card-title">{plan.name}</h2>
+              {tenant.plan === plan.id && <span className="badge badge-accent">текущий</span>}
             </div>
-            <p className="mb-3 text-lg font-semibold">{plan.price}</p>
-            <ul className="flex flex-col gap-1.5 text-sm text-ink-soft">
+            <p className="mb-4 text-xl font-bold tracking-tight text-white">{plan.price}</p>
+            <ul className="flex flex-col gap-2 text-[13px] text-ink-soft">
               {plan.features.map((feature) => (
-                <li key={feature}>· {feature}</li>
+                <li key={feature} className="flex gap-2">
+                  <span className="mt-[7px] size-1 shrink-0 rounded-full bg-violet-400" />
+                  <span className="leading-relaxed">{feature}</span>
+                </li>
               ))}
             </ul>
           </article>
         ))}
       </section>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-2 font-medium">Как оплатить</h2>
-        <p className="text-sm text-ink-soft">
+      <section className="card p-5 md:p-6">
+        <h2 className="card-title mb-2">Как оплатить</h2>
+        <p className="text-[13px] leading-relaxed text-ink-soft">
           Напишите нам в Telegram — выставим счёт на юрлицо или примем перевод. После оплаты
           подписка продлевается в течение рабочего дня, ничего перенастраивать не нужно.
         </p>
         <a
           href="https://t.me/stampy_support"
-          className="mt-3 inline-block rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-white"
+          className="btn btn-primary mt-4"
         >
           Написать в поддержку
         </a>

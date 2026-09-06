@@ -53,34 +53,43 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {notice && (
-        <p className={`text-sm ${notice.ok ? "text-bean-dark" : "text-red-600"}`}>{notice.message}</p>
+        <p className={`note ${notice.ok ? "note-ok" : "note-bad"}`}>{notice.message}</p>
       )}
 
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-4 font-medium">Точки</h2>
+      <section className="card p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="card-title">Точки</h2>
+          <span className="badge badge-muted">{venues.length}</span>
+        </div>
 
-        <ul className="mb-4 flex flex-col gap-2">
+        <ul className="mb-5 flex flex-col gap-2">
           {venues.map((venue) => (
             <li
               key={venue.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3"
+              className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white/[0.02] px-4 py-3"
             >
               <div className="min-w-0">
-                <p className={`truncate font-medium ${venue.active ? "" : "opacity-50"}`}>{venue.name}</p>
-                {venue.address && <p className="truncate text-sm text-ink-soft">{venue.address}</p>}
+                <p className={`truncate text-sm font-semibold ${venue.active ? "text-white" : "text-ink-faint line-through"}`}>
+                  {venue.name}
+                </p>
+                {venue.address && <p className="truncate text-xs text-ink-soft">{venue.address}</p>}
               </div>
               <button
                 onClick={() => run(`venue:${venue.id}`, () => setVenueActive(venue.id, !venue.active))}
                 disabled={pending}
-                className="shrink-0 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft disabled:opacity-50"
+                className="btn btn-ghost btn-sm shrink-0"
               >
                 {busy === `venue:${venue.id}` ? "…" : venue.active ? "Отключить" : "Включить"}
               </button>
             </li>
           ))}
-          {venues.length === 0 && <li className="text-sm text-ink-soft">Точек пока нет.</li>}
+          {venues.length === 0 && (
+            <li className="rounded-xl border border-dashed border-line-strong px-4 py-6 text-center text-sm text-ink-soft">
+              Точек пока нет — добавьте первую.
+            </li>
+          )}
         </ul>
 
         <form
@@ -101,32 +110,35 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
             value={venueName}
             onChange={(event) => setVenueName(event.target.value)}
             placeholder="Название точки"
-            className={input}
+            className="input"
           />
           <input
             value={venueAddress}
             onChange={(event) => setVenueAddress(event.target.value)}
             placeholder="Адрес (необязательно)"
-            className={input}
+            className="input"
           />
           <button
             type="submit"
             disabled={pending || venueName.trim().length < 2}
-            className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50"
+            className="btn btn-primary"
           >
             {busy === "add-venue" ? "Добавляем…" : "Добавить"}
           </button>
         </form>
       </section>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-1 font-medium">Сотрудники</h2>
-        <p className="mb-4 text-sm text-ink-soft">
+      <section className="card p-5">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="card-title">Сотрудники</h2>
+          <span className="badge badge-muted">{staff.length}</span>
+        </div>
+        <p className="mb-4 text-xs leading-relaxed text-ink-soft">
           Логин и пароль придумываете вы и передаёте сотруднику лично — писем система не шлёт.
           Бариста видит только кассу: выдать награду и поставить штамп вручную.
         </p>
 
-        <ul className="mb-4 flex flex-col gap-2">
+        <ul className="mb-5 flex flex-col gap-2">
           {staff.map((member) => (
             <StaffRow
               key={member.id}
@@ -152,71 +164,78 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
               },
             );
           }}
-          className="grid gap-2 sm:grid-cols-2"
+          className="grid gap-3 sm:grid-cols-2"
         >
           <label className="block">
-            <span className="mb-1 block text-sm text-ink-soft">Логин</span>
+            <span className="field-label">Логин</span>
             <input
               value={login}
               onChange={(event) => setLogin(normalizeLogin(event.target.value))}
               autoCapitalize="none"
               placeholder="amir-barista"
-              className={`${input} w-full`}
+              className="input"
             />
-            <span className="mt-1 block text-xs text-ink-soft">{LOGIN_HINT}</span>
+            <span className="field-hint">{LOGIN_HINT}</span>
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm text-ink-soft">Пароль</span>
+            <span className="field-label">Пароль</span>
             <input
               type="text"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="off"
               placeholder={`минимум ${MIN_PASSWORD_LENGTH} символов`}
-              className={`${input} w-full`}
+              className="input"
             />
-            <span className="mt-1 block text-xs text-ink-soft">
-              Показан открыто — его нужно продиктовать сотруднику.
-            </span>
+            <span className="field-hint">Показан открыто — его нужно продиктовать сотруднику.</span>
           </label>
 
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Имя (необязательно)"
-            className={input}
-          />
+          <label className="block">
+            <span className="field-label">Имя</span>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Необязательно"
+              className="input"
+            />
+          </label>
 
-          <div className="flex gap-2">
-            <select
-              value={role}
-              onChange={(event) => setRole(event.target.value as StaffRole)}
-              className={`${input} flex-1`}
-            >
-              <option value="cashier">Бариста</option>
-              <option value="manager">Управляющий</option>
-            </select>
-            {venues.length > 1 && (
+          <div className="flex gap-2 sm:items-end">
+            <label className="block flex-1">
+              <span className="field-label">Роль</span>
               <select
-                value={venueId}
-                onChange={(event) => setVenueId(event.target.value)}
-                className={`${input} flex-1`}
+                value={role}
+                onChange={(event) => setRole(event.target.value as StaffRole)}
+                className="input"
               >
-                <option value="">Все точки</option>
-                {venues.map((venue) => (
-                  <option key={venue.id} value={venue.id}>
-                    {venue.name}
-                  </option>
-                ))}
+                <option value="cashier">Бариста</option>
+                <option value="manager">Управляющий</option>
               </select>
+            </label>
+            {venues.length > 1 && (
+              <label className="block flex-1">
+                <span className="field-label">Точка</span>
+                <select
+                  value={venueId}
+                  onChange={(event) => setVenueId(event.target.value)}
+                  className="input"
+                >
+                  <option value="">Все точки</option>
+                  {venues.map((venue) => (
+                    <option key={venue.id} value={venue.id}>
+                      {venue.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
           </div>
 
           <button
             type="submit"
             disabled={pending || login.length < 4 || password.length < MIN_PASSWORD_LENGTH}
-            className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50 sm:col-span-2"
+            className="btn btn-primary sm:col-span-2"
           >
             {busy === "add-staff" ? "Добавляем…" : "Добавить сотрудника"}
           </button>
@@ -243,19 +262,27 @@ function StaffRow({
   const [password, setPassword] = useState("");
 
   return (
-    <li className="rounded-2xl border border-line px-4 py-3">
+    <li className="rounded-xl border border-line bg-white/[0.02] px-4 py-3">
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-medium">{member.name ?? member.username}</p>
-          <p className="text-sm text-ink-soft">
-            {ROLE_LABELS[member.role]} · логин <span className="font-mono">{member.username}</span>
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-white/5 text-xs font-bold text-slate-300">
+            {(member.name ?? member.username).slice(0, 1).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
+              {member.name ?? member.username}
+              {isSelf && <span className="ml-2 text-[11px] font-medium text-ink-faint">это вы</span>}
+            </p>
+            <p className="truncate text-xs text-ink-soft">
+              {ROLE_LABELS[member.role]} · <span className="font-mono">{member.username}</span>
+            </p>
+          </div>
         </div>
         {!isSelf && (
           <div className="flex shrink-0 gap-2">
             <button
               onClick={() => setResetting((open) => !open)}
-              className="rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft"
+              className="btn btn-ghost btn-sm"
             >
               Пароль
             </button>
@@ -263,7 +290,7 @@ function StaffRow({
               <button
                 onClick={() => onRun(`staff-off:${member.id}`, () => removeStaff(member.id))}
                 disabled={pending}
-                className="rounded-xl px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
+                className="btn btn-danger btn-sm"
               >
                 {busy === `staff-off:${member.id}` ? "…" : "Отключить"}
               </button>
@@ -278,7 +305,7 @@ function StaffRow({
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Новый пароль"
-            className={`${input} flex-1`}
+            className="input flex-1"
           />
           <button
             onClick={() =>
@@ -292,7 +319,7 @@ function StaffRow({
               )
             }
             disabled={pending || password.length < MIN_PASSWORD_LENGTH}
-            className="rounded-2xl bg-bean px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="btn btn-primary btn-sm"
           >
             {busy === `staff-pw:${member.id}` ? "…" : "Сменить"}
           </button>
@@ -301,5 +328,3 @@ function StaffRow({
     </li>
   );
 }
-
-const input = "rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean";

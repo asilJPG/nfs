@@ -19,18 +19,18 @@ import type { AnalyticsDay } from "@/types/db";
  * Colours are categorical slots 1 and 2 of the validated palette
  * (adjacent CVD ΔE 24.7, normal-vision ΔE 33.6 — both clear).
  */
-const NEW = "#2a78d6";
-const RETURNING = "#eb6834";
-const SURFACE = "#ffffff";
-const GRID = "#eadfd4";
-const INK_SOFT = "#6b5c52";
+const NEW = "#8b5cf6";
+const RETURNING = "#c084fc";
+const SURFACE = "#161822";
+const GRID = "rgba(255, 255, 255, 0.05)";
+const INK_SOFT = "#94a3b8";
 
 const dayLabel = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" });
 
 export function DailyChart({ data }: { data: AnalyticsDay[] }) {
   if (data.every((row) => row.stamps === 0)) {
     return (
-      <p className="py-10 text-center text-sm text-ink-soft">
+      <p className="py-10 text-center text-xs text-slate-400 font-mono">
         Пока нет посещений за этот период.
       </p>
     );
@@ -43,7 +43,7 @@ export function DailyChart({ data }: { data: AnalyticsDay[] }) {
 
   return (
     <>
-      <div className="mb-3 flex flex-wrap gap-4 text-sm">
+      <div className="mb-4 flex flex-wrap gap-4 text-xs font-medium">
         <Legend color={NEW} label="Новые гости" />
         <Legend color={RETURNING} label="Вернувшиеся" />
       </div>
@@ -67,54 +67,54 @@ export function DailyChart({ data }: { data: AnalyticsDay[] }) {
               width={40}
             />
             <Tooltip
-              cursor={{ fill: "rgba(0,0,0,0.04)" }}
+              cursor={{ fill: "rgba(255,255,255,0.03)" }}
               content={({ active, payload, label }) => {
                 if (!active || !payload?.length) return null;
                 const row = payload[0].payload as (typeof rows)[number];
                 return (
-                  <div className="rounded-xl border border-line bg-white px-3 py-2 text-xs shadow-lg">
-                    <p className="mb-1 font-medium text-ink">{label}</p>
-                    <Row color={NEW} label="Новые" value={row.new_customers} />
+                  <div className="rounded-xl border border-white/10 bg-[#0d0e14] px-3.5 py-2.5 text-xs shadow-2xl text-white">
+                    <p className="mb-1.5 font-bold tracking-tight text-white border-b border-white/10 pb-1">{label}</p>
+                    <Row color={NEW} label="Новые гости" value={row.new_customers} />
                     <Row color={RETURNING} label="Вернувшиеся" value={row.returning_customers} />
-                    <p className="mt-1 border-t border-line pt-1 text-ink-soft">
+                    <p className="mt-1.5 border-t border-white/10 pt-1 text-[11px] text-purple-400 font-mono">
                       Штампов: {row.stamps}
                     </p>
                   </div>
                 );
               }}
             />
-            <Bar dataKey="new_customers" stackId="guests" fill={NEW} stroke={SURFACE} strokeWidth={2} />
+            <Bar dataKey="new_customers" stackId="guests" fill={NEW} stroke={SURFACE} strokeWidth={1} />
             <Bar
               dataKey="returning_customers"
               stackId="guests"
               fill={RETURNING}
               stroke={SURFACE}
-              strokeWidth={2}
+              strokeWidth={1}
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      <details className="mt-3 text-sm">
-        <summary className="cursor-pointer text-ink-soft">Показать таблицей</summary>
-        <div className="mt-2 max-h-64 overflow-auto">
+      <details className="mt-3 text-xs">
+        <summary className="cursor-pointer text-slate-500 hover:text-slate-300 font-mono">Показать таблицей</summary>
+        <div className="mt-2 max-h-64 overflow-auto rounded-xl border border-white/5 bg-[#0d0e14]">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-white text-ink-soft">
+            <thead className="sticky top-0 bg-[#161822] text-slate-400 border-b border-white/5">
               <tr>
-                <th className="py-1 font-medium">День</th>
-                <th className="py-1 font-medium">Новые</th>
-                <th className="py-1 font-medium">Вернувшиеся</th>
-                <th className="py-1 font-medium">Штампы</th>
+                <th className="py-2 px-3 font-semibold">День</th>
+                <th className="py-2 px-3 font-semibold">Новые</th>
+                <th className="py-2 px-3 font-semibold">Вернувшиеся</th>
+                <th className="py-2 px-3 font-semibold">Штампы</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-white/5">
               {rows.map((row) => (
-                <tr key={row.day} className="border-t border-line/60">
-                  <td className="py-1">{row.label}</td>
-                  <td className="py-1 tabular-nums">{row.new_customers}</td>
-                  <td className="py-1 tabular-nums">{row.returning_customers}</td>
-                  <td className="py-1 tabular-nums">{row.stamps}</td>
+                <tr key={row.day} className="hover:bg-white/5 text-slate-300">
+                  <td className="py-2 px-3 font-mono">{row.label}</td>
+                  <td className="py-2 px-3 tabular-nums font-mono text-purple-400">{row.new_customers}</td>
+                  <td className="py-2 px-3 tabular-nums font-mono text-indigo-400">{row.returning_customers}</td>
+                  <td className="py-2 px-3 tabular-nums font-mono font-bold text-white">{row.stamps}</td>
                 </tr>
               ))}
             </tbody>
@@ -127,7 +127,7 @@ export function DailyChart({ data }: { data: AnalyticsDay[] }) {
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <span className="flex items-center gap-1.5 text-ink-soft">
+    <span className="flex items-center gap-1.5 text-slate-400">
       <span className="size-2.5 rounded-sm" style={{ background: color }} />
       {label}
     </span>
@@ -136,9 +136,13 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 function Row({ color, label, value }: { color: string; label: string; value: number }) {
   return (
-    <p className="flex items-center gap-1.5 text-ink">
-      <span className="size-2 rounded-sm" style={{ background: color }} />
-      {label}: <span className="tabular-nums">{value}</span>
+    <p className="flex items-center justify-between gap-4 text-xs">
+      <span className="flex items-center gap-1.5 text-slate-300">
+        <span className="size-2 rounded-full" style={{ background: color }} />
+        {label}
+      </span>
+      <span className="tabular-nums font-mono font-bold text-white">{value}</span>
     </p>
   );
 }
+
