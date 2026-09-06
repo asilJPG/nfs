@@ -34,110 +34,127 @@ export function ApplyForm() {
 
   if (sent) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-5 text-center">
-        <h1 className="text-2xl font-semibold">Заявка отправлена</h1>
-        <p className="text-ink-soft">
-          Мы свяжемся с вами по телефону или в Telegram в течение рабочего дня — обсудим детали
-          и заведём кофейню.
-        </p>
-        <Link href="/" className="rounded-2xl border border-line px-5 py-3 text-sm">
-          На главную
-        </Link>
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-5 text-center bg-zinc-950 font-sans">
+        <div className="premium-card p-8 shadow-2xl bg-zinc-950 border-zinc-800 max-w-xs">
+          <div className="size-12 rounded-full bg-emerald-500/10 text-emerald-400 grid place-items-center text-xl mx-auto mb-3 border border-emerald-500/20">
+            ✓
+          </div>
+          <h1 className="text-lg font-bold tracking-tight text-white">Заявка отправлена</h1>
+          <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+            Мы свяжемся с вами в течение дня, обсудим детали и подготовим систему лояльности для вашей кофейни.
+          </p>
+          <Link href="/" className="mt-6 inline-block w-full rounded-xl bg-white py-3 text-xs font-bold text-zinc-950 hover:bg-zinc-200 transition-colors">
+            На главную
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <form onSubmit={submit} className="mx-auto grid max-w-xl gap-5 px-5 py-8">
-      <header>
-        <h1 className="text-2xl font-semibold">Заявка на подключение</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Оставьте контакт — свяжемся, обсудим карту и подготовим кофейню под ваш бренд.
-        </p>
-      </header>
+    <main className="min-h-dvh bg-zinc-950 px-4 py-12 font-sans flex items-center justify-center">
+      <form onSubmit={submit} className="premium-card w-full max-w-md p-8 shadow-2xl bg-zinc-950/90 border-zinc-800">
+        <header className="mb-6 text-center">
+          <span className="text-2xl mb-2 block">☕</span>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Подключение кофейни</h1>
+          <p className="mt-1 text-xs text-zinc-400">
+            Оставьте заявку — свяжемся и бесплатно настроим систему
+          </p>
+        </header>
 
-      <Field label="Название кофейни">
-        <input
-          value={cafeName}
-          onChange={(event) => setCafeName(event.target.value)}
-          required
-          maxLength={80}
-          placeholder="Кофе на Амире Темура"
-          className={input}
-        />
-      </Field>
+        <div className="flex flex-col gap-4">
+          <Field label="Название кофейни">
+            <input
+              value={cafeName}
+              onChange={(event) => setCafeName(event.target.value)}
+              required
+              maxLength={80}
+              placeholder="Кофе на Амире Темура"
+              className={input}
+            />
+          </Field>
 
-      <Field label="Город" hint="Не обязательно">
-        <input
-          value={city}
-          onChange={(event) => setCity(event.target.value)}
-          maxLength={60}
-          placeholder="Ташкент"
-          className={input}
-        />
-      </Field>
+          <Field label="Город" hint="Необязательно">
+            <input
+              value={city}
+              onChange={(event) => setCity(event.target.value)}
+              maxLength={60}
+              placeholder="Ташкент"
+              className={input}
+            />
+          </Field>
 
-      <Field label="Как к вам обращаться">
-        <input
-          value={contactName}
-          onChange={(event) => setContactName(event.target.value)}
-          required
-          maxLength={80}
-          className={input}
-        />
-      </Field>
+          <Field label="Имя контакта">
+            <input
+              value={contactName}
+              onChange={(event) => setContactName(event.target.value)}
+              required
+              maxLength={80}
+              placeholder="Ислом"
+              className={input}
+            />
+          </Field>
 
-      <Field label="Телефон">
-        <input
-          type="tel"
-          value={phone}
-          onChange={(event) => setPhone(event.target.value)}
-          required
-          maxLength={30}
-          placeholder="+998 90 123-45-67"
-          className={input}
-        />
-      </Field>
+          <Field label="Телефон">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              required
+              maxLength={30}
+              placeholder="+998 90 123-45-67"
+              className={input}
+            />
+          </Field>
 
-      <Field label="Telegram" hint="@username или ссылка">
-        <input
-          value={telegram}
-          onChange={(event) => setTelegram(event.target.value)}
-          maxLength={60}
-          placeholder="@barista"
-          className={input}
-        />
-      </Field>
+          <Field label="Telegram" hint="@username">
+            <input
+              value={telegram}
+              onChange={(event) => setTelegram(event.target.value)}
+              maxLength={60}
+              placeholder="@username"
+              className={input}
+            />
+          </Field>
 
-      <Field label="О чём хотите рассказать" hint="Сколько точек, что уже пробовали — необязательно">
-        <textarea
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          maxLength={500}
-          rows={4}
-          className={input}
-        />
-      </Field>
+          <Field label="Комментарий" hint="Число точек, пожелания — необязательно">
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              maxLength={500}
+              rows={3}
+              className={input}
+            />
+          </Field>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="text-xs text-red-400 bg-red-950/40 p-3 rounded-xl border border-red-900/30 text-center font-medium">
+              {error}
+            </p>
+          )}
 
-      <button
-        type="submit"
-        disabled={pending || cafeName.length < 2 || contactName.length < 2 || phone.length < 5}
-        className="rounded-2xl bg-bean py-3.5 font-medium text-white disabled:opacity-50"
-      >
-        {pending ? "Отправляем…" : "Отправить заявку"}
-      </button>
+          <button
+            type="submit"
+            disabled={pending || cafeName.length < 2 || contactName.length < 2 || phone.length < 5}
+            className="mt-2 w-full rounded-xl bg-white py-3.5 text-xs font-bold text-zinc-950 hover:bg-zinc-200 transition-all disabled:opacity-50"
+          >
+            {pending ? "Отправляем…" : "Отправить заявку"}
+          </button>
 
-      <p className="text-center text-sm text-ink-soft">
-        Уже клиент? <Link href="/login" className="underline">Войти</Link>
-      </p>
-    </form>
+          <p className="text-center text-xs text-zinc-500 pt-2">
+            Уже подключены?{" "}
+            <Link href="/login" className="font-semibold text-zinc-300 hover:underline">
+              Войти
+            </Link>
+          </p>
+        </div>
+      </form>
+    </main>
   );
 }
 
 const input =
-  "w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean";
+  "w-full rounded-xl border border-zinc-800 bg-zinc-900/90 px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-zinc-500 transition-colors";
 
 function Field({
   label,
@@ -150,9 +167,12 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium">{label}</span>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-mono uppercase tracking-wider text-zinc-400">{label}</span>
+        {hint && <span className="text-[10px] text-zinc-500 font-mono">{hint}</span>}
+      </div>
       {children}
-      {hint && <span className="mt-1 block text-xs text-ink-soft">{hint}</span>}
     </label>
   );
 }
+

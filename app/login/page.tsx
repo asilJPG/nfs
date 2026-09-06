@@ -22,71 +22,76 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="w-full">
-      <h1 className="mb-1 text-xl font-semibold">Вход для кофейни</h1>
-      <p className="mb-6 text-sm text-ink-soft">Логин и пароль, которые вы задали при регистрации.</p>
+    <form onSubmit={submit} className="premium-card w-full max-w-sm p-8 shadow-2xl bg-zinc-950/90 border-zinc-800">
+      <div className="mb-6 text-center">
+        <span className="text-2xl mb-2 block">☕</span>
+        <h1 className="text-xl font-bold tracking-tight text-white">Вход в кабинет</h1>
+        <p className="mt-1 text-xs text-zinc-400">Введите ваш логин и пароль кофейни</p>
+      </div>
 
-      <label className="mb-3 block">
-        <span className="mb-1 block text-sm text-ink-soft">Логин</span>
-        <input
-          value={login}
-          onChange={(event) => setLogin(event.target.value)}
-          autoComplete="username"
-          autoCapitalize="none"
-          required
-          placeholder="coffee-amir"
-          className={input}
-        />
-      </label>
+      <div className="flex flex-col gap-4">
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-zinc-400">Логин</span>
+          <input
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
+            autoComplete="username"
+            autoCapitalize="none"
+            required
+            placeholder="coffee-owner"
+            className={input}
+          />
+        </label>
 
-      <label className="block">
-        <span className="mb-1 block text-sm text-ink-soft">Пароль</span>
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          autoComplete="current-password"
-          required
-          className={input}
-        />
-      </label>
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-mono uppercase tracking-wider text-zinc-400">Пароль</span>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+            className={input}
+          />
+        </label>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-xs text-red-400 bg-red-950/40 p-3 rounded-xl border border-red-900/30 text-center font-medium">
+            {error}
+          </p>
+        )}
 
-      <button
-        type="submit"
-        disabled={pending || !login || !password}
-        className="mt-4 w-full rounded-2xl bg-bean py-3 font-medium text-white disabled:opacity-60"
-      >
-        {pending ? "Входим…" : "Войти"}
-      </button>
+        <button
+          type="submit"
+          disabled={pending || !login || !password}
+          className="mt-2 w-full rounded-xl bg-white py-3.5 text-xs font-bold text-zinc-950 hover:bg-zinc-200 transition-all disabled:opacity-50"
+        >
+          {pending ? "Входим…" : "Войти"}
+        </button>
+      </div>
 
-      <p className="mt-6 text-center text-sm text-ink-soft">
-        Ещё не подключились?{" "}
-        <Link href="/apply" className="underline">
-          Подать заявку
-        </Link>
-      </p>
-      <p className="mt-2 text-center text-xs text-ink-soft">
-        Забыли пароль — напишите в{" "}
-        <a href="https://t.me/stampy_support" className="underline">
-          поддержку
-        </a>
-        , восстановим вручную.
-      </p>
+      <div className="mt-6 border-t border-zinc-900 pt-5 text-center text-xs text-zinc-500">
+        <p>
+          Ещё не с нами?{" "}
+          <Link href="/apply" className="font-semibold text-zinc-300 hover:underline">
+            Подать заявку
+          </Link>
+        </p>
+      </div>
     </form>
   );
 }
 
 const input =
-  "w-full rounded-2xl border border-line bg-white px-4 py-3 outline-none focus:border-bean";
+  "w-full rounded-xl border border-zinc-800 bg-zinc-900/90 px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none focus:border-zinc-500 transition-colors";
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto grid min-h-dvh max-w-sm place-items-center px-5">
-      <Suspense fallback={<p className="text-sm text-ink-soft">Загрузка…</p>}>
+    <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-5 py-8 bg-zinc-950 font-sans">
+      <Suspense fallback={<p className="text-xs text-zinc-500 font-mono">Загрузка…</p>}>
         <LoginForm />
       </Suspense>
     </main>
   );
 }
+

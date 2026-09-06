@@ -72,10 +72,10 @@ function Tile({
   href?: string;
 }) {
   const body = (
-    <div className="rounded-2xl border border-line bg-white p-4">
-      <p className="text-xs uppercase tracking-wider text-ink-soft">{label}</p>
-      <p className="mt-2 text-3xl font-semibold">{value.toLocaleString("ru-RU")}</p>
-      {hint && <p className="mt-1 text-xs text-ink-soft">{hint}</p>}
+    <div className="rounded-2xl border border-white/5 bg-[#12131c] p-5 shadow-lg shadow-black/40 hover:border-violet-500/30 transition-all">
+      <p className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">{label}</p>
+      <p className="mt-2 text-3xl font-bold text-white tracking-tight">{value.toLocaleString("ru-RU")}</p>
+      {hint && <p className="mt-1.5 text-xs text-zinc-400 font-medium">{hint}</p>}
     </div>
   );
   return href ? <Link href={href}>{body}</Link> : body;

@@ -17,4 +17,5 @@ export function useAdminAction() {
 }
 
 export const input =
-  "rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-bean";
+  "w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-xs text-white placeholder-zinc-500 outline-none focus:border-zinc-600 transition-colors";
+
