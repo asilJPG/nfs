@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { StampGrid } from "./StampGrid";
+import { inkOn, Monogram, WalletCardRow } from "./WalletCard";
 
 // RewardSheet тащит qrcode (~50KB gzip). Грузим только когда гость открывает награду.
 const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
@@ -177,47 +178,79 @@ export function CardScreen() {
   const filled = card?.stamps_count ?? 0;
   const remaining = Math.max(0, program.stamps_required - filled);
   const justStamped = claim?.kind === "stamped" ? claim.stamps_count - 1 : null;
+  const cardFill = tenant.brand.primary;
+  const cardInk = inkOn(cardFill);
 
   return (
-    <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col gap-4 px-4">
-      <header className="flex items-center gap-3 pt-2">
-        {tenant.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={tenant.logo_url} alt="" className="size-11 rounded-2xl object-cover" />
-        ) : (
-          <div
-            className="grid size-11 place-items-center rounded-2xl text-lg"
-            style={{ background: "var(--brand-primary)", color: "var(--brand-surface)" }}
-          >
-            {tenant.name.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">{tenant.name}</h1>
-          <p className="text-sm opacity-60">Карта лояльности</p>
-        </div>
-      </header>
+    <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col gap-3 px-4 pb-6">
+      <WalletHeader title="Моя карта" subtitle={tenant.name} />
 
       {claim && <ClaimBanner claim={claim} />}
 
+      {/* Основная карта: цветная плашка кофейни, внутри белая панель со штампами */}
       <section
-        className="rounded-3xl p-5 shadow-sm"
-        style={{ background: "var(--brand-surface)" }}
+        className="rounded-[26px] p-5"
+        style={{ background: cardFill, color: cardInk }}
       >
-        <p className="text-sm opacity-70">
-          {remaining === 0
-            ? "Карта заполнена — заберите награду"
-            : `Ещё ${remaining} ${plural(remaining, "штамп", "штампа", "штампов")} до награды`}
-        </p>
-        <p className="mb-4 text-xl font-semibold">{program.reward_title}</p>
-        <StampGrid
-          filled={filled}
-          total={program.stamps_required}
-          style={tenant.brand.card_style}
-          justStamped={justStamped}
-        />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Monogram name={tenant.name} logoUrl={tenant.logo_url} ink={cardInk} />
+            <div className="min-w-0">
+              <h2 className="truncate text-[20px] font-extrabold leading-tight tracking-tight">
+                {tenant.name}
+              </h2>
+              <p className="truncate text-[12px]" style={{ opacity: 0.72 }}>
+                {program.reward_title}
+              </p>
+            </div>
+          </div>
+          <span
+            className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
+            style={{
+              background: cardInk === "#141414" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)",
+            }}
+          >
+            {remaining === 0 ? "готово" : `ещё ${remaining}`}
+          </span>
+        </div>
+
+        <div className="mt-5 rounded-[16px] bg-white px-4 py-4">
+          <StampGrid
+            filled={filled}
+            total={program.stamps_required}
+            style={tenant.brand.card_style}
+            justStamped={justStamped}
+          />
+          <p className="mt-3 text-center text-[11px] font-medium text-neutral-400">
+            {remaining === 0
+              ? "Карта заполнена — заберите награду"
+              : `Ещё ${remaining} ${plural(remaining, "штамп", "штампа", "штампов")} до награды`}
+          </p>
+        </div>
+
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
+              Собрано
+            </p>
+            <p className="text-[15px] font-bold tabular-nums">
+              {filled} из {program.stamps_required}
+            </p>
+          </div>
+          <div className="min-w-0 text-right">
+            <p className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
+              Награда
+            </p>
+            <p className="truncate text-[15px] font-bold">
+              {state.rewards.length > 0 ? "готова" : remaining === 0 ? "начисляется" : "копится"}
+            </p>
+          </div>
+        </div>
+
         {program.reward_description && (
-          <p className="mt-4 text-sm opacity-60">{program.reward_description}</p>
+          <p className="mt-3 text-[11px] leading-relaxed" style={{ opacity: 0.7 }}>
+            {program.reward_description}
+          </p>
         )}
       </section>
 
@@ -227,38 +260,63 @@ export function CardScreen() {
             <button
               key={reward.id}
               onClick={() => setOpenReward(reward as Reward)}
-              className="flex items-center justify-between rounded-3xl px-5 py-4 text-left shadow-sm"
-              style={{ background: "var(--brand-primary)", color: "var(--brand-surface)" }}
+              className="flex items-center justify-between gap-3 rounded-[22px] border border-emerald-400/25 bg-emerald-400/10 px-4 py-3.5 text-left transition-transform active:scale-[0.98]"
             >
-              <span>
-                <span className="block font-semibold">{reward.title}</span>
-                <span className="block text-sm opacity-80">
-                  {reward.expires_at
-                    ? `Действует до ${formatDate(reward.expires_at)}`
-                    : "Без срока действия"}
+              <span className="min-w-0">
+                <span className="block truncate text-[15px] font-bold text-emerald-300">
+                  {reward.title}
+                </span>
+                <span className="block text-[11px] text-emerald-400/70">
+                  {reward.expires_at ? `Действует до ${formatDate(reward.expires_at)}` : "Без срока"}
                 </span>
               </span>
-              <span className="text-sm font-medium">Использовать →</span>
+              <span className="shrink-0 rounded-full bg-emerald-400 px-3.5 py-2 text-[12px] font-bold text-neutral-950">
+                Забрать
+              </span>
             </button>
           ))}
         </section>
       )}
 
+      {state.otherCards.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <p className="px-1 pt-2 text-[11px] font-semibold text-neutral-500">Другие карты</p>
+          {state.otherCards.map((other) => (
+            <WalletCardRow
+              key={other.slug}
+              card={{
+                slug: other.slug,
+                name: other.name,
+                subtitle: "Карта лояльности",
+                logo_url: other.logo_url,
+                brand: other.brand,
+                stamps_count: other.stamps_count,
+                stamps_required: other.stamps_required,
+              }}
+              onClick={() => {
+                setScreen({ step: "loading" });
+                void load(`t_${other.slug}`);
+              }}
+            />
+          ))}
+        </section>
+      )}
+
       {state.history.length > 0 && (
-        <section className="rounded-3xl px-5 py-4 shadow-sm" style={{ background: "var(--brand-surface)" }}>
+        <section className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
           <button
             onClick={() => setShowHistory((open) => !open)}
-            className="flex w-full items-center justify-between text-sm"
+            className="flex w-full items-center justify-between text-[13px] font-medium text-neutral-400"
           >
-            <span className="opacity-60">История посещений</span>
-            <span className="opacity-40">{showHistory ? "▲" : "▼"}</span>
+            <span>История посещений</span>
+            <span className="text-neutral-600">{showHistory ? "−" : "+"}</span>
           </button>
           {showHistory && (
-            <ul className="mt-3 flex flex-col gap-2 text-sm">
+            <ul className="mt-3 flex flex-col gap-2 border-t border-white/8 pt-3 text-[12px]">
               {state.history.map((visit, index) => (
-                <li key={index} className="flex justify-between opacity-80">
+                <li key={index} className="flex justify-between text-neutral-300">
                   <span>{formatDateTime(visit.created_at)}</span>
-                  <span className="opacity-60">{visit.venue ?? ""}</span>
+                  <span className="text-neutral-500">{visit.venue ?? ""}</span>
                 </li>
               ))}
             </ul>
@@ -266,27 +324,7 @@ export function CardScreen() {
         </section>
       )}
 
-      {state.otherCards.length > 0 && (
-        <section className="pb-6">
-          <p className="mb-2 px-1 text-sm opacity-60">Другие карты</p>
-          <div className="flex flex-col gap-2">
-            {state.otherCards.map((other) => (
-              <button
-                key={other.slug}
-                onClick={() => {
-                  setScreen({ step: "loading" });
-                  void load(`t_${other.slug}`);
-                }}
-                className="flex items-center justify-between rounded-2xl px-4 py-3 text-left text-sm shadow-sm"
-                style={{ background: "var(--brand-surface)" }}
-              >
-                <span className="font-medium">{other.name}</span>
-                <span className="opacity-50">{other.stamps_count} шт.</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      <AddCardHint />
 
       {openReward && (
         <RewardSheet
@@ -302,34 +340,76 @@ export function CardScreen() {
   );
 }
 
+/** Шапка кошелька: крупный заголовок слева, аватар гостя справа — как в референсе. */
+function WalletHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  const user = typeof window !== "undefined" ? window.Telegram?.WebApp?.initDataUnsafe?.user : null;
+  const photo = user?.photo_url ?? null;
+  const initial = (user?.first_name ?? "").slice(0, 1).toUpperCase();
+
+  return (
+    <header className="flex items-center justify-between gap-3 pb-1 pt-5">
+      <div className="min-w-0">
+        <h1 className="truncate text-[28px] font-extrabold leading-none tracking-tight text-white">
+          {title}
+        </h1>
+        {subtitle && <p className="mt-1 truncate text-[12px] text-neutral-500">{subtitle}</p>}
+      </div>
+      <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-white/10 bg-white/5 text-[13px] font-bold text-neutral-300">
+        {photo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photo} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initial || "☕"
+        )}
+      </span>
+    </header>
+  );
+}
+
+/** Пилюля внизу экрана — место кнопки «Add to Wallet» в референсе. */
+function AddCardHint() {
+  return (
+    <details className="group mt-1">
+      <summary className="flex cursor-pointer list-none items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.06] py-3.5 text-[13px] font-semibold text-neutral-200 transition-colors hover:bg-white/10">
+        <span className="text-[15px] leading-none">+</span>
+        Добавить карту
+      </summary>
+      <p className="mt-2 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-3 text-[12px] leading-relaxed text-neutral-400">
+        Приложите телефон к NFC-подставке на стойке кофейни или отсканируйте QR-код рядом с кассой —
+        карта появится здесь сама.
+      </p>
+    </details>
+  );
+}
+
 function ClaimBanner({ claim }: { claim: ClaimOutcome }) {
   if (claim.kind === "stamped") {
     return (
       <Banner tone="good">
         {claim.reward
-          ? "Карта заполнена — награда ваша!"
-          : `Штамп ${claim.stamps_count} из ${claim.stamps_required} 🎉`}
+          ? "Карта заполнена — ваша награда готова"
+          : `Штамп ${claim.stamps_count} из ${claim.stamps_required} зачислен`}
       </Banner>
     );
   }
   if (claim.kind === "already_counted") {
-    return <Banner tone="muted">Этот штамп уже начислен.</Banner>;
+    return <Banner tone="muted">Этот штамп уже был начислен ранее</Banner>;
   }
   if (claim.kind === "cooldown") {
     const minutes = Math.ceil(claim.retry_after_seconds / 60);
-    return <Banner tone="muted">Штамп можно получить снова через {minutes} мин.</Banner>;
+    return <Banner tone="muted">Следующий штамп можно получить через {minutes} мин</Banner>;
   }
   return <Banner tone="bad">{CLAIM_ERRORS[claim.code] ?? CLAIM_ERRORS.server}</Banner>;
 }
 
 function Banner({ tone, children }: { tone: "good" | "bad" | "muted"; children: React.ReactNode }) {
   const styles = {
-    good: { background: "color-mix(in srgb, var(--brand-primary) 12%, transparent)" },
-    muted: { background: "color-mix(in srgb, var(--brand-text) 8%, transparent)" },
-    bad: { background: "color-mix(in srgb, #d94545 14%, transparent)" },
+    good: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+    muted: "border-white/10 bg-white/5 text-neutral-300",
+    bad: "border-red-400/25 bg-red-400/10 text-red-300",
   }[tone];
   return (
-    <p className="animate-rise rounded-2xl px-4 py-3 text-sm font-medium" style={styles}>
+    <p className={`animate-rise rounded-[18px] border px-4 py-3 text-center text-[13px] font-semibold ${styles}`}>
       {children}
     </p>
   );
@@ -338,15 +418,17 @@ function Banner({ tone, children }: { tone: "good" | "bad" | "muted"; children: 
 function Splash() {
   return (
     <div className="grid min-h-dvh place-items-center">
-      <div className="animate-pulse text-4xl">☕</div>
+      <div className="size-8 animate-spin rounded-full border-2 border-white/15 border-t-white/70" />
     </div>
   );
 }
 
 function Message({ text }: { text: string }) {
   return (
-    <div className="grid min-h-dvh place-items-center px-4 text-center">
-      <p className="max-w-full whitespace-pre-wrap break-all text-sm opacity-70">{text}</p>
+    <div className="grid min-h-dvh place-items-center px-6 text-center">
+      <p className="max-w-xs whitespace-pre-wrap text-[13px] leading-relaxed text-neutral-400">
+        {text}
+      </p>
     </div>
   );
 }
@@ -354,107 +436,53 @@ function Message({ text }: { text: string }) {
 function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: string) => void }) {
   if (cards.length === 0) {
     return (
-      <div className="grid min-h-dvh place-items-center px-8 text-center">
-        <div className="max-w-xs">
-          <p className="mb-3 text-4xl">☕</p>
-          <h1 className="mb-2 text-lg font-semibold">Ещё нет карт</h1>
-          <p className="text-sm opacity-70">
-            Приложите телефон к NFC-подставке на стойке кофейни — карта появится сама.
+      <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col px-4">
+        <WalletHeader title="Мои карты" />
+        <div className="mt-6 rounded-[22px] border border-dashed border-white/12 px-5 py-8 text-center">
+          <p className="text-[15px] font-bold text-white">Пока нет ни одной карты</p>
+          <p className="mx-auto mt-2 max-w-[16rem] text-[12px] leading-relaxed text-neutral-400">
+            Приложите телефон к NFC-подставке на стойке кофейни — карта появится здесь
+            автоматически.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
-  // Стопка карт как в Wallet: каждая перекрывает предыдущую, видна только верхняя полоска.
-  const PEEK = 78;
-  const CARD_HEIGHT = 220;
-  const stackHeight = CARD_HEIGHT + PEEK * (cards.length - 1);
-
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-4 py-6">
-      <h1 className="text-xl font-semibold">Ваши карты</h1>
-      <div className="relative" style={{ height: stackHeight }}>
-        {cards.map((card, index) => {
-          const filled = card.stamps_count;
-          const required = card.stamps_required ?? 0;
-          const bg = card.brand?.primary ?? "#6F4E37";
-          const surface = card.brand?.surface ?? "#FFFFFF";
-          return (
-            <button
-              key={card.slug}
-              onClick={() => onPick(card.slug)}
-              className="absolute inset-x-0 flex flex-col justify-between overflow-hidden rounded-3xl p-5 text-left shadow-xl transition-transform"
-              style={{
-                top: index * PEEK,
-                height: CARD_HEIGHT,
-                background: `linear-gradient(135deg, ${bg}, ${shade(bg, -0.15)})`,
-                color: surface,
-                zIndex: index + 1,
-              }}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-widest opacity-70">Карта лояльности</p>
-                  <h2 className="mt-1 text-2xl font-semibold">{card.name}</h2>
-                </div>
-                <div
-                  className="grid size-12 place-items-center overflow-hidden rounded-2xl text-lg font-semibold"
-                  style={{ background: surface, color: bg }}
-                >
-                  {card.logo_url ? (
-                    <img src={card.logo_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span>{card.name.slice(0, 1).toUpperCase()}</span>
-                  )}
-                </div>
-              </div>
-
-              {required > 0 && (
-                <div>
-                  <div className="mb-2 flex items-baseline justify-between text-sm opacity-90">
-                    <span>Штампов</span>
-                    <span className="font-mono text-base font-semibold">
-                      {filled} / {required}
-                    </span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full" style={{ background: `${surface}33` }}>
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${Math.min(100, (filled / required) * 100)}%`,
-                        background: surface,
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-            </button>
-          );
-        })}
+    <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col gap-2 px-4 pb-6">
+      <WalletHeader
+        title="Мои карты"
+        subtitle={`${cards.length} ${plural(cards.length, "карта", "карты", "карт")}`}
+      />
+      <div className="mt-2 flex flex-col gap-2">
+        {cards.map((card) => (
+          <WalletCardRow
+            key={card.slug}
+            card={{
+              slug: card.slug,
+              name: card.name,
+              subtitle: "Карта лояльности",
+              logo_url: card.logo_url,
+              brand: card.brand,
+              stamps_count: card.stamps_count,
+              stamps_required: card.stamps_required,
+            }}
+            onClick={() => onPick(card.slug)}
+          />
+        ))}
       </div>
+      <AddCardHint />
     </main>
   );
-}
-
-/** Осветляет/затемняет hex-цвет для градиента фона карты. */
-function shade(hex: string, amount: number): string {
-  const raw = hex.replace("#", "");
-  if (raw.length !== 6) return hex;
-  const n = parseInt(raw, 16);
-  const r = Math.max(0, Math.min(255, ((n >> 16) & 0xff) + Math.round(255 * amount)));
-  const g = Math.max(0, Math.min(255, ((n >> 8) & 0xff) + Math.round(255 * amount)));
-  const b = Math.max(0, Math.min(255, (n & 0xff) + Math.round(255 * amount)));
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
 function OutsideTelegram() {
   return (
     <div className="grid min-h-dvh place-items-center px-8 text-center">
       <div className="max-w-xs">
-        <p className="mb-3 text-4xl">☕</p>
-        <h1 className="mb-2 text-lg font-semibold">Откройте карту в Telegram</h1>
-        <p className="text-sm opacity-70">
+        <h1 className="mb-2 text-[17px] font-bold text-white">Откройте карту в Telegram</h1>
+        <p className="text-[13px] leading-relaxed text-neutral-400">
           Эта страница работает внутри Telegram. Отсканируйте QR-код на стойке кофейни или откройте
           бота, чтобы увидеть свою карту.
         </p>
@@ -463,6 +491,7 @@ function OutsideTelegram() {
   );
 }
 
+
 function applyBrand(brand: MiniAppState["tenant"]["brand"]) {
   const root = document.documentElement;
   root.style.setProperty("--brand-primary", brand.primary);
@@ -470,8 +499,9 @@ function applyBrand(brand: MiniAppState["tenant"]["brand"]) {
   root.style.setProperty("--brand-surface", brand.surface);
   root.style.setProperty("--brand-text", brand.text);
   root.style.setProperty("--brand-accent", brand.accent);
-  window.Telegram?.WebApp?.setBackgroundColor?.(brand.bg);
-  window.Telegram?.WebApp?.setHeaderColor?.(brand.bg);
+  // шапка и фон Telegram — под тёмную оболочку кошелька, не под бренд кофейни
+  window.Telegram?.WebApp?.setBackgroundColor?.("#0e0f11");
+  window.Telegram?.WebApp?.setHeaderColor?.("#0e0f11");
 }
 
 function plural(count: number, one: string, few: string, many: string): string {

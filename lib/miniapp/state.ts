@@ -25,10 +25,23 @@ export type MiniAppState = {
   } | null;
   rewards: Pick<Reward, "id" | "title" | "earned_at" | "expires_at">[];
   history: { created_at: string; venue: string | null }[];
-  otherCards: { slug: string; name: string; logo_url: string | null; stamps_count: number }[];
+  otherCards: {
+    slug: string;
+    name: string;
+    logo_url: string | null;
+    brand: Brand;
+    stamps_count: number;
+    stamps_required: number | null;
+  }[];
 };
 
-type TenantBadge = { slug: string; name: string; logo_url: string | null };
+type TenantBadge = {
+  slug: string;
+  name: string;
+  logo_url: string | null;
+  brand: Brand;
+  stampy_loyalty_programs: { stamps_required: number; active: boolean }[] | null;
+};
 
 const HISTORY_LIMIT = 20;
 
@@ -99,7 +112,9 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
       .returns<{ created_at: string; stampy_venues: { name: string } | null }[]>(),
     db
       .from("stampy_memberships")
-      .select("stamps_count, stampy_tenants(slug, name, logo_url)")
+      .select(
+        "stamps_count, stampy_tenants(slug, name, logo_url, brand, stampy_loyalty_programs(stamps_required, active))",
+      )
       .eq("customer_id", customer.id)
       .neq("tenant_id", tenantId)
       .returns<{ stamps_count: number; stampy_tenants: TenantBadge | null }[]>(),
@@ -116,9 +131,21 @@ export async function loadState(tenantId: string, telegramId: number | null): Pr
     created_at: row.created_at,
     venue: row.stampy_venues?.name ?? null,
   }));
-  base.otherCards = (others ?? []).flatMap((row) =>
-    row.stampy_tenants ? [{ ...row.stampy_tenants, stamps_count: row.stamps_count }] : [],
-  );
+  base.otherCards = (others ?? []).flatMap((row) => {
+    const other = row.stampy_tenants;
+    if (!other) return [];
+    const active = other.stampy_loyalty_programs?.find((item) => item.active);
+    return [
+      {
+        slug: other.slug,
+        name: other.name,
+        logo_url: other.logo_url,
+        brand: other.brand,
+        stamps_count: row.stamps_count,
+        stamps_required: active?.stamps_required ?? null,
+      },
+    ];
+  });
 
   return base;
 }

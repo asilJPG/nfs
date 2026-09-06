@@ -11,17 +11,19 @@ type Props = {
   filled: number;
   total: number;
   style: Brand["card_style"];
-  // индекс, который должен проиграть анимацию штампа
   justStamped?: number | null;
 };
 
-// та самая бумажная карточка: клетка на штамп, слева направо
+/**
+ * Ряд штампов на белой панели внутри карты — по референсу это место штрихкода
+ * в кошельке: светлая плашка, на которой лежит «главное» карты.
+ */
 export function StampGrid({ filled, total, style, justStamped }: Props) {
-  const columns = total <= 6 ? 3 : total <= 12 ? 4 : 5;
+  const columns = total <= 6 ? total : total <= 12 ? Math.ceil(total / 2) : Math.ceil(total / 3);
 
   return (
     <ul
-      className="grid gap-3"
+      className="grid gap-1.5"
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       aria-label={`Собрано ${filled} из ${total} штампов`}
     >
@@ -31,13 +33,12 @@ export function StampGrid({ filled, total, style, justStamped }: Props) {
         return (
           <li
             key={index}
-            className={`relative aspect-square rounded-full border-2 grid place-items-center text-2xl transition-colors duration-300 ${
+            className={`flex aspect-square items-center justify-center rounded-full text-[13px] transition-all duration-300 ${
               isFresh ? "animate-stamp" : ""
             }`}
             style={{
-              borderColor: isFilled ? "var(--brand-primary)" : "color-mix(in srgb, var(--brand-primary) 22%, transparent)",
-              background: isFilled ? "var(--brand-primary)" : "transparent",
-              color: isFilled ? "var(--brand-surface)" : "color-mix(in srgb, var(--brand-primary) 25%, transparent)",
+              background: isFilled ? "var(--brand-primary)" : "#efefef",
+              color: isFilled ? "#ffffff" : "#c9c9c9",
             }}
           >
             <span aria-hidden>{GLYPHS[style] ?? GLYPHS.circles}</span>

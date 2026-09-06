@@ -3,7 +3,10 @@ type TelegramHapticStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
 
 interface TelegramWebApp {
   initData: string;
-  initDataUnsafe: { start_param?: string; user?: { id: number } };
+  initDataUnsafe: {
+    start_param?: string;
+    user?: { id: number; first_name?: string; last_name?: string; photo_url?: string };
+  };
   colorScheme: "light" | "dark";
   themeParams: Record<string, string>;
   ready(): void;

@@ -14,7 +14,8 @@ const FALLBACK: Brand = {
   card_style: "circles",
 };
 
-// красим фон брендом из cookie, чтобы не мигало пока грузится карта
+// Оболочка кошелька всегда тёмная (#0e0f11) — цвет кофейни лежит на плашке карты.
+// Раньше фоном был brand.bg, и у кофейни со светлым бренд-фоном экран уезжал в крем.
 export default async function CardLayout({ children }: { children: React.ReactNode }) {
   const tenantId = await rememberedTenant();
   let brand = FALLBACK;
@@ -39,10 +40,7 @@ export default async function CardLayout({ children }: { children: React.ReactNo
   return (
     <>
       <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-      <div
-        style={{ background: "var(--brand-bg)", color: "var(--brand-text)" } as React.CSSProperties}
-        className="min-h-dvh"
-      >
+      <div className="min-h-dvh bg-[#0e0f11] text-white">
         <style>{`:root{${variables}}`}</style>
         {children}
       </div>
