@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { currentImpersonation } from "@/lib/impersonate";
@@ -6,27 +7,18 @@ import type { StaffRole, StaffUser, Tenant } from "@/types/db";
 
 export type StaffContext = { staff: StaffUser; tenant: Tenant; impersonating?: boolean };
 
-type Client = Awaited<ReturnType<typeof supabaseServer>>;
+type StaffWithTenant = StaffUser & { tenant: Tenant | null };
 
-async function findStaff(supabase: Client, userId: string): Promise<StaffUser | null> {
-  const { data } = await supabase
-    .from("stampy_staff_users")
-    .select("*")
-    .eq("auth_user_id", userId)
-    .eq("active", true)
-    .maybeSingle();
-  return data ?? null;
-}
-
-// ворота для всех страниц сотрудника — тело страницы уже может рассчитывать что staff и tenant есть
-export async function requireStaff(): Promise<StaffContext> {
+// React.cache — де-дублицирует вызовы в рамках одного запроса. Дашборд рендерит layout + page,
+// у обоих requireStaff — раньше это давало 6 SQL-запросов на страницу, теперь 2.
+const _requireStaff = cache(async (): Promise<StaffContext> => {
   const supabase = await supabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // если платформенный админ смотрит от лица кофейни — подставляем её владельца
+  // импресонация — платформенный админ смотрит от лица кофейни
   const impersonateTenantId = await currentImpersonation();
   if (impersonateTenantId) {
     const { data: admin } = await supabase
@@ -37,33 +29,32 @@ export async function requireStaff(): Promise<StaffContext> {
     if (admin) {
       const { data: owner } = await supabase
         .from("stampy_staff_users")
-        .select("*")
+        .select("*, tenant:stampy_tenants!inner(*)")
         .eq("tenant_id", impersonateTenantId)
         .eq("role", "owner")
         .eq("active", true)
-        .maybeSingle();
-      const { data: tenant } = await supabase
-        .from("stampy_tenants")
-        .select("*")
-        .eq("id", impersonateTenantId)
-        .maybeSingle();
-      if (owner && tenant) return { staff: owner, tenant, impersonating: true };
+        .maybeSingle<StaffWithTenant>();
+      if (owner?.tenant) {
+        const { tenant, ...staff } = owner;
+        return { staff: staff as StaffUser, tenant, impersonating: true };
+      }
     }
   }
 
-  const staff = await findStaff(supabase, user.id);
-  if (!staff) redirect("/login");
+  // один запрос: staff + tenant одним JOIN
+  const { data: row } = await supabase
+    .from("stampy_staff_users")
+    .select("*, tenant:stampy_tenants!inner(*)")
+    .eq("auth_user_id", user.id)
+    .eq("active", true)
+    .maybeSingle<StaffWithTenant>();
 
-  const { data: tenant } = await supabase
-    .from("stampy_tenants")
-    .select("*")
-    .eq("id", staff.tenant_id)
-    .maybeSingle();
-  // если tenant пропал под нами — считаем разлогиненным
-  if (!tenant) redirect("/login");
+  if (!row || !row.tenant) redirect("/login");
+  const { tenant, ...staff } = row;
+  return { staff: staff as StaffUser, tenant };
+});
 
-  return { staff, tenant };
-}
+export const requireStaff = _requireStaff;
 
 export async function requireRole(...roles: StaffRole[]): Promise<StaffContext> {
   const context = await requireStaff();
@@ -71,7 +62,7 @@ export async function requireRole(...roles: StaffRole[]): Promise<StaffContext> 
   return context;
 }
 
-export async function requirePlatformAdmin() {
+export const requirePlatformAdmin = cache(async () => {
   const supabase = await supabaseServer();
   const {
     data: { user },
@@ -86,19 +77,24 @@ export async function requirePlatformAdmin() {
   if (!data) redirect("/dashboard");
 
   return { user };
-}
+});
 
-// без редиректа — для страниц, которые рендерятся иначе если не залогинен
-export async function currentStaff(): Promise<StaffContext | null> {
+// без редиректа — для страниц которые рендерятся иначе если не залогинен
+export const currentStaff = cache(async (): Promise<StaffContext | null> => {
   const supabase = await supabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const staff = await findStaff(supabase, user.id);
-  if (!staff) return null;
+  const { data: row } = await supabase
+    .from("stampy_staff_users")
+    .select("*, tenant:stampy_tenants!inner(*)")
+    .eq("auth_user_id", user.id)
+    .eq("active", true)
+    .maybeSingle<StaffWithTenant>();
 
-  const { data: tenant } = await supabase.from("stampy_tenants").select("*").eq("id", staff.tenant_id).single();
-  return tenant ? { staff, tenant } : null;
-}
+  if (!row?.tenant) return null;
+  const { tenant, ...staff } = row;
+  return { staff: staff as StaffUser, tenant };
+});
