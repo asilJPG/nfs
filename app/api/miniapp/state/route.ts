@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { InitDataError, profileOf, resolveUser } from "@/lib/telegram/initData";
@@ -25,6 +26,7 @@ export type StateResponse =
   | { cards: CardBadge[] };
 
 const SLUG_PREFIX = "t_";
+const DEMO_PREFIX = "demo_";
 
 export async function POST(request: NextRequest) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
   let claim: ClaimOutcome | null = null;
 
   if (startParam?.startsWith(SLUG_PREFIX)) {
-    // Arrived from the counter QR or a shared link: just join the card.
+    // пришёл по QR или расшаренной ссылке — просто открываем карту
     tenantId = await tenantIdBySlug(startParam.slice(SLUG_PREFIX.length));
     if (tenantId) {
       await db.rpc("ensure_membership", {
@@ -55,6 +57,11 @@ export async function POST(request: NextRequest) {
         p_profile: profileOf(user),
       });
     }
+  } else if (startParam?.startsWith(DEMO_PREFIX)) {
+    // демо-путь для дешёвых меток: создаём одноразовый токен на сервере и штампуем
+    const result = await claimDemo(startParam.slice(DEMO_PREFIX.length), user.id, profileOf(user));
+    tenantId = result.tenantId;
+    claim = result.outcome;
   } else if (startParam) {
     const result = await claimTap(startParam, user.id, profileOf(user));
     tenantId = result.tenantId;
@@ -82,6 +89,43 @@ export async function POST(request: NextRequest) {
 }
 
 type TapProfile = ReturnType<typeof profileOf>;
+
+async function claimDemo(
+  slug: string,
+  telegramId: number,
+  profile: TapProfile,
+): Promise<{ tenantId: string | null; outcome: ClaimOutcome }> {
+  const db = supabaseAdmin();
+
+  const { data: tenant } = await db
+    .from("stampy_tenants")
+    .select("id")
+    .eq("slug", slug.toLowerCase())
+    .maybeSingle();
+  if (!tenant) return { tenantId: null, outcome: { kind: "error", code: "unknown_tenant" } };
+
+  const { data: tag } = await db
+    .from("stampy_nfc_tags")
+    .select("id, venue_id")
+    .eq("tenant_id", tenant.id)
+    .eq("active", true)
+    .order("created_at")
+    .limit(1)
+    .maybeSingle();
+  if (!tag) return { tenantId: tenant.id, outcome: { kind: "error", code: "no_tag" } };
+
+  const token = randomBytes(18).toString("base64url");
+  await db.from("stampy_stamp_tokens").insert({
+    token,
+    tenant_id: tenant.id,
+    tag_id: tag.id,
+    venue_id: tag.venue_id,
+    tap_counter: 0,
+    expires_at: new Date(Date.now() + 3 * 60_000).toISOString(),
+  });
+
+  return claimTap(token, telegramId, profile);
+}
 
 async function claimTap(
   token: string,
