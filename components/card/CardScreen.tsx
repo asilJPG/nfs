@@ -104,6 +104,58 @@ export function CardScreen() {
     void load(startParam);
   }, [load]);
 
+  // Polling пока карта открыта: если штамп прилетел откуда-то ещё (тап NFC, бариста
+  // подтвердил), UI обновится сам без reload. Пауза когда открыт лист награды/история
+  // или мини-апп в фоне, чтоб не жечь запросы впустую.
+  useEffect(() => {
+    if (screen.step !== "ready") return;
+    const currentScreen = screen;
+    let cancelled = false;
+
+    async function poll() {
+      if (cancelled || document.hidden || openReward) return;
+      try {
+        const response = await fetch("/api/miniapp/state", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ initData: initDataRef.current }),
+        });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (cancelled || "cards" in payload || !payload.state) return;
+
+        const prevStamps = currentScreen.state.card?.stamps_count ?? 0;
+        const newStamps = payload.state.card?.stamps_count ?? 0;
+        const prevRewards = currentScreen.state.rewards.length;
+        const newRewards = payload.state.rewards.length;
+
+        if (newStamps > prevStamps || newRewards > prevRewards) {
+          window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+          setScreen({
+            step: "ready",
+            state: payload.state,
+            claim: newStamps > prevStamps
+              ? {
+                  kind: "stamped",
+                  stamps_count: newStamps,
+                  stamps_required: payload.state.program?.stamps_required ?? 0,
+                  reward: newRewards > prevRewards ? payload.state.rewards[newRewards - 1] : null,
+                }
+              : null,
+          });
+        }
+      } catch {
+        // молчим — следующий тик попробует снова
+      }
+    }
+
+    const timer = setInterval(poll, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [screen, openReward]);
+
   if (screen.step === "loading") return <Splash />;
   if (screen.step === "outside") return <OutsideTelegram />;
   if (screen.step === "failed") return <Message text={screen.message} />;
