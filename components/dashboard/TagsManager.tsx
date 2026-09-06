@@ -12,15 +12,22 @@ type Props = {
 
 export function TagsManager({ tags, venues, hasPendingKit }: Props) {
   const [notice, setNotice] = useState<Result | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [kitOpen, setKitOpen] = useState(false);
   const [kit, setKit] = useState({ contactName: "", phone: "", address: "", note: "", venueId: "" });
 
-  function run(action: () => Promise<Result>, onSuccess?: () => void) {
+  // key — чтобы «…» горело на нажатой кнопке, а не на всех сразу
+  function run(key: string, action: () => Promise<Result>, onSuccess?: () => void) {
+    setBusy(key);
     startTransition(async () => {
-      const result = await action();
-      setNotice(result);
-      if (result.ok) onSuccess?.();
+      try {
+        const result = await action();
+        setNotice(result);
+        if (result.ok) onSuccess?.();
+      } finally {
+        setBusy(null);
+      }
     });
   }
 
@@ -47,8 +54,9 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
               tag={tag}
               venues={venues}
               pending={pending}
-              onSave={(venueId, label, active) =>
-                run(() => updateTag({ tagId: tag.id, venueId, label, active }))
+              busy={busy}
+              onSave={(key, venueId, label, active) =>
+                run(key, () => updateTag({ tagId: tag.id, venueId, label, active }))
               }
             />
           ))}
@@ -62,6 +70,7 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
               onSubmit={(event) => {
                 event.preventDefault();
                 run(
+                  "kit",
                   () =>
                     requestKit({
                       contactName: kit.contactName,
@@ -113,7 +122,7 @@ export function TagsManager({ tags, venues, hasPendingKit }: Props) {
                 disabled={pending}
                 className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50 sm:col-span-2"
               >
-                Отправить заявку
+                {busy === "kit" ? "Отправляем…" : "Отправить заявку"}
               </button>
             </form>
           ) : (
@@ -131,12 +140,14 @@ function TagRow({
   tag,
   venues,
   pending,
+  busy,
   onSave,
 }: {
   tag: NfcTag;
   venues: Venue[];
   pending: boolean;
-  onSave: (venueId: string | null, label: string | null, active: boolean) => void;
+  busy: string | null;
+  onSave: (key: string, venueId: string | null, label: string | null, active: boolean) => void;
 }) {
   const [venueId, setVenueId] = useState(tag.venue_id ?? "");
   const [label, setLabel] = useState(tag.label ?? "");
@@ -156,13 +167,13 @@ function TagRow({
           </p>
         </div>
         <button
-          onClick={() => onSave(venueId || null, label || null, !tag.active)}
+          onClick={() => onSave(`tag-active:${tag.id}`, venueId || null, label || null, !tag.active)}
           disabled={pending}
           className={`shrink-0 rounded-xl border px-3 py-1.5 text-sm ${
             tag.active ? "border-line text-ink-soft" : "border-bean text-bean-dark"
           }`}
         >
-          {tag.active ? "Отключить" : "Включить"}
+          {busy === `tag-active:${tag.id}` ? "…" : tag.active ? "Отключить" : "Включить"}
         </button>
       </div>
 
@@ -182,11 +193,11 @@ function TagRow({
           className={input}
         />
         <button
-          onClick={() => onSave(venueId || null, label || null, tag.active)}
+          onClick={() => onSave(`tag-save:${tag.id}`, venueId || null, label || null, tag.active)}
           disabled={pending || !dirty}
           className="rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-white disabled:opacity-40"
         >
-          Сохранить
+          {busy === `tag-save:${tag.id}` ? "Сохраняем…" : "Сохранить"}
         </button>
       </div>
     </li>

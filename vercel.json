@@ -1,4 +1,5 @@
 {
+  "regions": ["hnd1"],
   "crons": [
     { "path": "/api/cron/broadcast", "schedule": "0 4 * * *" },
     { "path": "/api/cron/maintenance", "schedule": "0 19 * * *" }

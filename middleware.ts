@@ -2,9 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Refreshes the Supabase session cookie on every staff-facing navigation.
- * The mini app and the tap endpoint are deliberately excluded — they have their
- * own authentication and must stay fast.
+ * Продлевает сессию Supabase на навигациях сотрудников.
+ *
+ * Раньше здесь был `auth.getUser()` — это ВСЕГДА сетевой поход в Auth (Токио),
+ * плюс ещё один такой же внутри `requireStaff`. Два лишних round-trip на каждый
+ * клик. `getSession()` читает куку локально и идёт в сеть только когда токен
+ * реально протух — тогда же и переписывает куки. Подлинность JWT проверяет
+ * `getClaims()` в lib/auth и RLS на стороне Postgres, так что доверие не теряем.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -24,7 +28,7 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  await supabase.auth.getSession();
   return response;
 }
 

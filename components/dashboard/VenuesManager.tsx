@@ -26,6 +26,7 @@ const ROLE_LABELS: Record<StaffRole, string> = {
 
 export function VenuesManager({ venues, staff, currentStaffId }: Props) {
   const [notice, setNotice] = useState<Result | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const [venueName, setVenueName] = useState("");
@@ -37,11 +38,17 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
   const [role, setRole] = useState<StaffRole>("cashier");
   const [venueId, setVenueId] = useState<string>("");
 
-  function run(action: () => Promise<Result>, onSuccess?: () => void) {
+  // key — чтобы «…» горело на нажатой кнопке, а не на всех сразу
+  function run(key: string, action: () => Promise<Result>, onSuccess?: () => void) {
+    setBusy(key);
     startTransition(async () => {
-      const result = await action();
-      setNotice(result);
-      if (result.ok) onSuccess?.();
+      try {
+        const result = await action();
+        setNotice(result);
+        if (result.ok) onSuccess?.();
+      } finally {
+        setBusy(null);
+      }
     });
   }
 
@@ -65,11 +72,11 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
                 {venue.address && <p className="truncate text-sm text-ink-soft">{venue.address}</p>}
               </div>
               <button
-                onClick={() => run(() => setVenueActive(venue.id, !venue.active))}
+                onClick={() => run(`venue:${venue.id}`, () => setVenueActive(venue.id, !venue.active))}
                 disabled={pending}
-                className="shrink-0 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft"
+                className="shrink-0 rounded-xl border border-line px-3 py-1.5 text-sm text-ink-soft disabled:opacity-50"
               >
-                {venue.active ? "Отключить" : "Включить"}
+                {busy === `venue:${venue.id}` ? "…" : venue.active ? "Отключить" : "Включить"}
               </button>
             </li>
           ))}
@@ -80,6 +87,7 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
           onSubmit={(event) => {
             event.preventDefault();
             run(
+              "add-venue",
               () => addVenue({ name: venueName, address: venueAddress }),
               () => {
                 setVenueName("");
@@ -106,7 +114,7 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
             disabled={pending || venueName.trim().length < 2}
             className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50"
           >
-            Добавить
+            {busy === "add-venue" ? "Добавляем…" : "Добавить"}
           </button>
         </form>
       </section>
@@ -124,6 +132,7 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
               key={member.id}
               member={member}
               pending={pending}
+              busy={busy}
               isSelf={member.id === currentStaffId}
               onRun={run}
             />
@@ -134,6 +143,7 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
           onSubmit={(event) => {
             event.preventDefault();
             run(
+              "add-staff",
               () => createStaff({ login, password, name, role, venueId: venueId || null }),
               () => {
                 setLogin("");
@@ -208,7 +218,7 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
             disabled={pending || login.length < 4 || password.length < MIN_PASSWORD_LENGTH}
             className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50 sm:col-span-2"
           >
-            Добавить сотрудника
+            {busy === "add-staff" ? "Добавляем…" : "Добавить сотрудника"}
           </button>
         </form>
       </section>
@@ -219,13 +229,15 @@ export function VenuesManager({ venues, staff, currentStaffId }: Props) {
 function StaffRow({
   member,
   pending,
+  busy,
   isSelf,
   onRun,
 }: {
   member: StaffUser;
   pending: boolean;
+  busy: string | null;
   isSelf: boolean;
-  onRun: (action: () => Promise<Result>, onSuccess?: () => void) => void;
+  onRun: (key: string, action: () => Promise<Result>, onSuccess?: () => void) => void;
 }) {
   const [resetting, setResetting] = useState(false);
   const [password, setPassword] = useState("");
@@ -249,11 +261,11 @@ function StaffRow({
             </button>
             {member.role !== "owner" && (
               <button
-                onClick={() => onRun(() => removeStaff(member.id))}
+                onClick={() => onRun(`staff-off:${member.id}`, () => removeStaff(member.id))}
                 disabled={pending}
-                className="rounded-xl px-3 py-1.5 text-sm text-red-600"
+                className="rounded-xl px-3 py-1.5 text-sm text-red-600 disabled:opacity-50"
               >
-                Отключить
+                {busy === `staff-off:${member.id}` ? "…" : "Отключить"}
               </button>
             )}
           </div>
@@ -271,6 +283,7 @@ function StaffRow({
           <button
             onClick={() =>
               onRun(
+                `staff-pw:${member.id}`,
                 () => resetStaffPassword(member.id, password),
                 () => {
                   setPassword("");
@@ -281,7 +294,7 @@ function StaffRow({
             disabled={pending || password.length < MIN_PASSWORD_LENGTH}
             className="rounded-2xl bg-bean px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
-            Сменить
+            {busy === `staff-pw:${member.id}` ? "…" : "Сменить"}
           </button>
         </div>
       )}
