@@ -26,7 +26,7 @@ export type StateResponse =
   | { cards: CardBadge[] };
 
 const SLUG_PREFIX = "t_";
-const DEMO_PREFIX = "demo_";
+const TAP_PREFIX = "tap_";
 
 export async function POST(request: NextRequest) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
         p_profile: profileOf(user),
       });
     }
-  } else if (startParam?.startsWith(DEMO_PREFIX)) {
+  } else if (startParam?.startsWith(TAP_PREFIX)) {
     // демо-путь для дешёвых меток: создаём одноразовый токен на сервере и штампуем
-    const result = await claimDemo(startParam.slice(DEMO_PREFIX.length), user.id, profileOf(user));
+    const result = await claimTapDemo(startParam.slice(TAP_PREFIX.length), user.id, profileOf(user));
     tenantId = result.tenantId;
     claim = result.outcome;
   } else if (startParam) {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
 type TapProfile = ReturnType<typeof profileOf>;
 
-async function claimDemo(
+async function claimTapDemo(
   slug: string,
   telegramId: number,
   profile: TapProfile,
