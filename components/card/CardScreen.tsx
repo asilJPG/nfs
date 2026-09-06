@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { StampGrid } from "./StampGrid";
-import { RewardSheet } from "./RewardSheet";
-import { NfcScanSheet } from "./NfcScanSheet";
+
+// RewardSheet тащит qrcode (~50KB gzip). Грузим только когда гость открывает награду.
+const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
+  ssr: false,
+});
 import type { CardBadge, MiniAppState } from "@/lib/miniapp/state";
 import type { Reward } from "@/types/db";
 
@@ -40,7 +44,6 @@ export function CardScreen() {
   const [screen, setScreen] = useState<Screen>({ step: "loading" });
   const [openReward, setOpenReward] = useState<Reward | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const initDataRef = useRef("");
   const bootstrapped = useRef(false);
 
@@ -216,24 +219,7 @@ export function CardScreen() {
         {program.reward_description && (
           <p className="mt-4 text-sm opacity-60">{program.reward_description}</p>
         )}
-        <button
-          onClick={() => setScanning(true)}
-          className="mt-4 w-full rounded-2xl py-3 font-medium"
-          style={{ background: "var(--brand-primary)", color: "var(--brand-surface)" }}
-        >
-          Провести штамп
-        </button>
       </section>
-
-      {scanning && (
-        <NfcScanSheet
-          onClose={() => setScanning(false)}
-          onTagRead={async (startParam) => {
-            setScanning(false);
-            await load(startParam);
-          }}
-        />
-      )}
 
       {state.rewards.length > 0 && (
         <section className="flex flex-col gap-2">

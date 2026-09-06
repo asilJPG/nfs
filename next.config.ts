@@ -5,10 +5,17 @@ const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
   : undefined;
 
 const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  compress: true,
   images: {
     remotePatterns: supabaseHost
       ? [{ protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/public/**" }]
       : [],
+    formats: ["image/avif", "image/webp"],
+  },
+  experimental: {
+    // Оптимизирует импорт барелов — режет мёртвый код из больших пакетов.
+    optimizePackageImports: ["recharts", "@supabase/supabase-js", "@supabase/ssr", "zod"],
   },
   async headers() {
     return [

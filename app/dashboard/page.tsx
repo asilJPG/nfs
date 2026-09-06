@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { can } from "@/lib/plan";
-import { DailyChart } from "@/components/dashboard/DailyChart";
+import { LazyDailyChart } from "@/components/dashboard/LazyDailyChart";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { StatTile } from "@/components/dashboard/StatTile";
 import type { AnalyticsDay, AnalyticsOverview } from "@/types/db";
@@ -97,7 +97,7 @@ export default async function OverviewPage({
 
       <section className="rounded-2xl border border-line bg-white p-4">
         <h2 className="mb-4 font-medium">Посещения по дням</h2>
-        <DailyChart data={daily} />
+        <LazyDailyChart data={daily} />
       </section>
 
       {advanced ? (
