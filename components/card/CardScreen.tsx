@@ -306,30 +306,6 @@ export function CardScreen() {
         </section>
       )}
 
-      {state.otherCards.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <p className="px-1 pt-2 text-[11px] font-semibold text-neutral-500">Другие карты</p>
-          {state.otherCards.map((other) => (
-            <WalletCardRow
-              key={other.slug}
-              card={{
-                slug: other.slug,
-                name: other.name,
-                subtitle: "Карта лояльности",
-                logo_url: other.logo_url,
-                brand: other.brand,
-                stamps_count: other.stamps_count,
-                stamps_required: other.stamps_required,
-              }}
-              onClick={() => {
-                setScreen({ step: "loading" });
-                void load(`t_${other.slug}`);
-              }}
-            />
-          ))}
-        </section>
-      )}
-
       {state.history.length > 0 && (
         <section className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-3">
           <button
@@ -464,6 +440,10 @@ function Message({ text }: { text: string }) {
   );
 }
 
+// высота карты и видимая полоса лежащей под ней — как в кошельке
+const CARD_HEIGHT = 168;
+const PEEK = 92;
+
 function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: string) => void }) {
   if (cards.length === 0) {
     return (
@@ -480,31 +460,36 @@ function CardsList({ cards, onPick }: { cards: CardBadge[]; onPick: (slug: strin
     );
   }
 
+  // Карты лежат стопкой: у каждой видна верхняя полоса, передняя открыта целиком —
+  // так же, как карты лежат в кошельке.
+  const stackHeight = CARD_HEIGHT + PEEK * (cards.length - 1);
+
   return (
-    <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col gap-2 px-4 pb-6">
+    <main className="tg-safe mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-8">
       <WalletHeader
         title="Мои карты"
         subtitle={`${cards.length} ${plural(cards.length, "карта", "карты", "карт")}`}
       />
-      <div className="mt-2 flex flex-col gap-2">
+
+      <div className="relative mt-4" style={{ height: stackHeight }}>
         {cards.map((card, index) => (
           <div
             key={card.slug}
-            className="animate-deal"
-            style={{ ["--deal-index" as string]: index }}
+            className="animate-deal absolute inset-x-0"
+            style={{ top: index * PEEK, zIndex: index + 1, ["--deal-index" as string]: index }}
           >
-          <WalletCardRow
-            card={{
-              slug: card.slug,
-              name: card.name,
-              subtitle: "Карта лояльности",
-              logo_url: card.logo_url,
-              brand: card.brand,
-              stamps_count: card.stamps_count,
-              stamps_required: card.stamps_required,
-            }}
-            onClick={() => onPick(card.slug)}
-          />
+            <WalletCardRow
+              card={{
+                slug: card.slug,
+                name: card.name,
+                subtitle: "Карта лояльности",
+                logo_url: card.logo_url,
+                brand: card.brand,
+                stamps_count: card.stamps_count,
+                stamps_required: card.stamps_required,
+              }}
+              onClick={() => onPick(card.slug)}
+            />
           </div>
         ))}
       </div>

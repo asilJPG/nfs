@@ -378,8 +378,8 @@ body {
    месте первой, чуть повёрнутыми, и разъезжаются по списку с задержкой. */
 @keyframes deal {
   from {
-    transform: translateY(calc(var(--deal-index) * -164px)) scale(0.94)
-      rotate(calc(var(--deal-index) * -1.2deg));
+    transform: translateY(calc(var(--deal-index) * -92px)) scale(0.94)
+      rotate(calc(var(--deal-index) * -1.4deg));
     opacity: 0;
   }
   60% {
