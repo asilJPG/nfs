@@ -25,6 +25,17 @@ export function inkOn(hex: string): string {
   return luminance > 0.45 ? "#141414" : "#ffffff";
 }
 
+/** Затемняет/осветляет hex — из одного бренд-цвета делаем обложку с глубиной. */
+export function shade(hex: string, amount: number): string {
+  const raw = hex.replace("#", "");
+  if (raw.length !== 6) return hex;
+  const value = parseInt(raw, 16);
+  const channels = [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff].map((channel) =>
+    Math.max(0, Math.min(255, channel + Math.round(255 * amount))),
+  );
+  return `#${channels.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+}
+
 export function Monogram({
   name,
   logoUrl,
@@ -58,41 +69,90 @@ export function Monogram({
   );
 }
 
-/** Свёрнутая карта в списке кошелька: цветная плашка, монограмма, прогресс. */
-export function WalletCardRow({
-  card,
-  onClick,
-}: {
-  card: WalletCardData;
-  onClick: () => void;
-}) {
+/**
+ * Карта в списке — по референсу `дизайн/123.png`: обложка во всю плашку и
+ * матовая стеклянная панель справа с круглым знаком кофейни. Обложка собирается
+ * из бренд-цвета кофейни; если загружен логотип, он же уходит в фон размытым.
+ */
+export function WalletCardRow({ card, onClick }: { card: WalletCardData; onClick: () => void }) {
   const fill = card.brand.primary ?? "#7c3aed";
   const ink = inkOn(fill);
+  const isDarkInk = ink === "#141414";
   const required = card.stamps_required ?? 0;
+  const progress = required > 0 ? Math.min(100, (card.stamps_count / required) * 100) : 0;
 
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-[22px] px-4 py-3.5 text-left transition-transform active:scale-[0.98]"
-      style={{ background: fill, color: ink }}
+      className="relative h-[168px] w-full overflow-hidden rounded-[22px] text-left transition-transform active:scale-[0.985]"
+      style={{ background: `linear-gradient(145deg, ${shade(fill, 0.08)}, ${shade(fill, -0.22)})` }}
     >
-      <Monogram name={card.name} logoUrl={card.logo_url} ink={ink} size={36} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] font-bold tracking-tight">{card.name}</span>
-        <span className="block truncate text-[11px]" style={{ opacity: 0.7 }}>
-          {card.subtitle}
+      {/* обложка: размытый логотип, если он есть */}
+      {card.logo_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={card.logo_url}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
+        />
+      )}
+
+      {/* стеклянная панель справа со знаком кофейни */}
+      <span
+        className="absolute inset-y-0 right-0 grid w-[40%] place-items-center backdrop-blur-xl"
+        style={{
+          background: isDarkInk ? "rgba(255,255,255,0.26)" : "rgba(255,255,255,0.14)",
+          borderLeft: `1px solid ${isDarkInk ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.18)"}`,
+        }}
+      >
+        <span
+          className="grid size-[86px] place-items-center overflow-hidden rounded-full bg-white text-[30px] font-black"
+          style={{ color: fill }}
+        >
+          {card.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={card.logo_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            card.name.slice(0, 1).toUpperCase()
+          )}
         </span>
       </span>
-      {required > 0 && (
-        <span
-          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums"
-          style={{
-            background: ink === "#141414" ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)",
-          }}
-        >
-          {card.stamps_count}/{required}
+
+      {/* текст поверх обложки */}
+      <span
+        className="relative flex h-full w-[60%] flex-col justify-between p-4"
+        style={{ color: ink }}
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-[17px] font-extrabold leading-tight tracking-tight">
+            {card.name}
+          </span>
+          <span className="mt-0.5 block truncate text-[11px]" style={{ opacity: 0.75 }}>
+            {card.subtitle}
+          </span>
         </span>
-      )}
+
+        {required > 0 && (
+          <span className="block">
+            <span className="mb-1.5 flex items-baseline justify-between text-[11px] font-semibold">
+              <span style={{ opacity: 0.75 }}>Штампы</span>
+              <span className="tabular-nums">
+                {card.stamps_count}/{required}
+              </span>
+            </span>
+            <span
+              className="block h-1.5 overflow-hidden rounded-full"
+              style={{ background: isDarkInk ? "rgba(0,0,0,0.16)" : "rgba(0,0,0,0.28)" }}
+            >
+              <span
+                className="block h-full rounded-full transition-[width] duration-500"
+                style={{ width: `${progress}%`, background: ink }}
+              />
+            </span>
+          </span>
+        )}
+      </span>
     </button>
   );
 }
