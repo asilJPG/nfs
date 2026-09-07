@@ -67,8 +67,8 @@ export function DashboardNav({
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${
-                active ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                active ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold" : "text-[#F4F4F2]/60 hover:bg-white/[0.04] hover:text-white"
               }`}
             >
               <item.Icon className="size-4" />
@@ -83,9 +83,9 @@ export function DashboardNav({
   }
 
   return (
-    <div className="flex flex-col gap-7 p-3">
+    <div className="flex flex-col gap-6 p-3">
       {main.length > 0 && (
-        <NavGroup title="Кабинет" items={main} pathname={pathname} canBroadcast={canBroadcast} />
+        <NavGroup title="Заведение" items={main} pathname={pathname} canBroadcast={canBroadcast} />
       )}
       <NavGroup
         title="Маркетинг и сервис"
@@ -105,13 +105,15 @@ function NavGroup({
 }: {
   title: string;
   items: Item[];
-  pathname: string | null;
+  pathname: string;
   canBroadcast: boolean;
 }) {
   return (
     <div>
-      <p className="eyebrow px-3 pb-2">{title}</p>
-      <nav className="flex flex-col gap-0.5">
+      <div className="px-3 pb-2 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#F4F4F2]/40">
+        {title}
+      </div>
+      <div className="flex flex-col gap-1">
         {items.map((item) => {
           const active = pathname === item.href;
           const locked = item.feature === "broadcasts" && !canBroadcast;
@@ -120,29 +122,20 @@ function NavGroup({
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${
+              className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                 active
-                  ? "bg-white/[0.07] text-white"
-                  : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
+                  ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold"
+                  : "text-[#F4F4F2]/65 hover:bg-white/[0.04] hover:text-white"
               }`}
             >
-              <span
-                className={`absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-violet-500 transition-opacity ${
-                  active ? "opacity-100" : "opacity-0"
-                }`}
-              />
-              <item.Icon
-                className={active ? "text-violet-300" : "text-slate-500 group-hover:text-slate-300"}
-              />
+              <item.Icon className={`size-4 shrink-0 ${active ? "text-[#7BA5FF]" : "text-[#F4F4F2]/50"}`} />
               <span className="truncate">{item.label}</span>
-              <span className="ml-auto flex items-center gap-1.5">
-                {locked && <IconLock className="size-3.5 text-slate-600" />}
-                <PendingDot />
-              </span>
+              {locked && <IconLock className="ml-auto size-3.5 opacity-40" />}
+              <PendingDot className="ml-auto size-2" />
             </Link>
           );
         })}
-      </nav>
+      </div>
     </div>
   );
 }

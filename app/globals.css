@@ -1,45 +1,45 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   Токены. Одна палитра на весь продукт: тёмная база + фиолетовый
-   акцент. Раньше половина экранов дашборда была размечена светлой
-   вёрсткой поверх тёмного фона — отсюда ощущение недоделанности.
+   Stampy Design System tokens (from Stampy.dc (3).html)
+   Neutral dark base + #5B8DEF accent + #FAFAF9 light surfaces.
    ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-ink: #f8fafc;
-  --color-ink-soft: #94a3b8;
-  --color-ink-faint: #64748b;
-  --color-cream: #0b0c10;
+  --color-ink: #F4F4F2;
+  --color-ink-soft: rgba(244, 244, 242, 0.62);
+  --color-ink-faint: rgba(244, 244, 242, 0.42);
+  --color-cream: #08090B;
 
-  --color-base: #0b0c10;
-  --color-surface: #14161d;
-  --color-surface-2: #1a1d26;
-  --color-raised: #212430;
+  --color-base: #08090B;
+  --color-surface: #14161D;
+  --color-surface-2: #1B1E27;
+  --color-raised: #222634;
 
-  --color-bean: #7c3aed;
-  --color-bean-dark: #a78bfa;
-  --color-latte: #c4b5fd;
-  --color-line: rgba(255, 255, 255, 0.07);
-  --color-line-strong: rgba(255, 255, 255, 0.14);
+  --color-bean: #5B8DEF;
+  --color-bean-dark: #4A7DE0;
+  --color-latte: #7BA5FF;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  --radius-card: 1.125rem;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius-card: 1.25rem;
 }
 
 :root {
-  --brand-primary: #7c3aed;
-  --brand-bg: #0b0c10;
-  --brand-surface: #161822;
-  --brand-text: #ffffff;
-  --brand-accent: #a78bfa;
+  --brand-primary: #5B8DEF;
+  --brand-bg: #08090B;
+  --brand-surface: #14161D;
+  --brand-text: #F4F4F2;
+  --brand-accent: #7BA5FF;
 }
 
 html,
 body {
   height: 100%;
-  background-color: #0b0c10;
-  color: #f8fafc;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  background-color: #08090B;
+  color: #F4F4F2;
+  font-feature-settings: 'ss01', 'cv11', 'cv02';
   letter-spacing: -0.011em;
 }
 
@@ -51,17 +51,17 @@ body {
 }
 
 ::selection {
-  background: rgba(124, 58, 237, 0.35);
+  background: rgba(91, 141, 239, 0.32);
 }
 
-/* Скроллбар в тон панелям, а не системный */
+/* Скроллбар в тон панелям */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 *::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
@@ -83,58 +83,58 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Примитивы. Одинаковые радиусы, границы, фокус и высоты во всех
-   разделах — вместо десятка вариаций «rounded-2xl border p-4».
+   Компоненты интерфейса
    ───────────────────────────────────────────────────────────── */
 @layer components {
   .card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-card);
+    background: #14161D;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.25rem;
   }
 
   .card-hover {
-    transition: border-color 0.18s ease, background-color 0.18s ease;
+    transition: border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s ease;
   }
   .card-hover:hover {
-    border-color: var(--color-line-strong);
-    background: var(--color-surface-2);
+    border-color: rgba(255, 255, 255, 0.16);
+    background: #1B1E27;
   }
 
   .card-title {
     font-size: 0.9375rem;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.015em;
-    color: #f8fafc;
+    color: #F4F4F2;
   }
 
   .page-title {
     font-size: 1.5rem;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: -0.03em;
-    color: #ffffff;
+    color: #F4F4F2;
   }
 
   .page-subtitle {
     margin-top: 0.125rem;
     font-size: 0.8125rem;
-    color: var(--color-ink-soft);
+    color: rgba(244, 244, 242, 0.62);
   }
 
   .eyebrow {
-    font-size: 0.625rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-size: 0.6875rem;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--color-ink-faint);
+    color: rgba(244, 244, 242, 0.42);
   }
 
   .field-label {
     display: block;
     margin-bottom: 0.375rem;
     font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-ink-soft);
+    font-weight: 500;
+    color: rgba(244, 244, 242, 0.7);
   }
 
   .field-hint {
@@ -142,46 +142,46 @@ body {
     display: block;
     font-size: 0.6875rem;
     line-height: 1.4;
-    color: var(--color-ink-faint);
+    color: rgba(244, 244, 242, 0.42);
   }
 
   .input {
     width: 100%;
     border-radius: 0.875rem;
-    border: 1px solid var(--color-line);
-    background: var(--color-surface-2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #1B1E27;
     padding: 0.6875rem 0.875rem;
     font-size: 0.875rem;
-    color: #f8fafc;
+    color: #F4F4F2;
     outline: none;
     transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
   }
   .input::placeholder {
-    color: #576075;
+    color: rgba(244, 244, 242, 0.35);
   }
   .input:hover:not(:disabled) {
-    border-color: var(--color-line-strong);
+    border-color: rgba(255, 255, 255, 0.14);
   }
   .input:focus {
-    border-color: rgba(139, 92, 246, 0.7);
-    background: var(--color-raised);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
+    border-color: #5B8DEF;
+    background: #222634;
+    box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.18);
   }
   .input:disabled {
     opacity: 0.55;
   }
   select.input {
     appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, #8b93a7 50%),
-      linear-gradient(135deg, #8b93a7 50%, transparent 50%);
+    background-image: linear-gradient(45deg, transparent 50%, #7BA5FF 50%),
+      linear-gradient(135deg, #7BA5FF 50%, transparent 50%);
     background-position: right 1rem center, right 0.75rem center;
     background-size: 5px 5px, 5px 5px;
     background-repeat: no-repeat;
     padding-right: 2rem;
   }
   select.input option {
-    background: #14161d;
-    color: #f8fafc;
+    background: #14161D;
+    color: #F4F4F2;
   }
 
   .btn {
@@ -189,8 +189,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border-radius: 0.875rem;
-    padding: 0.6875rem 1.125rem;
+    border-radius: 999px;
+    padding: 0.6875rem 1.25rem;
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1;
@@ -209,44 +209,54 @@ body {
   }
   .btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.35);
+    box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.35);
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    color: #ffffff;
-    box-shadow: 0 6px 20px -8px rgba(124, 58, 237, 0.8);
+    background: #F4F4F2;
+    color: #0E0F11;
+    box-shadow: 0 4px 14px -4px rgba(255, 255, 255, 0.2);
   }
   .btn-primary:hover:not(:disabled) {
+    background: #FFFFFF;
+    box-shadow: 0 6px 20px -4px rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-accent {
+    background: linear-gradient(135deg, #6B9BFF 0%, #4A7DE0 100%);
+    color: #0E1424;
+    font-weight: 700;
+    box-shadow: 0 8px 24px -6px rgba(91, 141, 239, 0.45);
+  }
+  .btn-accent:hover:not(:disabled) {
     filter: brightness(1.08);
-    box-shadow: 0 10px 26px -8px rgba(124, 58, 237, 0.9);
+    box-shadow: 0 10px 28px -6px rgba(91, 141, 239, 0.6);
   }
 
   .btn-ghost {
     background: rgba(255, 255, 255, 0.04);
-    border-color: var(--color-line);
-    color: #cbd5e1;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(244, 244, 242, 0.7);
   }
   .btn-ghost:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
-    border-color: var(--color-line-strong);
-    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #F4F4F2;
   }
 
   .btn-danger {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.24);
-    color: #fca5a5;
+    background: rgba(232, 93, 69, 0.12);
+    border-color: rgba(232, 93, 69, 0.25);
+    color: #E85D45;
   }
   .btn-danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.18);
-    color: #fecaca;
+    background: rgba(232, 93, 69, 0.2);
+    color: #FF7B66;
   }
 
   .btn-sm {
-    padding: 0.4375rem 0.75rem;
+    padding: 0.4375rem 0.875rem;
     font-size: 0.75rem;
-    border-radius: 0.75rem;
   }
 
   .btn-block {
@@ -265,138 +275,121 @@ body {
     white-space: nowrap;
   }
   .badge-ok {
-    background: rgba(16, 185, 129, 0.12);
-    border-color: rgba(16, 185, 129, 0.25);
-    color: #6ee7b7;
+    background: rgba(91, 141, 239, 0.14);
+    border-color: rgba(91, 141, 239, 0.28);
+    color: #7BA5FF;
   }
   .badge-warn {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.25);
-    color: #fcd34d;
+    background: rgba(244, 185, 74, 0.14);
+    border-color: rgba(244, 185, 74, 0.28);
+    color: #F4B94A;
   }
   .badge-bad {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.25);
-    color: #fca5a5;
+    background: rgba(232, 93, 69, 0.14);
+    border-color: rgba(232, 93, 69, 0.28);
+    color: #E85D45;
   }
   .badge-muted {
     background: rgba(255, 255, 255, 0.05);
-    border-color: var(--color-line);
-    color: var(--color-ink-soft);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(244, 244, 242, 0.5);
   }
   .badge-accent {
-    background: rgba(124, 58, 237, 0.15);
-    border-color: rgba(139, 92, 246, 0.3);
-    color: #c4b5fd;
+    background: rgba(91, 141, 239, 0.14);
+    border-color: rgba(91, 141, 239, 0.28);
+    color: #7BA5FF;
   }
 
   .note {
-    border-radius: var(--radius-card);
+    border-radius: 1rem;
     border: 1px solid;
     padding: 0.875rem 1rem;
     font-size: 0.8125rem;
     line-height: 1.5;
   }
   .note-warn {
-    background: rgba(245, 158, 11, 0.08);
-    border-color: rgba(245, 158, 11, 0.2);
-    color: #fcd34d;
+    background: rgba(244, 185, 74, 0.08);
+    border-color: rgba(244, 185, 74, 0.2);
+    color: #F4B94A;
   }
   .note-bad {
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
+    background: rgba(232, 93, 69, 0.08);
+    border-color: rgba(232, 93, 69, 0.2);
+    color: #E85D45;
   }
   .note-ok {
-    background: rgba(16, 185, 129, 0.08);
-    border-color: rgba(16, 185, 129, 0.2);
-    color: #6ee7b7;
+    background: rgba(91, 141, 239, 0.08);
+    border-color: rgba(91, 141, 239, 0.2);
+    color: #7BA5FF;
   }
 
   .empty {
-    border-radius: var(--radius-card);
-    border: 1px dashed var(--color-line-strong);
-    background: rgba(255, 255, 255, 0.015);
-    padding: 2rem 1.5rem;
+    border-radius: 1.25rem;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 2.5rem 1.5rem;
     text-align: center;
   }
 
-  /* Стеклянная карточка публичных экранов: лендинг, вход, заявка, мини-апп */
   .premium-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--color-line-strong);
+    background: #14161D;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 1.5rem;
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
     transition: border-color 0.2s ease;
   }
   .premium-card:hover {
     border-color: rgba(255, 255, 255, 0.16);
   }
 
-  /* Совместимость: этими классами размечены платформенные экраны */
   .admin-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-card);
+    background: #14161D;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.25rem;
   }
   .admin-button-primary {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    color: #ffffff;
+    background: #F4F4F2;
+    color: #0E0F11;
     font-weight: 600;
-    border-radius: 0.875rem;
+    border-radius: 999px;
   }
   .admin-button-secondary {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--color-line);
-    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #F4F4F2;
     font-weight: 500;
-    border-radius: 0.875rem;
+    border-radius: 999px;
   }
 }
 
-@keyframes stamp-in {
-  0% {
-    transform: scale(0.3) rotate(-15deg);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.1) rotate(4deg);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1) rotate(0deg);
-    opacity: 1;
-  }
-}
-
-.animate-stamp {
-  animation: stamp-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Раздача карт при открытии кошелька: карты стартуют сложенными в стопку на
-   месте первой, чуть повёрнутыми, и разъезжаются по списку с задержкой. */
+/* Animations */
 @keyframes deal {
-  from {
-    transform: translateY(calc(var(--deal-index) * -92px)) scale(0.94)
-      rotate(calc(var(--deal-index) * -1.4deg));
-    opacity: 0;
-  }
-  60% {
-    opacity: 1;
-  }
-  to {
-    transform: none;
-    opacity: 1;
-  }
+  from { transform: translateY(24px) rotate(-1.5deg); opacity: 0; }
+  to { transform: translateY(0) rotate(0); opacity: 1; }
+}
+@keyframes settle {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.8; }
+}
+@keyframes stampPop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
 }
 
-.animate-deal {
-  animation: deal 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--deal-index) * 70ms);
-  transform-origin: 50% 0;
-  will-change: transform;
-}
+.deal > * { animation: deal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.deal > *:nth-child(1) { animation-delay: 0ms; }
+.deal > *:nth-child(2) { animation-delay: 70ms; }
+.deal > *:nth-child(3) { animation-delay: 140ms; }
+.deal > *:nth-child(4) { animation-delay: 210ms; }
+.deal > *:nth-child(5) { animation-delay: 280ms; }
+
+.nfc-pulse { animation: pulse 1.8s ease-in-out infinite; }
+.stamp-pop { animation: stampPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.settle { animation: settle 0.3s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
 @keyframes rise {
   from {
@@ -414,9 +407,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-stamp,
-  .animate-rise,
-  .animate-deal {
+  .deal > *,
+  .nfc-pulse,
+  .stamp-pop,
+  .settle,
+  .animate-rise {
     animation: none;
   }
 }

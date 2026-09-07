@@ -20,8 +20,11 @@ type ScanState =
 
 export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
+  const [activeTab, setActiveTab] = useState<"stamps" | "rewards" | "analytics" | "history">("stamps");
   const [result, setResult] = useState<ActionResult | null>(null);
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [manualToken, setManualToken] = useState("");
   const [pending, startTransition] = useTransition();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -41,6 +44,7 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
   useEffect(() => () => stopCamera(), []);
 
   async function startScanner() {
+    setShowScannerModal(true);
     setResult(null);
     if (typeof window === "undefined" || !("BarcodeDetector" in window)) {
       setScan({ kind: "unsupported" });
@@ -94,85 +98,281 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
     });
   }
 
+  function submitManual(e: React.FormEvent) {
+    e.preventDefault();
+    if (!manualToken.trim()) return;
+    handleToken(manualToken.trim());
+    setManualToken("");
+  }
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-5 px-4 py-8 bg-base text-white font-sans">
-      <header className="flex items-center justify-between">
-        <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-ink-faint font-semibold">{tenantName}</span>
-          <h1 className="text-xl font-bold tracking-tight text-white">Касса бариста</h1>
+    <div className="min-h-dvh bg-[#08090B] text-[#F4F4F2] font-sans antialiased p-3 sm:p-6 lg:p-10 flex flex-col justify-center items-center">
+      {/* iPad-style Frame (matching Stampy.dc (3).html Live Preview) */}
+      <div className="w-full max-w-5xl rounded-[32px] p-2.5 sm:p-3 bg-[#1B1E27] border border-white/[0.08] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
+        <div className="rounded-[24px] overflow-hidden bg-[#FAFAF9] text-[#0E0F11] grid grid-cols-1 md:grid-cols-[220px_1fr] min-h-[640px]">
+          
+          {/* Left Side Rail */}
+          <aside className="bg-[#F0EFEC] border-r border-black/[0.06] p-5 flex flex-col justify-between">
+            <div>
+              {/* Brand Header */}
+              <div className="flex items-center gap-2.5 mb-7 px-1.5">
+                <div className="size-6 rounded-[7px] bg-[#0E0F11] grid place-items-center text-[#FAFAF9] shadow-sm">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 2v2M12 2v2M16 2v2M4 8h16v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold tracking-tight">{tenantName}</span>
+              </div>
+
+              {/* Navigation Menu */}
+              <nav className="flex flex-col gap-1">
+                <button
+                  onClick={() => setActiveTab("stamps")}
+                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
+                    activeTab === "stamps"
+                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
+                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  Штампы
+                </button>
+                <button
+                  onClick={() => setActiveTab("rewards")}
+                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
+                    activeTab === "rewards"
+                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
+                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                  Награды
+                </button>
+                <button
+                  onClick={() => setActiveTab("analytics")}
+                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
+                    activeTab === "analytics"
+                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
+                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+                  Аналитика
+                </button>
+                <button
+                  onClick={() => setActiveTab("history")}
+                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
+                    activeTab === "history"
+                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
+                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                  }`}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  История
+                </button>
+              </nav>
+
+              {venues.length > 1 && (
+                <div className="mt-4 pt-4 border-t border-black/[0.06]">
+                  <label className="text-[10px] font-mono text-[#0E0F11]/45 uppercase tracking-wider block mb-1.5 font-semibold">Точка</label>
+                  <select
+                    value={venueId ?? ""}
+                    onChange={(e) => setVenueId(e.target.value || null)}
+                    className="w-full text-xs p-2 rounded-lg bg-white border border-black/10 outline-none text-[#0E0F11]"
+                  >
+                    {venues.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* User Barista Badge */}
+            <div className="mt-6 p-3 rounded-xl bg-white border border-black/[0.06] flex items-center gap-2.5 shadow-sm">
+              <div className="size-7 rounded-full bg-[#5B8DEF] grid place-items-center text-[#FAFAF9] text-xs font-semibold">
+                Б
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-semibold truncate leading-tight">Касса бариста</div>
+                <div className="text-[10px] text-[#0E0F11]/50 truncate">Ташкент · Онлайн</div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Work Area */}
+          <main className="p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
+            <div>
+              {/* Header */}
+              <div className="flex flex-wrap justify-between items-end gap-3 mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#0E0F11]">Сегодня</h1>
+                  <div className="text-xs text-[#0E0F11]/60 mt-1 font-medium">
+                    {new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "short" })}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={startScanner}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0E0F11] text-[#FAFAF9] text-xs font-semibold shadow-sm hover:bg-black transition-all"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Сканировать QR
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Banner / Outcome */}
+              {result && (
+                <div
+                  className={`animate-rise mb-6 p-4 rounded-2xl text-center text-xs font-semibold border ${
+                    result.ok
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : "bg-red-50 text-red-800 border-red-200"
+                  }`}
+                >
+                  {result.message}
+                </div>
+              )}
+
+              {/* 4 Stats Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
+                <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов</div>
+                  <div className="text-2xl font-bold tracking-tight">124</div>
+                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">↑ 12% за день</div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
+                  <div className="text-2xl font-bold tracking-tight">86</div>
+                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">↑ 4% новые</div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Наград</div>
+                  <div className="text-2xl font-bold tracking-tight">9</div>
+                  <div className="text-[10px] text-[#0E0F11]/50 font-medium mt-1">выдано сегодня</div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Возвраты</div>
+                  <div className="text-2xl font-bold tracking-tight">62<span className="text-base text-[#0E0F11]/40 font-normal">%</span></div>
+                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">↑ 3 п.п.</div>
+                </div>
+              </div>
+
+              {/* Weekly Chart */}
+              <div className="p-4 rounded-2xl border border-black/[0.06] bg-white mb-6">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="text-xs font-semibold">Штампы за неделю</div>
+                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold">7д</div>
+                </div>
+                <svg viewBox="0 0 400 90" width="100%" height="90" className="overflow-visible">
+                  <defs>
+                    <linearGradient id="staffChartGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stopColor="#5B8DEF" stopOpacity="0.25" />
+                      <stop offset="1" stopColor="#5B8DEF" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <polyline points="0,70 60,60 120,64 180,42 240,48 300,28 360,32 400,18" fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="0,70 60,60 120,64 180,42 240,48 300,28 360,32 400,18 400,90 0,90" fill="url(#staffChartGrad)"/>
+                  <circle cx="400" cy="18" r="4" fill="#5B8DEF"/>
+                  <circle cx="400" cy="18" r="8" fill="#5B8DEF" opacity="0.25"/>
+                </svg>
+              </div>
+
+              {/* Recent Activity Live Feed */}
+              <div>
+                <div className="text-[10px] text-[#0E0F11]/45 font-mono uppercase tracking-widest font-semibold mb-2.5">Последние события</div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className="size-2 rounded-full bg-[#5B8DEF]" />
+                      <span className="font-medium">Штамп добавлен · NFC стенд</span>
+                    </div>
+                    <span className="text-[11px] text-[#0E0F11]/50 font-mono">14:22</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className="size-2 rounded-full bg-[#5B8DEF]" />
+                      <span className="font-medium">Награда выдана · Бесплатный напиток</span>
+                    </div>
+                    <span className="text-[11px] text-[#0E0F11]/50 font-mono">14:18</span>
+                  </div>
+                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className="size-2 rounded-full bg-[#5B8DEF]" />
+                      <span className="font-medium">Штамп добавлен · NFC стенд</span>
+                    </div>
+                    <span className="text-[11px] text-[#0E0F11]/50 font-mono">14:11</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-8 pt-4 border-t border-black/[0.06] text-center text-[11px] text-[#0E0F11]/45 font-mono">
+              Stampy Barista · NFC &amp; QR Terminal · Ташкент 2026
+            </div>
+          </main>
         </div>
-        <div className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-      </header>
-
-      {venues.length > 1 && (
-        <select
-          value={venueId ?? ""}
-          onChange={(event) => setVenueId(event.target.value || null)}
-          className="input"
-        >
-          {venues.map((venue) => (
-            <option key={venue.id} value={venue.id}>
-              Точка: {venue.name}
-            </option>
-          ))}
-        </select>
-      )}
-
-      <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-line bg-surface shadow-2xl">
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          className={`h-full w-full object-cover ${scan.kind === "scanning" ? "" : "hidden"}`}
-        />
-        {scan.kind !== "scanning" && (
-          <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center text-xs text-ink-soft">
-            <span className="text-3xl mb-3 opacity-60">📷</span>
-            {scan.kind === "starting" && "Запускаем камеру…"}
-            {scan.kind === "idle" && "Наведите камеру на QR-код на экране гостя"}
-            {scan.kind === "unsupported" &&
-              "Сканер не поддерживается в этом браузере. Откройте страницу в Chrome на Android или Safari на iOS 17+."}
-            {scan.kind === "denied" && `Ошибка камеры: ${scan.message}`}
-          </div>
-        )}
       </div>
 
-      {scan.kind === "scanning" ? (
-        <button
-          onClick={() => {
-            stopCamera();
-            setScan({ kind: "idle" });
-          }}
-          className="rounded-2xl border border-line bg-surface py-4 text-xs font-semibold text-slate-300 hover:bg-white/10 transition-colors"
-        >
-          Остановить сканер
-        </button>
-      ) : (
-        <button
-          onClick={startScanner}
-          disabled={pending}
-          className="btn btn-primary py-4"
-        >
-          {pending ? "Проверяем QR…" : "Сканировать QR-код"}
-        </button>
-      )}
+      {/* Scanner Modal */}
+      {showScannerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-rise">
+          <div className="w-full max-w-sm rounded-[28px] bg-[#14161D] border border-white/10 p-6 shadow-2xl flex flex-col gap-4 text-center">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-bold text-white">Сканирование QR-кода</h3>
+              <button
+                onClick={() => {
+                  stopCamera();
+                  setShowScannerModal(false);
+                  setScan({ kind: "idle" });
+                }}
+                className="size-7 rounded-full bg-white/10 grid place-items-center text-xs text-white/70 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
 
-      {result && (
-        <div
-          className={`animate-rise rounded-2xl p-4 text-center text-xs font-semibold border ${
-            result.ok
-              ? "bg-emerald-950/60 text-emerald-400 border-emerald-800/40"
-              : "bg-red-950/60 text-red-400 border-red-900/40"
-          }`}
-        >
-          {result.message}
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                className={`h-full w-full object-cover ${scan.kind === "scanning" ? "" : "hidden"}`}
+              />
+              {scan.kind !== "scanning" && (
+                <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center text-xs text-white/60">
+                  <span className="text-3xl mb-2">📷</span>
+                  {scan.kind === "starting" && "Запуск камеры…"}
+                  {scan.kind === "idle" && "Наведите камеру на QR-код гостя"}
+                  {scan.kind === "unsupported" && "Сканер не поддерживается в этом браузере. Введите код вручную ниже."}
+                  {scan.kind === "denied" && `Доступ к камере отклонен: ${scan.message}`}
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={submitManual} className="flex gap-2">
+              <input
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                placeholder="STMP-XXXX-UZ"
+                className="input text-xs"
+              />
+              <button
+                type="submit"
+                disabled={pending || !manualToken.trim()}
+                className="btn btn-primary text-xs px-4"
+              >
+                {pending ? "..." : "Ввести"}
+              </button>
+            </form>
+          </div>
         </div>
       )}
-
-      <p className="mt-auto text-center text-[11px] text-ink-faint font-mono leading-relaxed">
-        Штампы начисляются автоматически при прикладывании телефона к метке NTAG 424.
-      </p>
-    </main>
+    </div>
   );
 }
-

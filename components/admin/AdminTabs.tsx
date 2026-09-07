@@ -15,17 +15,17 @@ const TABS = [
 export function AdminTabs() {
   const pathname = usePathname();
   return (
-    <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-3">
+    <nav className="mx-auto flex max-w-6xl gap-1.5 overflow-x-auto px-4 pb-3 scrollbar-none">
       {TABS.map((tab) => {
         const active = pathname === tab.href || (tab.href !== "/admin" && pathname?.startsWith(tab.href));
         return (
           <Link
             key={tab.href}
             href={tab.href}
-            className={`whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold tracking-wide transition-all ${
+            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition-all ${
               active
-                ? "bg-white text-zinc-950 shadow-sm"
-                : "text-zinc-400 hover:text-white hover:bg-zinc-900"
+                ? "bg-[#5B8DEF]/15 text-[#7BA5FF] border border-[#5B8DEF]/30 shadow-sm"
+                : "text-[#F4F4F2]/60 hover:text-white hover:bg-white/[0.04]"
             }`}
           >
             {tab.label}
@@ -36,4 +36,3 @@ export function AdminTabs() {
     </nav>
   );
 }
-

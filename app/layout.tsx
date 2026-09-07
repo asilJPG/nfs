@@ -10,13 +10,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#6F4E37",
+  themeColor: "#08090B",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru">
-      <body className="bg-cream text-ink antialiased">{children}</body>
+      <body className="bg-[#08090B] text-[#F4F4F2] antialiased selection:bg-[#5B8DEF]/30">{children}</body>
     </html>
   );
 }
