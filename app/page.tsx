@@ -22,6 +22,7 @@ export default function LandingPage() {
             <a href="#how" className="hover:text-[#5B8DEF] transition-colors">Как это работает</a>
             <a href="#guests" className="hover:text-[#5B8DEF] transition-colors">Гостям</a>
             <a href="#cafes" className="hover:text-[#5B8DEF] transition-colors">Кофейням</a>
+            <a href="#preview" className="hover:text-[#5B8DEF] transition-colors">Панель бариста</a>
             <a href="#pricing" className="hover:text-[#5B8DEF] transition-colors">Тарифы</a>
             <a href="#faq" className="hover:text-[#5B8DEF] transition-colors">Вопросы</a>
           </nav>
@@ -97,101 +98,70 @@ export default function LandingPage() {
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
-                  0<span className="text-sm sm:text-base text-[#F4F4F2]/50"> ₸</span>
+                  0<span className="text-sm sm:text-base text-[#F4F4F2]/50"> сум</span>
                 </div>
                 <div className="mt-1 text-xs text-[#F4F4F2]/50 font-medium">за пластик</div>
               </div>
             </div>
           </div>
 
-          {/* Phone Mockup */}
+          {/* Big Phone Fan Mockup */}
           <div className="flex justify-center lg:justify-end">
-            <div className="w-full max-w-[340px] rounded-[44px] p-2 bg-[#1B1E27] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.8),_0_0_0_1px_rgba(255,255,255,0.06)]">
-              <div className="rounded-[36px] overflow-hidden bg-[#0E0F11] p-5 pt-8 relative border border-white/[0.04]">
-                <div className="flex justify-between items-center mb-6 px-1">
-                  <div>
-                    <div className="text-xl font-semibold tracking-tight">Кошелёк</div>
-                    <div className="text-xs text-[#F4F4F2]/40 mt-0.5">4 кофейни · 1 награда</div>
-                  </div>
-                </div>
+            <div className="w-full max-w-[360px] rounded-[48px] p-2 bg-[#1B1E27] shadow-[0_60px_120px_-30px_rgba(0,0,0,0.8),_0_0_0_1px_rgba(255,255,255,0.06)]">
+              <div className="rounded-[40px] overflow-hidden bg-[#0E0F11] p-6 pt-10 relative border border-white/[0.04] min-h-[560px]">
+                <div className="text-2xl font-semibold tracking-tight text-white mb-1">Мои карты</div>
+                <div className="text-xs text-[#F4F4F2]/40 mb-8">4 кофейни · 1 награда готова</div>
 
-                {/* Card 1 - Ready */}
-                <div className="rounded-[22px] bg-gradient-to-br from-[#17223B] to-[#0E1424] border border-[#5B8DEF]/30 p-4 mb-3 relative overflow-hidden shadow-[0_20px_40px_-20px_rgba(91,141,239,0.3)]">
-                  <div className="absolute -top-10 -right-10 size-32 rounded-full bg-[radial-gradient(circle,_rgba(91,141,239,0.25),_transparent_65%)]" />
-                  <div className="flex justify-between items-start mb-3.5 relative">
+                {/* Fan Stack */}
+                <div className="relative h-[340px] flex items-center justify-center">
+                  {/* Card 1 - Broadway */}
+                  <div className="absolute w-[240px] h-[155px] rounded-[20px] bg-gradient-to-br from-[#7BA5FF] to-[#4A7DE0] -rotate-[14deg] -translate-x-12 -translate-y-6 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.55)] p-4 flex flex-col justify-between text-white">
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-white/85">Broadway</div>
                     <div>
-                      <div className="text-[10px] text-[#7BA5FF] font-mono uppercase tracking-wider mb-1 font-medium">Sfumato</div>
-                      <div className="text-sm font-semibold tracking-tight text-white">Капучино в подарок</div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full bg-[#5B8DEF] text-[#0E1424] text-[9px] font-bold uppercase tracking-wider">
-                      Готова
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5 relative">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div key={i} className="aspect-square rounded-full bg-[#5B8DEF] grid place-items-center">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0E1424" strokeWidth="3" strokeLinecap="round">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      </div>
-                    ))}
-                    <div className="aspect-square rounded-full bg-[#5B8DEF] shadow-[0_0_0_2px_rgba(91,141,239,0.4)] grid place-items-center">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="#0E1424" stroke="#0E1424" strokeWidth="1">
-                        <polygon points="12 2 15 8.5 22 9.5 17 14.5 18.2 21.5 12 18 5.8 21.5 7 14.5 2 9.5 9 8.5 12 2" />
-                      </svg>
+                      <div className="text-xl font-semibold tracking-tight">2 / 6</div>
+                      <div className="text-[10px] text-white/80 mt-0.5">осталось 4</div>
                     </div>
                   </div>
-                </div>
 
-                {/* Card 2 - In progress */}
-                <div className="rounded-[22px] bg-gradient-to-br from-[#1B1E27] to-[#14161D] border border-white/[0.08] p-4 mb-3">
-                  <div className="flex justify-between items-start mb-3.5">
+                  {/* Card 2 - Chinor */}
+                  <div className="absolute w-[240px] h-[155px] rounded-[20px] bg-gradient-to-br from-[#E85D45] to-[#C43A22] -rotate-[6deg] -translate-x-4 -translate-y-2 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.55)] p-4 flex flex-col justify-between text-white">
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-white/90">Chinor</div>
                     <div>
-                      <div className="text-[10px] text-[#F4F4F2]/40 font-mono uppercase tracking-wider mb-1">Chinor</div>
-                      <div className="text-sm font-semibold tracking-tight text-white">
-                        4 <span className="text-[#F4F4F2]/40 font-normal">/ 6</span>
-                      </div>
+                      <div className="text-xl font-semibold tracking-tight">4 / 6</div>
+                      <div className="text-[10px] text-white/85 mt-0.5">осталось 2</div>
                     </div>
-                    <div className="text-xs text-[#F4F4F2]/60">осталось 2</div>
                   </div>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="aspect-square rounded-full bg-[#5B8DEF] grid place-items-center">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0E1424" strokeWidth="3" strokeLinecap="round">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      </div>
-                    ))}
-                    <div className="aspect-square rounded-full border border-white/15" />
-                    <div className="aspect-square rounded-full border border-white/15" />
-                    <div className="aspect-square rounded-full border border-dashed border-[#5B8DEF]/40" />
-                  </div>
-                </div>
 
-                {/* Card 3 - In progress */}
-                <div className="rounded-[22px] bg-gradient-to-br from-[#1B1E27] to-[#14161D] border border-white/[0.08] p-4 opacity-90">
-                  <div className="flex justify-between items-start mb-3.5">
+                  {/* Card 3 - Sfumato */}
+                  <div className="absolute w-[240px] h-[155px] rounded-[20px] bg-gradient-to-br from-[#F4B94A] to-[#E89728] rotate-[6deg] translate-x-5 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.55)] p-4 flex flex-col justify-between text-[#14100C]">
+                    <div className="font-mono text-[9px] uppercase tracking-widest text-[#140F0A]/75">Sfumato</div>
                     <div>
-                      <div className="text-[10px] text-[#F4F4F2]/40 font-mono uppercase tracking-wider mb-1">Broadway Roasters</div>
-                      <div className="text-sm font-semibold tracking-tight text-white">
-                        2 <span className="text-[#F4F4F2]/40 font-normal">/ 6</span>
+                      <div className="text-xl font-semibold tracking-tight">6 / 6</div>
+                      <div className="text-[10px] text-[#140F0A]/70 mt-0.5">награда готова</div>
+                    </div>
+                  </div>
+
+                  {/* Frosted Wallet Pouch */}
+                  <div className="absolute w-[272px] h-[175px] rounded-[22px] bg-[#14161D]/75 backdrop-blur-xl border border-white/10 translate-y-16 shadow-[0_30px_60px_-16px_rgba(0,0,0,0.7)] p-4 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-mono text-[9px] text-[#F4F4F2]/55 uppercase tracking-widest mb-1">Кошелёк</div>
+                        <div className="text-sm font-semibold tracking-tight text-white">Активные карты</div>
+                      </div>
+                      <div className="size-7 rounded-full bg-white/[0.08] border border-white/10 grid place-items-center text-white">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
                       </div>
                     </div>
-                    <div className="text-xs text-[#F4F4F2]/60">осталось 4</div>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1.5">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="aspect-square rounded-full bg-[#5B8DEF] grid place-items-center">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0E1424" strokeWidth="3" strokeLinecap="round">
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="text-2xl font-semibold tracking-tight text-white leading-none">2 148</div>
+                        <div className="text-[10px] text-[#F4F4F2]/55 mt-1.5">чашек за месяц</div>
                       </div>
-                    ))}
-                    <div className="aspect-square rounded-full border border-white/15" />
-                    <div className="aspect-square rounded-full border border-white/15" />
-                    <div className="aspect-square rounded-full border border-white/15" />
-                    <div className="aspect-square rounded-full border border-white/15" />
-                    <div className="aspect-square rounded-full border border-dashed border-[#5B8DEF]/40" />
+                      <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#5B8DEF]/15 border border-[#5B8DEF]/30 text-[10px] font-medium text-[#7BA5FF]">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+                        +38%
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -210,6 +180,7 @@ export default function LandingPage() {
             <span className="italic font-serif hover:text-white transition-colors">Broadway Roasters</span>
             <span className="font-semibold hover:text-white transition-colors">Nur Café</span>
             <span className="font-mono text-xs sm:text-sm hover:text-white transition-colors">Milk &amp; Honey</span>
+            <span className="tracking-wide hover:text-white transition-colors">Cezve Coffee</span>
           </div>
         </div>
       </section>
@@ -399,8 +370,159 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ============ LIVE PRODUCT PREVIEW (Barista iPad Frame) ============ */}
+      <section id="preview" className="bg-[#FAFAF9] text-[#0E0F11] py-24 sm:py-32 border-t border-black/[0.04]">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#0E0F11]/50 mb-4 font-semibold">
+              <span className="size-1.5 rounded-full bg-[#5B8DEF]" />
+              Панель бариста
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-semibold tracking-[-0.035em] leading-[1.05] text-[#0E0F11] mb-4">
+              Одно окно. Один планшет.
+            </h2>
+            <p className="text-base text-[#0E0F11]/60 max-w-lg mx-auto leading-relaxed">
+              Начисление штампов, гашение наград и живая статистика заведения — на одном экране.
+            </p>
+          </div>
+
+          {/* iPad Frame Mockup */}
+          <div className="max-w-5xl mx-auto rounded-[32px] p-3 sm:p-4 bg-[#E8E7E2] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.15),_0_0_0_1px_rgba(0,0,0,0.05)]">
+            <div className="rounded-[22px] overflow-hidden bg-white border border-black/[0.04]">
+              <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] min-h-[480px]">
+                {/* Side Rail */}
+                <div className="bg-[#F0EFEC] border-r border-black/[0.05] p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-8 px-1">
+                      <div className="size-6 rounded-lg bg-[#0E0F11] grid place-items-center">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FAFAF9" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M8 2v2M12 2v2M16 2v2M4 8h16v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z" />
+                        </svg>
+                      </div>
+                      <span className="font-semibold text-sm tracking-tight text-[#0E0F11]">Sfumato</span>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <div className="px-3 py-2 rounded-xl text-xs bg-white text-[#0E0F11] font-semibold flex items-center gap-2.5 shadow-sm">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        Штампы
+                      </div>
+                      <div className="px-3 py-2 rounded-xl text-xs text-[#0E0F11]/60 font-medium flex items-center gap-2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Награды
+                      </div>
+                      <div className="px-3 py-2 rounded-xl text-xs text-[#0E0F11]/60 font-medium flex items-center gap-2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+                        Аналитика
+                      </div>
+                      <div className="px-3 py-2 rounded-xl text-xs text-[#0E0F11]/60 font-medium flex items-center gap-2.5">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        История
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 p-3 rounded-xl bg-white border border-black/[0.05] flex items-center gap-2.5">
+                    <div className="size-7 rounded-full bg-[#5B8DEF] grid place-items-center text-white text-xs font-semibold">
+                      М
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#0E0F11]">Мадина</div>
+                      <div className="text-[10px] text-[#0E0F11]/50">Бариста</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main View */}
+                <div className="p-6 md:p-8 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-end mb-6">
+                      <div>
+                        <div className="text-xl font-bold tracking-tight text-[#0E0F11]">Сегодня</div>
+                        <div className="text-xs text-[#0E0F11]/50 mt-0.5">7 сен · вторник</div>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0E0F11] text-white text-xs font-semibold">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                        Начислить
+                      </div>
+                    </div>
+
+                    {/* KPI Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                      <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                        <div className="text-[10px] font-mono uppercase text-[#0E0F11]/50 font-medium">Штампов</div>
+                        <div className="text-xl font-bold tracking-tight text-[#0E0F11] mt-1">124</div>
+                        <div className="text-[10px] text-[#5B8DEF] font-medium mt-0.5">↑ 12%</div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                        <div className="text-[10px] font-mono uppercase text-[#0E0F11]/50 font-medium">Гостей</div>
+                        <div className="text-xl font-bold tracking-tight text-[#0E0F11] mt-1">86</div>
+                        <div className="text-[10px] text-[#5B8DEF] font-medium mt-0.5">↑ 4%</div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                        <div className="text-[10px] font-mono uppercase text-[#0E0F11]/50 font-medium">Наград</div>
+                        <div className="text-xl font-bold tracking-tight text-[#0E0F11] mt-1">9</div>
+                        <div className="text-[10px] text-[#0E0F11]/50 font-medium mt-0.5">— 0%</div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+                        <div className="text-[10px] font-mono uppercase text-[#0E0F11]/50 font-medium">Возвраты</div>
+                        <div className="text-xl font-bold tracking-tight text-[#0E0F11] mt-1">62<span className="text-xs text-[#0E0F11]/40 font-normal">%</span></div>
+                        <div className="text-[10px] text-[#5B8DEF] font-medium mt-0.5">↑ 3 п.п.</div>
+                      </div>
+                    </div>
+
+                    {/* Chart Graphic */}
+                    <div className="p-4 rounded-2xl border border-black/[0.06] mb-6">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-xs font-semibold text-[#0E0F11]">Штампы за неделю</div>
+                        <div className="text-[10px] font-mono uppercase text-[#0E0F11]/50 font-medium">7 дней</div>
+                      </div>
+                      <svg viewBox="0 0 400 70" width="100%" height="70" className="overflow-visible">
+                        <defs>
+                          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stopColor="#5B8DEF" stopOpacity="0.25" />
+                            <stop offset="1" stopColor="#5B8DEF" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <polyline points="0,55 60,45 120,48 180,32 240,36 300,22 360,26 400,12" fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <polyline points="0,55 60,45 120,48 180,32 240,36 300,22 360,26 400,12 400,70 0,70" fill="url(#chartGrad)" />
+                        <circle cx="400" cy="12" r="4" fill="#5B8DEF" />
+                        <circle cx="400" cy="12" r="8" fill="#5B8DEF" opacity="0.2" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Recent Activity */}
+                  <div>
+                    <div className="text-[10px] font-mono uppercase tracking-widest text-[#0E0F11]/45 font-semibold mb-2">
+                      Последние
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-[#F0EFEC] text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="size-1.5 rounded-full bg-[#5B8DEF]" />
+                          <span className="font-medium text-[#0E0F11]">Штамп · Дилшод</span>
+                        </div>
+                        <span className="font-mono text-[11px] text-[#0E0F11]/50">14:22</span>
+                      </div>
+                      <div className="flex justify-between items-center px-3 py-2 rounded-xl bg-[#F0EFEC] text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="size-1.5 rounded-full bg-[#5B8DEF]" />
+                          <span className="font-medium text-[#0E0F11]">Награда · Азиза</span>
+                        </div>
+                        <span className="font-mono text-[11px] text-[#0E0F11]/50">14:18</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ============ PRICING ============ */}
-      <section id="pricing" className="bg-[#FAFAF9] text-[#0E0F11] py-24 sm:py-32">
+      <section id="pricing" className="bg-[#F0EFEC] text-[#0E0F11] py-24 sm:py-32 border-t border-black/[0.04]">
         <div className="mx-auto max-w-7xl px-6">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-[#0E0F11]/50 mb-3 font-semibold">
@@ -417,18 +539,18 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {/* Solo */}
-            <div className="p-8 rounded-[24px] bg-white border border-black/[0.06] flex flex-col justify-between shadow-sm">
+            <div className="p-8 rounded-[24px] bg-[#FAFAF9] border border-black/[0.06] flex flex-col justify-between shadow-sm">
               <div>
                 <div className="font-mono text-xs text-[#0E0F11]/50 uppercase tracking-widest mb-3 font-semibold">Solo</div>
                 <div className="flex items-baseline gap-1.5 mb-2">
                   <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#0E0F11]">290 000</div>
-                  <div className="text-xs text-[#0E0F11]/50">₸ / мес</div>
+                  <div className="text-xs text-[#0E0F11]/50">сум / мес</div>
                 </div>
                 <div className="text-xs text-[#0E0F11]/60 mb-6">Одна кофейня. До 1 000 гостей.</div>
 
                 <Link
                   href="/apply"
-                  className="block text-center py-2.5 rounded-full bg-[#FAFAF9] border border-black/[0.08] text-xs font-semibold text-[#0E0F11] hover:bg-black/5 transition-all mb-6"
+                  className="block text-center py-2.5 rounded-full bg-white border border-black/[0.08] text-xs font-semibold text-[#0E0F11] hover:bg-black/5 transition-all mb-6 shadow-sm"
                 >
                   Начать
                 </Link>
@@ -464,7 +586,7 @@ export default function LandingPage() {
                 <div className="font-mono text-xs text-[#F4F4F2]/50 uppercase tracking-widest mb-3 font-semibold">Chain</div>
                 <div className="flex items-baseline gap-1.5 mb-2">
                   <div className="text-3xl sm:text-4xl font-semibold tracking-tight text-white">890 000</div>
-                  <div className="text-xs text-[#F4F4F2]/50">₸ / мес</div>
+                  <div className="text-xs text-[#F4F4F2]/50">сум / мес</div>
                 </div>
                 <div className="text-xs text-[#F4F4F2]/60 mb-6">До 5 точек. Общая карта.</div>
 
@@ -497,7 +619,7 @@ export default function LandingPage() {
             </div>
 
             {/* Group */}
-            <div className="p-8 rounded-[24px] bg-white border border-black/[0.06] flex flex-col justify-between shadow-sm">
+            <div className="p-8 rounded-[24px] bg-[#FAFAF9] border border-black/[0.06] flex flex-col justify-between shadow-sm">
               <div>
                 <div className="font-mono text-xs text-[#0E0F11]/50 uppercase tracking-widest mb-3 font-semibold">Group</div>
                 <div className="flex items-baseline gap-1.5 mb-2">
@@ -509,7 +631,7 @@ export default function LandingPage() {
                   href="https://t.me/stampy_support"
                   target="_blank"
                   rel="noreferrer"
-                  className="block text-center py-2.5 rounded-full bg-[#FAFAF9] border border-black/[0.08] text-xs font-semibold text-[#0E0F11] hover:bg-black/5 transition-all mb-6"
+                  className="block text-center py-2.5 rounded-full bg-white border border-black/[0.08] text-xs font-semibold text-[#0E0F11] hover:bg-black/5 transition-all mb-6 shadow-sm"
                 >
                   Написать в отдел продаж
                 </a>
@@ -569,9 +691,21 @@ export default function LandingPage() {
               </div>
             </div>
             <div className="py-6">
+              <div className="text-base font-semibold tracking-tight text-[#0E0F11] mb-2">Что видит гость до первого касания?</div>
+              <div className="text-sm text-[#0E0F11]/60 leading-relaxed">
+                При первом касании стенда гость видит экран добавления карты с информацией о вашем заведении и сразу получает приветственный штамп.
+              </div>
+            </div>
+            <div className="py-6">
               <div className="text-base font-semibold tracking-tight text-[#0E0F11] mb-2">Кому принадлежат данные гостей?</div>
               <div className="text-sm text-[#0E0F11]/60 leading-relaxed">
                 Вся база гостей принадлежит исключительно вашей кофейне. Вы можете выгрузить аналитику и запускать целевые рассылки.
+              </div>
+            </div>
+            <div className="py-6">
+              <div className="text-base font-semibold tracking-tight text-[#0E0F11] mb-2">Как быстро можно запуститься?</div>
+              <div className="text-sm text-[#0E0F11]/60 leading-relaxed">
+                Онбординг занимает один вечер. Мы генерируем метку, отправляем готовый NFC-стенд, и бариста могут начислять штампы уже на следующий день.
               </div>
             </div>
           </div>
@@ -636,5 +770,6 @@ export default function LandingPage() {
     </div>
   );
 }
+
 
 
