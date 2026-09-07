@@ -10,9 +10,9 @@ export type WalletCardData = {
   brand: Pick<Brand, "primary"> & Partial<Brand>;
   stamps_count: number;
   stamps_required: number | null;
+  is_ready?: boolean;
 };
 
-/** Читаемый цвет текста на плашке карты — плашки красит владелец кофейни. */
 export function inkOn(hex: string): string {
   const raw = hex.replace("#", "");
   if (raw.length !== 6) return "#141414";
@@ -25,7 +25,6 @@ export function inkOn(hex: string): string {
   return luminance > 0.45 ? "#141414" : "#ffffff";
 }
 
-/** Затемняет/осветляет hex — из одного бренд-цвета делаем обложку с глубиной. */
 export function shade(hex: string, amount: number): string {
   const raw = hex.replace("#", "");
   if (raw.length !== 6) return hex;
@@ -40,7 +39,7 @@ export function Monogram({
   name,
   logoUrl,
   ink,
-  size = 40,
+  size = 36,
 }: {
   name: string;
   logoUrl: string | null;
@@ -50,118 +49,104 @@ export function Monogram({
   const isDarkInk = ink === "#141414";
   return (
     <span
-      className="grid shrink-0 place-items-center overflow-hidden rounded-full font-bold"
+      className="grid shrink-0 place-items-center overflow-hidden rounded-xl font-bold font-mono"
       style={{
         width: size,
         height: size,
-        fontSize: size * 0.4,
-        background: isDarkInk ? "rgba(0,0,0,0.14)" : "rgba(255,255,255,0.2)",
+        fontSize: size * 0.38,
+        background: isDarkInk ? "rgba(0,0,0,0.12)" : "rgba(91,141,239,0.2)",
         color: ink,
+        border: `1px solid ${isDarkInk ? "rgba(0,0,0,0.1)" : "rgba(91,141,239,0.3)"}`,
       }}
     >
       {logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={logoUrl} alt="" className="h-full w-full object-cover" />
       ) : (
-        name.slice(0, 1).toUpperCase()
+        name.slice(0, 2).toUpperCase()
       )}
     </span>
   );
 }
 
 /**
- * Карта в кошельке — по референсу `дизайн/123.png`: обложка во всю плашку и
- * матовая стеклянная панель справа с круглым знаком кофейни. Обложка собирается
- * из бренд-цвета кофейни; если загружен логотип, он же уходит в фон размытым.
- *
- * Карты лежат стопкой с наложением, поэтому всё, что опознаёт кофейню — знак,
- * название, подпись — держится в верхней полосе; прогресс уходит вниз и виден
- * у передней карты.
+ * Карточка в стеке кошелька в стиле Stampy.dc (3).html
  */
-export function WalletCardRow({ card, onClick }: { card: WalletCardData; onClick: () => void }) {
-  const fill = card.brand.primary ?? "#7c3aed";
-  const ink = inkOn(fill);
-  const isDarkInk = ink === "#141414";
-  const required = card.stamps_required ?? 0;
-  const progress = required > 0 ? Math.min(100, (card.stamps_count / required) * 100) : 0;
+export function WalletCardRow({
+  card,
+  onClick,
+  isActive,
+}: {
+  card: WalletCardData;
+  onClick: () => void;
+  isActive?: boolean;
+}) {
+  const fill = card.brand.primary ?? "#1B1E27";
+  const required = card.stamps_required ?? 6;
+  const count = card.stamps_count;
+  const isReady = card.is_ready || count >= required;
 
   return (
-    <button
+    <div
       onClick={onClick}
-      className="relative h-[168px] w-full overflow-hidden rounded-[22px] text-left transition-transform active:scale-[0.985]"
+      role="button"
+      tabIndex={0}
+      className={`relative w-full rounded-[22px] p-5 text-left cursor-pointer transition-all duration-300 ${
+        isActive ? "scale-[1.02] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.8)] border-white/20" : "hover:scale-[1.01] border-white/10"
+      }`}
       style={{
-        background: `linear-gradient(145deg, ${shade(fill, 0.08)}, ${shade(fill, -0.22)})`,
-        boxShadow: "0 -6px 22px rgba(0,0,0,0.45), 0 10px 28px -12px rgba(0,0,0,0.6)",
+        background: isReady
+          ? "linear-gradient(160deg, #17223B 0%, #0E1424 100%)"
+          : `linear-gradient(160deg, ${shade(fill, 0.1)} 0%, ${shade(fill, -0.2)} 100%)`,
+        border: `1px solid ${isReady ? "rgba(91,141,239,0.3)" : "rgba(255,255,255,0.08)"}`,
+        boxShadow: "0 20px 40px -20px rgba(0,0,0,0.7)",
       }}
     >
-      {/* обложка: размытый логотип, если он есть */}
-      {card.logo_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={card.logo_url}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-35 blur-xl"
-        />
-      )}
-
-      {/* стеклянная панель справа со знаком кофейни */}
-      <span
-        className="absolute inset-y-0 right-0 grid w-[40%] place-items-start justify-items-center pt-3.5 backdrop-blur-xl"
-        style={{
-          background: isDarkInk ? "rgba(255,255,255,0.26)" : "rgba(255,255,255,0.14)",
-          borderLeft: `1px solid ${isDarkInk ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.18)"}`,
-        }}
-      >
-        <span
-          className="grid size-[64px] place-items-center overflow-hidden rounded-full bg-white text-[24px] font-black"
-          style={{ color: fill }}
-        >
-          {card.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={card.logo_url} alt="" className="h-full w-full object-cover" />
-          ) : (
-            card.name.slice(0, 1).toUpperCase()
-          )}
-        </span>
-      </span>
-
-      {/* текст поверх обложки */}
-      <span
-        className="relative flex h-full w-[60%] flex-col justify-between p-4"
-        style={{ color: ink }}
-      >
-        <span className="min-w-0">
-          <span className="block truncate text-[17px] font-extrabold leading-tight tracking-tight">
-            {card.name}
+      <div className="flex justify-between items-start mb-4">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-widest text-[#7BA5FF] mb-1 font-medium">
+            {card.name} · Ташкент
+          </div>
+          <div className="text-base font-bold tracking-tight text-white">
+            {isReady ? "Награда готова" : `${count} из ${required}`}
+          </div>
+        </div>
+        {isReady ? (
+          <span className="px-2.5 py-1 rounded-full bg-[#5B8DEF] text-[#0E1424] text-[9px] font-bold uppercase tracking-wider">
+            Готова
           </span>
-          <span className="mt-0.5 block truncate text-[11px]" style={{ opacity: 0.75 }}>
-            {card.subtitle}
-          </span>
-          {required > 0 && (
-            <span
-              className="mt-2 inline-block rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums"
-              style={{ background: isDarkInk ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.18)" }}
-            >
-              {card.stamps_count}/{required} штампов
-            </span>
-          )}
-        </span>
-
-        {required > 0 && (
-          <span className="block">
-            <span
-              className="block h-1.5 overflow-hidden rounded-full"
-              style={{ background: isDarkInk ? "rgba(0,0,0,0.16)" : "rgba(0,0,0,0.28)" }}
-            >
-              <span
-                className="block h-full rounded-full transition-[width] duration-500"
-                style={{ width: `${progress}%`, background: ink }}
-              />
-            </span>
+        ) : (
+          <span className="text-xs text-[#F4F4F2]/50 font-medium">
+            осталось {Math.max(0, required - count)}
           </span>
         )}
-      </span>
-    </button>
+      </div>
+
+      {/* Mini stamp slots */}
+      <div className="grid grid-cols-7 gap-1.5 pt-2 border-t border-white/[0.06]">
+        {Array.from({ length: required }, (_, i) => {
+          const filled = i < count;
+          const isLast = i === required - 1;
+          return (
+            <div
+              key={i}
+              className={`aspect-square rounded-full grid place-items-center ${
+                filled
+                  ? "bg-[#5B8DEF] text-[#0E1424]"
+                  : isLast
+                    ? "border border-dashed border-[#5B8DEF]/50 bg-[#5B8DEF]/10"
+                    : "border border-white/15"
+              }`}
+            >
+              {filled && (
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
