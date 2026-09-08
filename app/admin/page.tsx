@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { formatUzs } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
 
@@ -16,25 +17,39 @@ type Overview = {
   applications_open: number;
   tags_total: number;
   tags_unassigned: number;
+  mrr_uzs: number;
+  mrr_new_week_uzs: number;
+  series_stamps: number[];
+  series_tenants: number[];
+  series_guests: number[];
+  series_applications: number[];
+};
+
+const EMPTY_OVERVIEW: Overview = {
+  tenants_total: 0,
+  tenants_active: 0,
+  tenants_paying: 0,
+  tenants_new_week: 0,
+  guests_total: 0,
+  guests_active_month: 0,
+  stamps_today: 0,
+  stamps_week: 0,
+  rewards_redeemed_week: 0,
+  applications_open: 0,
+  tags_total: 0,
+  tags_unassigned: 0,
+  mrr_uzs: 0,
+  mrr_new_week_uzs: 0,
+  series_stamps: [],
+  series_tenants: [],
+  series_guests: [],
+  series_applications: [],
 };
 
 export default async function AdminOverview() {
   const supabase = await supabaseServer();
   const { data } = await supabase.rpc("admin_platform_overview");
-  const o = (data as Overview | null) ?? {
-    tenants_total: 0,
-    tenants_active: 0,
-    tenants_paying: 0,
-    tenants_new_week: 0,
-    guests_total: 0,
-    guests_active_month: 0,
-    stamps_today: 0,
-    stamps_week: 0,
-    rewards_redeemed_week: 0,
-    applications_open: 0,
-    tags_total: 0,
-    tags_unassigned: 0,
-  };
+  const o = { ...EMPTY_OVERVIEW, ...((data as Partial<Overview> | null) ?? {}) };
 
   return (
     <div className="flex flex-col gap-8 animate-rise">
@@ -49,41 +64,41 @@ export default async function AdminOverview() {
       <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
           label="MRR"
-          value="84.2 млн сум"
-          change="↑ 14%"
-          hint={`${o.tenants_paying || 12} платящих точек`}
-          sparkline="0,22 20,20 40,18 60,16 80,14 100,12 120,10 140,9 160,7 180,5 200,2"
+          value={formatUzs(o.mrr_uzs)}
+          change={o.mrr_new_week_uzs > 0 ? `+${formatUzs(o.mrr_new_week_uzs)} за 7 дн.` : undefined}
+          hint={`${o.tenants_paying} платящих точек`}
+          series={o.series_tenants}
         />
         <Tile
           label="Кофейни"
-          value={o.tenants_total || 312}
-          change={`+${o.tenants_new_week || 12}`}
+          value={o.tenants_total}
+          change={o.tenants_new_week > 0 ? `+${o.tenants_new_week} за 7 дн.` : undefined}
           hint={`${o.tenants_active} активных`}
           href="/admin/tenants"
-          sparkline="0,25 20,23 40,20 60,20 80,17 100,15 120,13 140,10 160,10 180,7 200,4"
+          series={o.series_tenants}
         />
         <Tile
           label="Гости"
-          value={o.guests_total ? o.guests_total.toLocaleString("ru-RU") : "48 214"}
-          change="↑ 22%"
-          hint={`${o.guests_active_month || 1240} активны за 30 дн.`}
+          value={o.guests_total}
+          hint={`${o.guests_active_month} активны за 30 дн.`}
           href="/admin/guests"
-          sparkline="0,24 20,22 40,20 60,18 80,14 100,15 120,10 140,8 160,10 180,4 200,3"
+          series={o.series_guests}
         />
         <Tile
-          label="Churn"
-          value="1.8%"
-          change="↓ 0.4 п.п."
-          changeColor="text-emerald-400"
-          hint="отток за 30 дней"
-          sparkline="0,8 20,10 40,9 60,12 80,10 100,14 120,13 140,16 160,15 180,18 200,20"
+          label="Заявки"
+          value={o.applications_open}
+          change={o.applications_open > 0 ? "требуют ответа" : "все обработаны"}
+          changeColor={o.applications_open > 0 ? "text-[#7BA5FF]" : "text-emerald-400"}
+          hint="новые заявки на подключение"
+          href="/admin/applications"
+          series={o.series_applications}
         />
       </section>
 
       {/* Operational stats */}
       <section className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
         <SimpleTile label="Штампов сегодня" value={o.stamps_today} />
-        <SimpleTile label="Штампов за 7 дн." value={o.stamps_week} />
+        <SimpleTile label="Штампов за 7 дн." value={o.stamps_week} series={o.series_stamps} />
         <SimpleTile label="Наград выдано (7 дн.)" value={o.rewards_redeemed_week} />
         <SimpleTile
           label="NFC-меток"
@@ -96,6 +111,32 @@ export default async function AdminOverview() {
   );
 }
 
+/** Точки полилинии из ряда значений. Плоский ряд рисуем ровной линией по нижней кромке. */
+function sparklinePoints(series: number[], width = 200, height = 30): string | null {
+  if (!series || series.length < 2) return null;
+  const max = Math.max(...series);
+  const min = Math.min(...series);
+  const span = max - min;
+  const step = width / (series.length - 1);
+  return series
+    .map((value, index) => {
+      const x = Math.round(index * step);
+      const y = span === 0 ? height - 4 : Math.round(height - 4 - ((value - min) / span) * (height - 8));
+      return `${x},${y}`;
+    })
+    .join(" ");
+}
+
+function Sparkline({ series }: { series: number[] }) {
+  const points = sparklinePoints(series);
+  if (!points) return null;
+  return (
+    <svg viewBox="0 0 200 30" width="100%" height="24" className="mt-3 overflow-visible">
+      <polyline points={points} fill="none" stroke="#5B8DEF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function Tile({
   label,
   value,
@@ -103,7 +144,7 @@ function Tile({
   changeColor = "text-[#7BA5FF]",
   hint,
   href,
-  sparkline,
+  series,
 }: {
   label: string;
   value: number | string;
@@ -111,7 +152,7 @@ function Tile({
   changeColor?: string;
   hint?: string;
   href?: string;
-  sparkline?: string;
+  series?: number[];
 }) {
   const body = (
     <div className="rounded-[20px] border border-white/[0.06] bg-[#14161D] p-5 shadow-lg shadow-black/40 hover:border-[#5B8DEF]/30 transition-all flex flex-col justify-between">
@@ -122,11 +163,7 @@ function Tile({
       <div className="text-2xl font-bold text-white tracking-tight leading-tight">
         {typeof value === "number" ? value.toLocaleString("ru-RU") : value}
       </div>
-      {sparkline && (
-        <svg viewBox="0 0 200 30" width="100%" height="24" className="mt-3 overflow-visible">
-          <polyline points={sparkline} fill="none" stroke="#5B8DEF" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-      )}
+      {series && <Sparkline series={series} />}
       {hint && <p className="mt-2 text-[11px] text-[#F4F4F2]/45 font-medium">{hint}</p>}
     </div>
   );
@@ -138,11 +175,13 @@ function SimpleTile({
   value,
   hint,
   href,
+  series,
 }: {
   label: string;
   value: number | string;
   hint?: string;
   href?: string;
+  series?: number[];
 }) {
   const body = (
     <div className="rounded-[20px] border border-white/[0.06] bg-[#14161D] p-5 hover:border-white/10 transition-all">
@@ -150,6 +189,7 @@ function SimpleTile({
       <div className="text-xl font-bold text-white tracking-tight">
         {typeof value === "number" ? value.toLocaleString("ru-RU") : value}
       </div>
+      {series && <Sparkline series={series} />}
       {hint && <p className="mt-1 text-[11px] text-[#F4F4F2]/40 font-medium">{hint}</p>}
     </div>
   );

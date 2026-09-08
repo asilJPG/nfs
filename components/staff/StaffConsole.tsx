@@ -5,10 +5,28 @@ import { redeemAction, type ActionResult } from "@/app/staff/actions";
 
 type Venue = { id: string; name: string };
 
+export type StaffStats = {
+  stampsToday: number;
+  guestsToday: number;
+  rewardsToday: number;
+  returnRate: number;
+  weeklyCounts: number[];
+  recentEvents: {
+    id: string;
+    type: "stamp" | "reward";
+    title: string;
+    subtitle: string;
+    time: string;
+  }[];
+};
+
 type Props = {
   tenantName: string;
+  staffName: string;
+  staffRole: string;
   venues: Venue[];
   defaultVenueId: string | null;
+  stats?: StaffStats;
 };
 
 type ScanState =
@@ -18,7 +36,7 @@ type ScanState =
   | { kind: "unsupported" }
   | { kind: "denied"; message: string };
 
-export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
+export function StaffConsole({ tenantName, staffName, staffRole, venues, defaultVenueId, stats }: Props) {
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
   const [activeTab, setActiveTab] = useState<"stamps" | "rewards" | "analytics" | "history">("stamps");
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -105,11 +123,26 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
     setManualToken("");
   }
 
+  // Calculate polyline points from weekly counts
+  const counts = stats?.weeklyCounts ?? [0, 0, 0, 0, 0, 0, 0];
+  const maxVal = Math.max(...counts, 1);
+  const polyPoints = counts
+    .map((val, idx) => {
+      const x = Math.round((idx / (counts.length - 1)) * 400);
+      const y = Math.round(80 - (val / maxVal) * 60);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const activeVenueName = venues.find((v) => v.id === venueId)?.name ?? null;
+
+  const lastPointY = Math.round(80 - ((counts[counts.length - 1] || 0) / maxVal) * 60);
+
   return (
     <div className="min-h-dvh bg-[#08090B] text-[#F4F4F2] font-sans antialiased p-3 sm:p-6 lg:p-10 flex flex-col justify-center items-center">
-      {/* iPad-style Frame (matching Stampy.dc (3).html Live Preview) */}
+      {/* iPad-style Frame */}
       <div className="w-full max-w-5xl rounded-[32px] p-2.5 sm:p-3 bg-[#1B1E27] border border-white/[0.08] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
-        <div className="rounded-[24px] overflow-hidden bg-[#FAFAF9] text-[#0E0F11] grid grid-cols-1 md:grid-cols-[220px_1fr] min-h-[640px]">
+        <div className="scheme-light rounded-[24px] overflow-hidden bg-[#FAFAF9] text-[#0E0F11] grid grid-cols-1 md:grid-cols-[220px_1fr] min-h-[640px]">
           
           {/* Left Side Rail */}
           <aside className="bg-[#F0EFEC] border-r border-black/[0.06] p-5 flex flex-col justify-between">
@@ -190,12 +223,15 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
 
             {/* User Barista Badge */}
             <div className="mt-6 p-3 rounded-xl bg-white border border-black/[0.06] flex items-center gap-2.5 shadow-sm">
-              <div className="size-7 rounded-full bg-[#5B8DEF] grid place-items-center text-[#FAFAF9] text-xs font-semibold">
-                Б
+              <div className="size-7 rounded-full bg-[#5B8DEF] grid place-items-center text-[#FAFAF9] text-xs font-semibold uppercase">
+                {staffName.trim().charAt(0) || "?"}
               </div>
               <div className="min-w-0">
-                <div className="text-xs font-semibold truncate leading-tight">Касса бариста</div>
-                <div className="text-[10px] text-[#0E0F11]/50 truncate">Ташкент · Онлайн</div>
+                <div className="text-xs font-semibold truncate leading-tight">{staffName}</div>
+                <div className="text-[10px] text-[#0E0F11]/50 truncate">
+                  {staffRole}
+                  {activeVenueName ? ` · ${activeVenueName}` : ""}
+                </div>
               </div>
             </div>
           </aside>
@@ -238,27 +274,27 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
                 </div>
               )}
 
-              {/* 4 Stats Cards */}
+              {/* 4 Stats Cards with REAL data */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов</div>
-                  <div className="text-2xl font-bold tracking-tight">124</div>
-                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">↑ 12% за день</div>
+                  <div className="text-2xl font-bold tracking-tight">{stats?.stampsToday ?? 0}</div>
+                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">за сегодня</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
-                  <div className="text-2xl font-bold tracking-tight">86</div>
-                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">↑ 4% новые</div>
+                  <div className="text-2xl font-bold tracking-tight">{stats?.guestsToday ?? 0}</div>
+                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">уникальных</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Наград</div>
-                  <div className="text-2xl font-bold tracking-tight">9</div>
+                  <div className="text-2xl font-bold tracking-tight">{stats?.rewardsToday ?? 0}</div>
                   <div className="text-[10px] text-[#0E0F11]/50 font-medium mt-1">выдано сегодня</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
-                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Возвраты</div>
-                  <div className="text-2xl font-bold tracking-tight">62<span className="text-base text-[#0E0F11]/40 font-normal">%</span></div>
-                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">↑ 3 п.п.</div>
+                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Активность</div>
+                  <div className="text-2xl font-bold tracking-tight">{stats?.returnRate ?? 0}<span className="text-base text-[#0E0F11]/40 font-normal">%</span></div>
+                  <div className="text-[10px] text-[#0E0F11]/50 font-medium mt-1">базы за сегодня</div>
                 </div>
               </div>
 
@@ -275,45 +311,39 @@ export function StaffConsole({ tenantName, venues, defaultVenueId }: Props) {
                       <stop offset="1" stopColor="#5B8DEF" stopOpacity="0" />
                     </linearGradient>
                   </defs>
-                  <polyline points="0,70 60,60 120,64 180,42 240,48 300,28 360,32 400,18" fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="0,70 60,60 120,64 180,42 240,48 300,28 360,32 400,18 400,90 0,90" fill="url(#staffChartGrad)"/>
-                  <circle cx="400" cy="18" r="4" fill="#5B8DEF"/>
-                  <circle cx="400" cy="18" r="8" fill="#5B8DEF" opacity="0.25"/>
+                  <polyline points={polyPoints} fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points={`0,90 ${polyPoints} 400,90`} fill="url(#staffChartGrad)"/>
+                  <circle cx="400" cy={lastPointY} r="4" fill="#5B8DEF"/>
+                  <circle cx="400" cy={lastPointY} r="8" fill="#5B8DEF" opacity="0.25"/>
                 </svg>
               </div>
 
-              {/* Recent Activity Live Feed */}
+              {/* Recent Activity Live Feed with REAL data */}
               <div>
                 <div className="text-[10px] text-[#0E0F11]/45 font-mono uppercase tracking-widest font-semibold mb-2.5">Последние события</div>
                 <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="size-2 rounded-full bg-[#5B8DEF]" />
-                      <span className="font-medium">Штамп добавлен · NFC стенд</span>
+                  {stats?.recentEvents && stats.recentEvents.length > 0 ? (
+                    stats.recentEvents.map((ev) => (
+                      <div key={ev.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`size-2 rounded-full ${ev.type === "reward" ? "bg-[#7BA5FF]" : "bg-[#5B8DEF]"}`} />
+                          <span className="font-medium">{ev.title} · {ev.subtitle}</span>
+                        </div>
+                        <span className="text-[11px] text-[#0E0F11]/50 font-mono">{ev.time}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 rounded-xl bg-[#F0EFEC] text-xs text-[#0E0F11]/50 text-center font-medium">
+                      Событий за сегодня пока нет. Приложите телефон к NFC метке или отсканируйте QR награды.
                     </div>
-                    <span className="text-[11px] text-[#0E0F11]/50 font-mono">14:22</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="size-2 rounded-full bg-[#5B8DEF]" />
-                      <span className="font-medium">Награда выдана · Бесплатный напиток</span>
-                    </div>
-                    <span className="text-[11px] text-[#0E0F11]/50 font-mono">14:18</span>
-                  </div>
-                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <span className="size-2 rounded-full bg-[#5B8DEF]" />
-                      <span className="font-medium">Штамп добавлен · NFC стенд</span>
-                    </div>
-                    <span className="text-[11px] text-[#0E0F11]/50 font-mono">14:11</span>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Footer */}
             <div className="mt-8 pt-4 border-t border-black/[0.06] text-center text-[11px] text-[#0E0F11]/45 font-mono">
-              Stampy Barista · NFC &amp; QR Terminal · Ташкент 2026
+              Stampy Barista · NFC &amp; QR Terminal · {new Date().getFullYear()}
             </div>
           </main>
         </div>

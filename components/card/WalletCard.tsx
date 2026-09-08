@@ -1,6 +1,10 @@
 "use client";
 
 import type { Brand } from "@/types/db";
+import { StampMark } from "@/components/brand/StampMark";
+import { readableFill, shade, withAlpha } from "@/lib/color";
+
+export { inkOn, shade } from "@/lib/color";
 
 export type WalletCardData = {
   slug: string;
@@ -13,28 +17,6 @@ export type WalletCardData = {
   is_ready?: boolean;
 };
 
-export function inkOn(hex: string): string {
-  const raw = hex.replace("#", "");
-  if (raw.length !== 6) return "#141414";
-  const value = parseInt(raw, 16);
-  const [r, g, b] = [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff].map((channel) => {
-    const c = channel / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance > 0.45 ? "#141414" : "#ffffff";
-}
-
-export function shade(hex: string, amount: number): string {
-  const raw = hex.replace("#", "");
-  if (raw.length !== 6) return hex;
-  const value = parseInt(raw, 16);
-  const channels = [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff].map((channel) =>
-    Math.max(0, Math.min(255, channel + Math.round(255 * amount))),
-  );
-  return `#${channels.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
-}
-
 export function Monogram({
   name,
   logoUrl,
@@ -46,7 +28,6 @@ export function Monogram({
   ink: string;
   size?: number;
 }) {
-  const isDarkInk = ink === "#141414";
   return (
     <span
       className="grid shrink-0 place-items-center overflow-hidden rounded-xl font-bold font-mono"
@@ -54,9 +35,9 @@ export function Monogram({
         width: size,
         height: size,
         fontSize: size * 0.38,
-        background: isDarkInk ? "rgba(0,0,0,0.12)" : "rgba(91,141,239,0.2)",
+        background: withAlpha(ink, 0.15),
         color: ink,
-        border: `1px solid ${isDarkInk ? "rgba(0,0,0,0.1)" : "rgba(91,141,239,0.3)"}`,
+        border: `1px solid ${withAlpha(ink, 0.3)}`,
       }}
     >
       {logoUrl ? (
@@ -70,7 +51,9 @@ export function Monogram({
 }
 
 /**
- * Карточка в стеке кошелька в стиле Stampy.dc (3).html
+ * Карточка в стеке кошелька. Фон — цвет кофейни, поэтому весь текст берёт
+ * контрастные чернила из inkOn(): у кофейни со светлым брендом карточка
+ * раньше уезжала в белое по белому.
  */
 export function WalletCardRow({
   card,
@@ -81,7 +64,8 @@ export function WalletCardRow({
   onClick: () => void;
   isActive?: boolean;
 }) {
-  const fill = card.brand.primary ?? "#1B1E27";
+  const { background: fill, ink } = readableFill(card.brand.primary ?? "#1B1E27");
+  const accent = card.brand.accent ?? fill;
   const required = card.stamps_required ?? 6;
   const count = card.stamps_count;
   const isReady = card.is_ready || count >= required;
@@ -92,56 +76,71 @@ export function WalletCardRow({
       role="button"
       tabIndex={0}
       className={`relative w-full rounded-[22px] p-5 text-left cursor-pointer transition-all duration-300 ${
-        isActive ? "scale-[1.02] shadow-[0_20px_40px_-12px_rgba(0,0,0,0.8)] border-white/20" : "hover:scale-[1.01] border-white/10"
+        isActive ? "scale-[1.02]" : "hover:scale-[1.01]"
       }`}
       style={{
-        background: isReady
-          ? "linear-gradient(160deg, #17223B 0%, #0E1424 100%)"
-          : `linear-gradient(160deg, ${shade(fill, 0.1)} 0%, ${shade(fill, -0.2)} 100%)`,
-        border: `1px solid ${isReady ? "rgba(91,141,239,0.3)" : "rgba(255,255,255,0.08)"}`,
-        boxShadow: "0 20px 40px -20px rgba(0,0,0,0.7)",
+        background: `linear-gradient(160deg, ${shade(fill, 0.1)} 0%, ${shade(fill, -0.2)} 100%)`,
+        color: ink,
+        border: `1px solid ${isReady ? withAlpha(accent, 0.55) : withAlpha(ink, isActive ? 0.25 : 0.12)}`,
+        boxShadow: isReady
+          ? `0 20px 40px -20px rgba(0,0,0,0.7), 0 0 24px -8px ${withAlpha(accent, 0.6)}`
+          : "0 20px 40px -20px rgba(0,0,0,0.7)",
       }}
     >
       <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="font-mono text-[10px] uppercase tracking-widest text-[#7BA5FF] mb-1 font-medium">
-            {card.name} · Ташкент
+        <div className="min-w-0 pr-2">
+          <div
+            className="font-mono text-[10px] uppercase tracking-widest mb-1 font-medium truncate"
+            style={{ color: withAlpha(ink, 0.7) }}
+          >
+            {card.name}
           </div>
-          <div className="text-base font-bold tracking-tight text-white">
+          <div className="text-base font-bold tracking-tight">
             {isReady ? "Награда готова" : `${count} из ${required}`}
           </div>
         </div>
         {isReady ? (
-          <span className="px-2.5 py-1 rounded-full bg-[#5B8DEF] text-[#0E1424] text-[9px] font-bold uppercase tracking-wider">
+          <span
+            className="shrink-0 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider"
+            style={{ background: ink, color: fill }}
+          >
             Готова
           </span>
         ) : (
-          <span className="text-xs text-[#F4F4F2]/50 font-medium">
+          <span className="shrink-0 text-xs font-medium" style={{ color: withAlpha(ink, 0.6) }}>
             осталось {Math.max(0, required - count)}
           </span>
         )}
       </div>
 
-      {/* Mini stamp slots */}
-      <div className="grid grid-cols-7 gap-1.5 pt-2 border-t border-white/[0.06]">
+      {/* Мини-слоты штампов */}
+      <div
+        className="grid grid-cols-7 gap-1.5 pt-2"
+        style={{ borderTop: `1px solid ${withAlpha(ink, 0.12)}` }}
+      >
         {Array.from({ length: required }, (_, i) => {
           const filled = i < count;
           const isLast = i === required - 1;
           return (
             <div
               key={i}
-              className={`aspect-square rounded-full grid place-items-center ${
-                filled
-                  ? "bg-[#5B8DEF] text-[#0E1424]"
+              className="aspect-square rounded-full grid place-items-center"
+              style={{
+                background: filled ? ink : isLast ? withAlpha(ink, 0.12) : "transparent",
+                border: filled
+                  ? "none"
                   : isLast
-                    ? "border border-dashed border-[#5B8DEF]/50 bg-[#5B8DEF]/10"
-                    : "border border-white/15"
-              }`}
+                    ? `1px dashed ${withAlpha(ink, 0.5)}`
+                    : `1px solid ${withAlpha(ink, 0.22)}`,
+              }}
             >
               {filled && (
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round">
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
+                <StampMark
+                  style={card.brand.card_style ?? "circles"}
+                  size={8}
+                  color={fill}
+                  filled
+                />
               )}
             </div>
           );

@@ -17,7 +17,7 @@ export function TenantsPanel({ tenants, kits }: Props) {
   return (
     <div className="flex flex-col gap-6">
       {notice && (
-        <p className={`text-sm ${notice.ok ? "text-bean-dark" : "text-red-600"}`}>{notice.message}</p>
+        <p className={`text-sm ${notice.ok ? "text-latte" : "text-red-300"}`}>{notice.message}</p>
       )}
 
       <CreateTenantSection pending={pending} onSave={run} />
@@ -38,7 +38,7 @@ export function TenantsPanel({ tenants, kits }: Props) {
       </section>
 
       {kits.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-4">
+        <section className="rounded-2xl border border-line bg-surface p-4">
           <h2 className="mb-3 font-medium">Заявки на комплекты</h2>
           <ul className="flex flex-col gap-2">
             {kits.map((kit) => (

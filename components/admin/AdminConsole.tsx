@@ -73,11 +73,11 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
   return (
     <div className="flex flex-col gap-6">
       {notice && (
-        <p className={`text-sm ${notice.ok ? "text-bean-dark" : "text-red-600"}`}>{notice.message}</p>
+        <p className={`text-sm ${notice.ok ? "text-latte" : "text-red-300"}`}>{notice.message}</p>
       )}
 
       {applications.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-4">
+        <section className="rounded-2xl border border-line bg-surface p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-medium">Заявки ({visibleApps.length})</h2>
             <div className="flex gap-1 rounded-xl bg-line/60 p-1 text-xs">
@@ -86,7 +86,7 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
                   key={option}
                   onClick={() => setAppFilter(option)}
                   className={`rounded-lg px-3 py-1.5 ${
-                    appFilter === option ? "bg-white shadow-sm" : "text-ink-soft"
+                    appFilter === option ? "bg-bean text-[#0E1424] shadow-sm" : "text-ink-soft"
                   }`}
                 >
                   {option === "open" ? "Активные" : "Все"}
@@ -108,7 +108,7 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
       )}
 
       {tags.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-4">
+        <section className="rounded-2xl border border-line bg-surface p-4">
           <h2 className="mb-3 font-medium">NFC-метки ({tags.length})</h2>
           <ul className="flex flex-col gap-1 text-sm">
             {tags.map((tag) => (
@@ -128,7 +128,7 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
                     if (confirm(`Удалить метку ${tag.uid}?`)) run(() => deleteTag(tag.uid));
                   }}
                   disabled={pending}
-                  className="rounded-lg border border-line px-2 py-1 text-xs text-red-700 disabled:opacity-40"
+                  className="rounded-lg border border-line px-2 py-1 text-xs text-red-300 disabled:opacity-40"
                 >
                   Удалить
                 </button>
@@ -138,11 +138,11 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
         </section>
       )}
 
-      <section className="rounded-2xl border border-line bg-white p-4">
+      <section className="rounded-2xl border border-line bg-surface p-4">
         <h2 className="mb-1 font-medium">Регистрация метки</h2>
         <p className="mb-3 text-sm text-ink-soft">
           Сначала прошейте чип ключами из{" "}
-          <code className="rounded bg-cream px-1">npm run mock-tag -- --uid … --keys</code>, потом
+          <code className="rounded bg-surface-2 px-1">npm run mock-tag -- --uid … --keys</code>, потом
           заведите UID здесь.
         </p>
         <form
@@ -181,7 +181,7 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
           <button
             type="submit"
             disabled={pending || uid.length !== 14}
-            className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-bean px-5 py-3 font-medium text-[#0E1424] disabled:opacity-50"
           >
             Завести
           </button>
@@ -189,7 +189,7 @@ export function AdminConsole({ tenants, kits, applications, tags }: Props) {
       </section>
 
       {kits.length > 0 && (
-        <section className="rounded-2xl border border-line bg-white p-4">
+        <section className="rounded-2xl border border-line bg-surface p-4">
           <h2 className="mb-3 font-medium">Заявки на комплекты</h2>
           <ul className="flex flex-col gap-2">
             {kits.map((kit) => (
@@ -249,7 +249,7 @@ export function TenantRow({
   const [newPassword, setNewPassword] = useState("");
 
   return (
-    <article className="rounded-2xl border border-line bg-white p-4">
+    <article className="rounded-2xl border border-line bg-surface p-4">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <p className="font-medium">{tenant.name}</p>
@@ -286,14 +286,14 @@ export function TenantRow({
             }
           }}
           disabled={pending}
-          className="ml-auto rounded-lg border border-red-200 px-3 py-1.5 text-red-700 disabled:opacity-40"
+          className="ml-auto rounded-lg border border-red-400/30 px-3 py-1.5 text-red-300 disabled:opacity-40"
         >
           Удалить
         </button>
       </div>
 
       {editing && (
-        <div className="mb-3 grid gap-2 rounded-xl border border-line bg-cream/40 p-3">
+        <div className="mb-3 grid gap-2 rounded-xl border border-line bg-surface-2 p-3">
           <label className="text-xs text-ink-soft">
             Название
             <input value={name} onChange={(e) => setName(e.target.value)} className={input + " w-full mt-1"} />
@@ -315,7 +315,7 @@ export function TenantRow({
               })
             }
             disabled={pending || name.length < 2 || slug.length < 3}
-            className="rounded-xl bg-bean py-2 text-xs font-medium text-white disabled:opacity-50"
+            className="rounded-xl bg-bean py-2 text-xs font-medium text-[#0E1424] disabled:opacity-50"
           >
             Сохранить
           </button>
@@ -323,7 +323,7 @@ export function TenantRow({
       )}
 
       {resettingPw && (
-        <div className="mb-3 grid gap-2 rounded-xl border border-line bg-cream/40 p-3">
+        <div className="mb-3 grid gap-2 rounded-xl border border-line bg-surface-2 p-3">
           <label className="text-xs text-ink-soft">
             Новый пароль владельца (от 8 символов)
             <input
@@ -345,7 +345,7 @@ export function TenantRow({
               })
             }
             disabled={pending || newPassword.length < 8}
-            className="rounded-xl bg-bean py-2 text-xs font-medium text-white disabled:opacity-50"
+            className="rounded-xl bg-bean py-2 text-xs font-medium text-[#0E1424] disabled:opacity-50"
           >
             Установить
           </button>
@@ -380,7 +380,7 @@ export function TenantRow({
         <button
           onClick={() => onSave(() => setSubscription({ tenantId: tenant.id, status, plan, months }))}
           disabled={pending}
-          className="rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-[#0E1424] disabled:opacity-50"
         >
           Применить
         </button>
@@ -397,7 +397,8 @@ export function TenantRow({
   );
 }
 
-const input = "rounded-2xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-bean";
+const input =
+  "w-full rounded-2xl border border-line bg-surface-2 px-4 py-3 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint hover:border-line-strong focus:border-bean";
 
 export function CreateTenantSection({
   pending,
@@ -416,7 +417,7 @@ export function CreateTenantSection({
   const [venueName, setVenueName] = useState("");
 
   return (
-    <section className="rounded-2xl border border-line bg-white p-4">
+    <section className="rounded-2xl border border-line bg-surface p-4">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between text-left"
@@ -525,7 +526,7 @@ export function CreateTenantSection({
               login.length < 3 ||
               password.length < 8
             }
-            className="rounded-2xl bg-bean py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-bean py-2.5 text-sm font-medium text-[#0E1424] disabled:opacity-50"
           >
             {pending ? "Создаём…" : "Создать"}
           </button>
@@ -574,7 +575,7 @@ export function ApplicationRow({
         <button
           onClick={() => setCreating((open) => !open)}
           disabled={pending}
-          className="rounded-xl bg-bean px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
+          className="rounded-xl bg-bean px-3 py-1.5 text-xs font-medium text-[#0E1424] disabled:opacity-40"
         >
           {creating ? "Свернуть" : "Создать кофейню"}
         </button>
@@ -594,7 +595,7 @@ export function ApplicationRow({
       </div>
 
       {creating && (
-        <div className="mt-3 grid gap-2 rounded-2xl border border-line bg-cream/40 p-3">
+        <div className="mt-3 grid gap-2 rounded-2xl border border-line bg-surface-2 p-3">
           <label className="text-xs text-ink-soft">
             Название
             <input value={name} onChange={(e) => setName(e.target.value)} className={input + " w-full mt-1"} />
@@ -668,7 +669,7 @@ export function ApplicationRow({
               )
             }
             disabled={pending || name.length < 2 || slug.length < 3 || login.length < 3 || password.length < 8}
-            className="rounded-2xl bg-bean py-2.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-bean py-2.5 text-sm font-medium text-[#0E1424] disabled:opacity-50"
           >
             {pending ? "Создаём…" : "Создать и подключить"}
           </button>

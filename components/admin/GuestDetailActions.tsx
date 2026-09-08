@@ -21,7 +21,7 @@ export function GuestDetailActions({ customerId, blocked }: { customerId: string
       onClick={toggle}
       disabled={pending}
       className={`rounded-xl border px-3 py-1.5 text-sm disabled:opacity-40 ${
-        blocked ? "border-line text-ink" : "border-red-200 text-red-700"
+        blocked ? "border-line text-ink" : "border-red-400/30 text-red-300"
       }`}
     >
       {blocked ? "Разблокировать" : "Заблокировать"}

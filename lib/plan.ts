@@ -1,4 +1,4 @@
-import type { Tenant } from "@/types/db";
+import type { Tenant, TenantPlan } from "@/types/db";
 
 export type Feature = "broadcasts" | "advanced_analytics" | "extra_venues";
 
@@ -39,3 +39,57 @@ export function daysLeftInTrial(tenant: Pick<Tenant, "subscription_status" | "tr
 }
 
 export const MAX_VENUES_WITHOUT_UPGRADE = 1;
+
+// Прайс тарифов, сум/мес. Зеркало public.admin_plan_price_uzs() из SQL — держать в синке.
+export const PLAN_PRICE_UZS: Record<string, number> = {
+  loyalty: 290_000,
+  marketing: 490_000,
+};
+
+export function formatUzs(amount: number): string {
+  return `${Math.round(amount).toLocaleString("ru-RU")} сум`;
+}
+
+/**
+ * Единственный прайс-лист продукта: его показывают и лендинг, и кабинет.
+ * Перечисляем только то, что реально работает в коде — обещание на витрине,
+ * которого нет в приложении, дороже недосказанности.
+ */
+export type PlanCard = {
+  id: TenantPlan;
+  name: string;
+  tagline: string;
+  price: string;
+  features: string[];
+  missing?: string[];
+};
+
+export const PLAN_CARDS: PlanCard[] = [
+  {
+    id: "loyalty",
+    name: "Лояльность",
+    tagline: "Одна точка. Без лимита гостей и штампов.",
+    price: `${formatUzs(PLAN_PRICE_UZS.loyalty)} / мес`,
+    features: [
+      "Карта в Telegram без установки приложений",
+      "NFC-стенд и QR для стойки",
+      "Своё оформление: цвета, логотип, награда",
+      "Панель бариста и ручное начисление",
+      "Статистика по дням и награды",
+    ],
+    missing: ["Рассылки по сегментам", "Тепловая карта и когорты", "Несколько точек"],
+  },
+  {
+    id: "marketing",
+    name: "Лояльность + маркетинг",
+    tagline: "Сеть точек и работа с базой гостей.",
+    price: `${formatUzs(PLAN_PRICE_UZS.marketing)} / мес`,
+    features: [
+      "Всё из тарифа «Лояльность»",
+      "Рассылки по сегментам гостей",
+      "Тепловая карта посещений и когорты",
+      "Несколько точек под одной картой",
+      "Приоритетная поддержка",
+    ],
+  },
+];

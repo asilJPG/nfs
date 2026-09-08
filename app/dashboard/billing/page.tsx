@@ -1,35 +1,7 @@
 import { requireRole } from "@/lib/auth";
-import { daysLeftInTrial, isServing } from "@/lib/plan";
+import { daysLeftInTrial, isServing, PLAN_CARDS } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
-
-const PLANS = [
-  {
-    id: "loyalty",
-    name: "Лояльность",
-    price: "290 000 сум / мес",
-    features: [
-      "Карта в Telegram без установки приложений",
-      "Безлимит гостей и штампов",
-      "Своё оформление: цвета, логотип, награда",
-      "Панель кассира и ручное начисление",
-      "Базовая статистика",
-      "Одна точка",
-    ],
-  },
-  {
-    id: "marketing",
-    name: "Лояльность + маркетинг",
-    price: "490 000 сум / мес",
-    features: [
-      "Всё из тарифа «Лояльность»",
-      "Рассылки по сегментам гостей",
-      "Тепловая карта посещений и когорты",
-      "Несколько точек",
-      "Экспорт данных",
-    ],
-  },
-];
 
 const STATUS_LABELS: Record<string, string> = {
   trial: "Пробный период",
@@ -79,7 +51,7 @@ export default async function BillingPage() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2">
-        {PLANS.map((plan) => (
+        {PLAN_CARDS.map((plan) => (
           <article
             key={plan.id}
             className={`card p-5 ${
@@ -91,11 +63,18 @@ export default async function BillingPage() {
               {tenant.plan === plan.id && <span className="badge badge-accent">текущий</span>}
             </div>
             <p className="mb-4 text-xl font-bold tracking-tight text-white">{plan.price}</p>
+            <p className="mb-4 text-[13px] leading-relaxed text-ink-soft">{plan.tagline}</p>
             <ul className="flex flex-col gap-2 text-[13px] text-ink-soft">
               {plan.features.map((feature) => (
                 <li key={feature} className="flex gap-2">
                   <span className="mt-[7px] size-1 shrink-0 rounded-full bg-violet-400" />
                   <span className="leading-relaxed">{feature}</span>
+                </li>
+              ))}
+              {plan.missing?.map((feature) => (
+                <li key={feature} className="flex gap-2 text-ink-faint">
+                  <span className="mt-[7px] size-1 shrink-0 rounded-full bg-white/20" />
+                  <span className="leading-relaxed line-through">{feature}</span>
                 </li>
               ))}
             </ul>

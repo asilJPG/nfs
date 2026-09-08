@@ -44,7 +44,7 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
         ← К списку кофеен
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-white p-5">
+      <header className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-surface p-5">
         <div>
           <h1 className="text-xl font-semibold">{tenant.name}</h1>
           <p className="mt-1 text-sm text-ink-soft">
@@ -52,7 +52,7 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
           </p>
         </div>
         <form action={bindImpersonate}>
-          <button className="rounded-xl bg-bean px-4 py-2 text-sm font-medium text-white">
+          <button className="rounded-xl bg-bean px-4 py-2 text-sm font-medium text-[#0E1424]">
             Войти как владелец
           </button>
         </form>
@@ -65,9 +65,9 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {venues!.map((v) => (
-              <li key={v.id} className="rounded-xl border border-line bg-white px-3 py-2">
+              <li key={v.id} className="rounded-xl border border-line bg-surface px-3 py-2">
                 {v.name}
-                {!v.active && <span className="ml-2 text-xs text-red-600">неактивна</span>}
+                {!v.active && <span className="ml-2 text-xs text-red-300">неактивна</span>}
               </li>
             ))}
           </ul>
@@ -83,12 +83,12 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
             {staff!.map((s) => (
               <li
                 key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-white px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2"
               >
                 <span>
                   <span className="font-mono text-xs">{s.username}</span>
                   <span className="ml-2 text-ink-soft">· {s.role}</span>
-                  {!s.active && <span className="ml-2 text-xs text-red-600">неактивен</span>}
+                  {!s.active && <span className="ml-2 text-xs text-red-300">неактивен</span>}
                 </span>
               </li>
             ))}
@@ -107,7 +107,7 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {recent!.map((s, i) => (
-              <li key={i} className="flex gap-3 rounded-xl border border-line bg-white px-3 py-2">
+              <li key={i} className="flex gap-3 rounded-xl border border-line bg-surface px-3 py-2">
                 <span className="text-ink-soft">{new Date(s.created_at).toLocaleString("ru-RU")}</span>
                 <span className="ml-auto text-xs text-ink-soft">
                   {s.stampy_venues?.name ?? "—"} · {s.source === "nfc" ? "NFC" : "вручную"}

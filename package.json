@@ -13,7 +13,8 @@
     "selftest": "tsx scripts/selftest-nfc.ts",
     "verify:sql": "tsx scripts/verify-sql.ts",
     "verify:flow": "tsx scripts/verify-flow.ts",
-    "verify": "npm run selftest && npm run verify:sql && npm run verify:flow"
+    "verify": "npm run selftest && npm run verify:sql && npm run verify:flow && npm run verify:brand",
+    "verify:brand": "tsx --tsconfig scripts/tsconfig.json scripts/verify-brand.tsx"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.5",

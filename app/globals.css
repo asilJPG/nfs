@@ -34,6 +34,10 @@
   --brand-accent: #7BA5FF;
 }
 
+html {
+  color-scheme: dark;
+}
+
 html,
 body {
   height: 100%;
@@ -48,6 +52,20 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Нативные выпадашки в тон тёмным панелям (светлые панели помечены .scheme-light) */
+select option {
+  background: #14161D;
+  color: #F4F4F2;
+}
+.scheme-light,
+.scheme-light * {
+  color-scheme: light;
+}
+.scheme-light option {
+  background: #FFFFFF;
+  color: #0E0F11;
 }
 
 ::selection {

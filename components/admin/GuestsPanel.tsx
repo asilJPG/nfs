@@ -45,7 +45,7 @@ export function GuestsPanel({
           placeholder="Поиск по имени, username, Telegram-id…"
           className={`${input} flex-1`}
         />
-        <button type="submit" className="rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-white">
+        <button type="submit" className="rounded-2xl bg-bean px-5 py-3 text-sm font-medium text-[#0E1424]">
           Найти
         </button>
       </form>
@@ -63,7 +63,7 @@ export function GuestsPanel({
           <li key={g.id}>
             <Link
               href={`/admin/guests/${g.id}`}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-3 text-sm hover:bg-cream/40"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-3 text-sm hover:bg-surface-2"
             >
               <div className="min-w-0">
                 <p className="truncate font-medium">
@@ -73,7 +73,7 @@ export function GuestsPanel({
                       ? `@${g.username}`
                       : `Гость ${g.telegram_id}`}
                   {!g.can_message && (
-                    <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
+                    <span className="ml-2 rounded bg-red-500/15 px-1.5 py-0.5 text-xs text-red-300">
                       заблокирован
                     </span>
                   )}

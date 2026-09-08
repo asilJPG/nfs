@@ -56,7 +56,7 @@ export default async function GuestDetailPage({ params }: { params: Promise<{ id
         ← К списку гостей
       </Link>
 
-      <header className="rounded-2xl border border-line bg-white p-5">
+      <header className="rounded-2xl border border-line bg-surface p-5">
         <h1 className="text-xl font-semibold">{name}</h1>
         <p className="mt-1 text-sm text-ink-soft">
           Telegram-id {c.telegram_id}
@@ -76,7 +76,7 @@ export default async function GuestDetailPage({ params }: { params: Promise<{ id
             {detail.cards.map((card) => (
               <li
                 key={card.slug}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-white p-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-surface p-3 text-sm"
               >
                 <div>
                   <p className="font-medium">{card.tenant_name}</p>
@@ -103,7 +103,7 @@ export default async function GuestDetailPage({ params }: { params: Promise<{ id
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {detail.recent_stamps.map((s, i) => (
-              <li key={i} className="flex flex-wrap gap-2 rounded-xl border border-line bg-white px-3 py-2">
+              <li key={i} className="flex flex-wrap gap-2 rounded-xl border border-line bg-surface px-3 py-2">
                 <span className="text-ink-soft">
                   {new Date(s.created_at).toLocaleString("ru-RU")}
                 </span>

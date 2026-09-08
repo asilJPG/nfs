@@ -4,15 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { StampGrid } from "./StampGrid";
 import { Monogram, WalletCardRow } from "./WalletCard";
+import { plateColors, withAlpha } from "@/lib/color";
 
 const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
   ssr: false,
 });
 import type { CardBadge, MiniAppState } from "@/lib/miniapp/state";
-import type { Reward } from "@/types/db";
+
+// награда в мини-аппе приходит урезанной — ровно то, что нужно QR-шторке
+type CardReward = MiniAppState["rewards"][number];
 
 type ClaimOutcome =
-  | { kind: "stamped"; stamps_count: number; stamps_required: number; reward: Reward | null }
+  | { kind: "stamped"; stamps_count: number; stamps_required: number; reward: CardReward | null }
   | { kind: "already_counted" }
   | { kind: "cooldown"; retry_after_seconds: number }
   | { kind: "error"; code: string };
@@ -26,6 +29,59 @@ type Screen =
 
 type Tab = "card" | "wallet" | "history" | "notifications" | "profile";
 
+/** Русские числительные: 1 чашка, 2 чашки, 5 чашек. */
+function plural(count: number, one: string, few: string, many: string): string {
+  const mod100 = Math.abs(count) % 100;
+  const mod10 = mod100 % 10;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
+type CardNotification = {
+  id: string;
+  title: string;
+  text: string;
+  time: string;
+  unread: boolean;
+};
+
+/** Лента уведомлений собирается из состояния карты — готовых наград и последних штампов. */
+function buildNotifications(state: MiniAppState): CardNotification[] {
+  const items: CardNotification[] = state.rewards.map((reward) => ({
+    id: `reward-${reward.id}`,
+    title: "Награда готова",
+    text: `${reward.title} в ${state.tenant.name} ждёт вас. Покажите QR баристе.`,
+    time: reward.earned_at
+      ? new Date(reward.earned_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })
+      : "Сейчас",
+    unread: true,
+  }));
+
+  for (const stamp of state.history.slice(0, 3)) {
+    const at = new Date(stamp.created_at);
+    items.push({
+      id: `stamp-${stamp.created_at}`,
+      title: "Штамп добавлен",
+      text: `${state.tenant.name}${stamp.venue ? ` · ${stamp.venue}` : ""} — штамп зачислен на карту.`,
+      time: at.toLocaleDateString("ru-RU", { day: "numeric", month: "short" }),
+      unread: false,
+    });
+  }
+
+  if (items.length === 0) {
+    items.push({
+      id: "welcome",
+      title: "Добро пожаловать в Stampy",
+      text: `Карта ${state.tenant.name} подключена к вашему Telegram.`,
+      time: "Сегодня",
+      unread: false,
+    });
+  }
+  return items;
+}
+
 const FAILURES: Record<string, string> = {
   no_tenant: "Не удалось определить кофейню. Отсканируйте QR на стойке или приложите телефон к подставке.",
   bad_signature: "Не удалось подтвердить вход. Откройте карту заново из бота.",
@@ -33,24 +89,12 @@ const FAILURES: Record<string, string> = {
   server: "Сервис недоступен. Попробуйте через минуту.",
 };
 
-const CLAIM_ERRORS: Record<string, string> = {
-  token_unknown: "Отметка не найдена. Приложите телефон к подставке ещё раз.",
-  token_expired: "Отметка просрочена — приложите телефон к подставке ещё раз.",
-  token_used: "Эта отметка уже использована.",
-  tenant_inactive: "Карта этой кофейни временно неактивна.",
-  no_program: "Кофейня ещё не настроила карту.",
-  server: "Не удалось начислить штамп. Попробуйте ещё раз.",
-};
-
 export function CardScreen() {
   const [screen, setScreen] = useState<Screen>({ step: "loading" });
   const [activeTab, setActiveTab] = useState<Tab>("card");
-  const [openReward, setOpenReward] = useState<Reward | null>(null);
+  const [openReward, setOpenReward] = useState<CardReward | null>(null);
   const [showStampPop, setShowStampPop] = useState<ClaimOutcome | null>(null);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "Штамп добавлен", text: "Ваш штамп успешно зачислен.", time: "Сегодня", unread: true },
-    { id: 2, title: "Добро пожаловать", text: "Карта лояльности подключена к вашему Telegram.", time: "Вчера", unread: false },
-  ]);
+  const [notifications, setNotifications] = useState<CardNotification[]>([]);
 
   const initDataRef = useRef("");
   const bootstrapped = useRef(false);
@@ -75,6 +119,8 @@ export function CardScreen() {
       applyBrand(payload.state.tenant.brand);
       setScreen({ step: "ready", state: payload.state, claim: payload.claim });
       setActiveTab("card");
+
+      setNotifications(buildNotifications(payload.state));
 
       if (payload.claim?.kind === "stamped") {
         setShowStampPop(payload.claim);
@@ -137,14 +183,13 @@ export function CardScreen() {
     else void loadWallet();
   }, [load, loadWallet]);
 
-  // Polling for live updates
+  // Живое обновление карты: тянем состояние и показываем поп-ап, когда бариста начислил штамп
   useEffect(() => {
     if (screen.step !== "ready") return;
-    const currentScreen = screen;
     let cancelled = false;
 
     async function poll() {
-      if (cancelled || document.hidden || openReward || showStampPop) return;
+      if (cancelled || document.hidden) return;
       try {
         const response = await fetch("/api/miniapp/state", {
           method: "POST",
@@ -153,39 +198,39 @@ export function CardScreen() {
         });
         if (!response.ok) return;
         const payload = await response.json();
-        if (cancelled || "cards" in payload || !payload.state) return;
+        if (cancelled || !payload || !("state" in payload) || !payload.state) return;
+        const next = payload.state as MiniAppState;
+        setNotifications(buildNotifications(next));
 
-        const prevStamps = currentScreen.state.card?.stamps_count ?? 0;
-        const newStamps = payload.state.card?.stamps_count ?? 0;
-        const prevRewards = currentScreen.state.rewards.length;
-        const newRewards = payload.state.rewards.length;
+        setScreen((prev) => {
+          if (prev.step !== "ready") return prev;
+          const prevStamps = prev.state.card?.stamps_count ?? 0;
+          const nextStamps = next.card?.stamps_count ?? 0;
+          const prevRewards = prev.state.rewards.length;
+          const nextRewards = next.rewards.length;
 
-        if (newStamps > prevStamps || newRewards > prevRewards) {
-          window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
-          const outcome: ClaimOutcome = {
-            kind: "stamped",
-            stamps_count: newStamps,
-            stamps_required: payload.state.program?.stamps_required ?? 6,
-            reward: newRewards > prevRewards ? payload.state.rewards[newRewards - 1] : null,
-          };
-          setShowStampPop(outcome);
-          setScreen({
-            step: "ready",
-            state: payload.state,
-            claim: outcome,
-          });
-        }
+          if (nextStamps > prevStamps || nextRewards > prevRewards) {
+            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+            setShowStampPop({
+              kind: "stamped",
+              stamps_count: nextStamps,
+              stamps_required: next.program?.stamps_required ?? 6,
+              reward: nextRewards > prevRewards ? next.rewards[nextRewards - 1] : null,
+            });
+          }
+          return { ...prev, state: next };
+        });
       } catch {
-        // silent
+        // тихо: следующий тик попробует снова
       }
     }
 
-    const timer = setInterval(poll, 2500);
+    const timer = setInterval(poll, 4000);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [screen, openReward, showStampPop]);
+  }, [screen.step]);
 
   if (screen.step === "loading") return <Splash />;
   if (screen.step === "outside") return <OutsideNfcFlow onRetry={() => loadWallet()} />;
@@ -194,6 +239,14 @@ export function CardScreen() {
   const tgUser = typeof window !== "undefined" ? (window.Telegram?.WebApp?.initDataUnsafe?.user as { id?: number; first_name?: string; last_name?: string; username?: string; photo_url?: string } | undefined) : undefined;
   const userName = tgUser?.first_name || "Гость";
   const userHandle = tgUser?.username ? `@${tgUser.username}` : "Telegram";
+
+  const totalCupsCount = screen.step === "ready"
+    ? (screen.state.card?.lifetime_stamps ?? screen.state.card?.stamps_count ?? screen.state.history.length) +
+      (screen.state.otherCards?.reduce((s, c) => s + c.stamps_count, 0) ?? 0)
+    : 0;
+
+  const totalRewardsCount = screen.step === "ready" ? screen.state.rewards.length : 0;
+  const totalCardsCount = screen.step === "ready" ? 1 + (screen.state.otherCards?.length ?? 0) : screen.step === "cards" ? screen.cards.length : 1;
 
   return (
     <div className="min-h-dvh bg-[#08090B] text-[#F4F4F2] font-sans antialiased flex flex-col justify-between selection:bg-[#5B8DEF]/30">
@@ -224,7 +277,7 @@ export function CardScreen() {
               </h1>
               <p className="text-[11px] font-mono text-[#F4F4F2]/40 uppercase tracking-wider">
                 {activeTab === "card" && screen.step === "ready"
-                  ? "Sfumato · Ташкент"
+                  ? screen.state.tenant.name
                   : "Stampy"}
               </p>
             </div>
@@ -271,6 +324,7 @@ export function CardScreen() {
           <HistoryView
             rewards={screen.step === "ready" ? screen.state.rewards : []}
             history={screen.step === "ready" ? screen.state.history : []}
+            card={screen.step === "ready" ? screen.state.card : null}
           />
         )}
 
@@ -289,7 +343,9 @@ export function CardScreen() {
           <ProfileView
             userName={userName}
             userHandle={userHandle}
-            totalCards={screen.step === "cards" ? screen.cards.length : 1}
+            totalCups={totalCupsCount}
+            totalRewards={totalRewardsCount}
+            totalCards={totalCardsCount}
           />
         )}
       </div>
@@ -391,107 +447,114 @@ function CardView({
   onViewHistory,
 }: {
   state: MiniAppState;
-  onOpenReward: (reward: Reward) => void;
+  onOpenReward: (reward: CardReward) => void;
   onViewHistory: () => void;
-}) {
+  }) {
   const { tenant, program, card, rewards } = state;
   const filled = card?.stamps_count ?? 0;
   const total = program?.stamps_required ?? 6;
   const remaining = Math.max(0, total - filled);
   const isRewardReady = rewards.length > 0 || remaining === 0;
 
+  const brand = plateColors(tenant.brand);
+
   return (
     <div className="flex flex-col gap-4 animate-rise">
-      {/* Loyalty Card Container */}
-      <div className="rounded-[26px] bg-gradient-to-br from-[#17223B] via-[#111827] to-[#0E1424] border border-[#5B8DEF]/25 p-6 relative overflow-hidden shadow-[0_24px_50px_-20px_rgba(91,141,239,0.3)]">
-        {/* Glow */}
-        <div className="pointer-events-none absolute -top-20 -right-20 size-48 rounded-full bg-[radial-gradient(circle,_rgba(91,141,239,0.22),_transparent_65%)]" />
+      {/* Плашка карты в цветах кофейни — то же, что владелец видит в кабинете */}
+      <div
+        className="rounded-[26px] p-6 relative overflow-hidden"
+        style={{
+          background: `linear-gradient(160deg, ${brand.surface} 0%, ${brand.bg} 100%)`,
+          color: brand.text,
+          border: `1px solid ${withAlpha(brand.primary, 0.25)}`,
+          boxShadow: `0 24px 50px -20px ${withAlpha(brand.primary, 0.3)}`,
+        }}
+      >
+        <div
+          className="pointer-events-none absolute -top-20 -right-20 size-48 rounded-full"
+          style={{ background: `radial-gradient(circle, ${withAlpha(brand.primary, 0.22)}, transparent 65%)` }}
+        />
 
         <div className="flex justify-between items-start mb-6 relative">
-          <div>
-            <div className="font-mono text-[10px] text-[#7BA5FF] uppercase tracking-widest mb-1.5 font-medium">
-              {tenant.name} · Ташкент
+          <div className="min-w-0 pr-2">
+            <div
+              className="font-mono text-[10px] uppercase tracking-widest mb-1.5 font-medium truncate"
+              style={{ color: brand.accent }}
+            >
+              {tenant.name}
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-white leading-snug">
-              {program?.reward_title || "7-й напиток за счёт заведения"}
+            <h2 className="text-xl font-bold tracking-tight leading-snug">
+              {program?.reward_title || "Карта лояльности"}
             </h2>
           </div>
-          <Monogram name={tenant.name} logoUrl={tenant.logo_url} ink="#5B8DEF" size={36} />
+          <Monogram name={tenant.name} logoUrl={tenant.logo_url} ink={brand.primary} size={36} />
         </div>
 
         {/* Stamp Grid */}
         <div className="mb-6 relative">
-          <StampGrid filled={filled} total={total} style={tenant.brand.card_style} />
+          <StampGrid filled={filled} total={total} brand={{ ...tenant.brand, ...brand }} />
         </div>
 
         {/* Progress Footer */}
-        <div className="flex items-end justify-between pt-4 border-t border-white/[0.08] relative">
+        <div
+          className="flex items-end justify-between pt-4 relative"
+          style={{ borderTop: `1px solid ${withAlpha(brand.text, 0.08)}` }}
+        >
           <div>
-            <div className="text-2xl font-bold tracking-tight text-white">
+            <div className="text-2xl font-bold tracking-tight">
               {filled}
-              <span className="text-sm text-[#F4F4F2]/40 font-normal"> / {total}</span>
+              <span className="text-sm font-normal" style={{ color: withAlpha(brand.text, 0.4) }}>
+                /{total}
+              </span>
             </div>
-            <div className="text-[11px] text-[#F4F4F2]/50 mt-0.5">
-              {isRewardReady
-                ? "награда готова к получению"
-                : remaining === 1
-                  ? "почти на месте"
-                  : filled > 0
-                    ? "в процессе накопления"
-                    : "начало пути"}
+            <div className="text-[11px] mt-0.5 font-medium" style={{ color: withAlpha(brand.text, 0.5) }}>
+              {filled === 0
+                ? "новая карта"
+                : filled >= total
+                  ? "награда готова!"
+                  : "в процессе накопления"}
             </div>
           </div>
-
           <div className="text-right">
             {isRewardReady ? (
-              <span className="px-3 py-1 rounded-full bg-[#5B8DEF] text-[#0E1424] text-[10px] font-bold uppercase tracking-wider">
-                Готова
-              </span>
+              <button
+                onClick={() => rewards[0] && onOpenReward(rewards[0])}
+                className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider animate-pulse"
+                style={{
+                  background: brand.primary,
+                  color: brand.surface,
+                  boxShadow: `0 0 20px ${withAlpha(brand.primary, 0.5)}`,
+                }}
+              >
+                Получить QR
+              </button>
             ) : (
               <div>
-                <div className="text-xs font-semibold text-[#7BA5FF]">осталось {remaining}</div>
-                <div className="text-[10px] text-[#F4F4F2]/40 mt-0.5">до бесплатного напитка</div>
+                <div className="text-xs font-semibold" style={{ color: brand.accent }}>
+                  осталось {remaining} {plural(remaining, "штамп", "штампа", "штампов")}
+                </div>
+                <div
+                  className="text-[10px] mt-0.5 max-w-[140px] truncate"
+                  style={{ color: withAlpha(brand.text, 0.4) }}
+                >
+                  до «{program?.reward_title ?? "награды"}»
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Action banner if reward ready */}
-      {rewards.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {rewards.map((reward) => (
-            <button
-              key={reward.id}
-              onClick={() => onOpenReward(reward as Reward)}
-              className="flex items-center justify-between gap-3 p-4 rounded-[20px] bg-gradient-to-r from-[#5B8DEF]/20 to-[#5B8DEF]/10 border border-[#5B8DEF]/35 text-left transition-transform active:scale-[0.99] shadow-lg"
-            >
-              <div className="min-w-0">
-                <span className="block truncate text-sm font-bold text-white">
-                  {reward.title}
-                </span>
-                <span className="block text-[11px] text-[#7BA5FF]">
-                  Нажмите, чтобы показать QR баристе
-                </span>
-              </div>
-              <span className="shrink-0 px-3.5 py-1.5 rounded-full bg-[#5B8DEF] text-[#0E1424] text-xs font-bold uppercase tracking-wider">
-                Забрать
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Near reward hint banner */}
-      {!isRewardReady && remaining <= 2 && (
-        <div className="p-4 rounded-[18px] bg-[#5B8DEF]/10 border border-[#5B8DEF]/20 flex items-start gap-3">
-          <div className="size-7 rounded-lg bg-[#5B8DEF]/20 grid place-items-center text-[#5B8DEF] shrink-0 mt-0.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v6l3-3M12 8l-3-3"/><circle cx="12" cy="14" r="8"/></svg>
+      {/* Near Reward Hint Banner */}
+      {remaining === 1 && (
+        <div className="p-4 rounded-[20px] bg-[#5B8DEF]/10 border border-[#5B8DEF]/20 flex gap-3.5 items-start">
+          <div className="size-8 rounded-xl bg-[#5B8DEF]/20 text-[#5B8DEF] grid place-items-center shrink-0">
+            ★
           </div>
-          <div>
+          <div className="flex-1">
             <div className="text-xs font-semibold text-white">Загляните в {tenant.name} сегодня</div>
-            <div className="text-[11px] text-[#F4F4F2]/60 mt-0.5 leading-relaxed">
-              Ещё {remaining} {remaining === 1 ? "чашка" : "чашки"} — и награда за счёт заведения.
+            <div className="text-[11px] text-[#F4F4F2]/65 mt-0.5">
+              Ещё один штамп — и «{program?.reward_title ?? "награда"}» за счёт заведения.
             </div>
           </div>
         </div>
@@ -504,35 +567,52 @@ function CardView({
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold text-white truncate">{tenant.name}</div>
-          <div className="text-[11px] text-[#F4F4F2]/45 truncate mt-0.5">ул. Амира Темура, 12 · Ташкент</div>
+          <div className="text-[11px] text-[#F4F4F2]/45 truncate mt-0.5">
+            {program
+              ? `${total} ${plural(total, "штамп", "штампа", "штампов")} → ${program.reward_title}`
+              : "Программа лояльности ещё настраивается"}
+          </div>
         </div>
       </div>
 
-      {/* Activity Section */}
+      {/* Activity Section with REAL data */}
       <div className="p-4 rounded-[20px] bg-[#14161D] border border-white/[0.06]">
         <div className="flex justify-between items-center mb-3">
           <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold">
             Активность
           </div>
-          <button onClick={onViewHistory} className="text-[11px] text-[#5B8DEF] hover:underline">
-            Вся история
-          </button>
+          {state.history.length > 0 && (
+            <button onClick={onViewHistory} className="text-[11px] text-[#5B8DEF] hover:underline">
+              Вся история
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-2.5 text-xs">
-          <div className="flex justify-between items-center py-1">
-            <div className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-[#5B8DEF]" />
-              <span>Штамп добавлен</span>
+          {state.history.length > 0 ? (
+            state.history.slice(0, 3).map((item, idx) => {
+              const d = new Date(item.created_at);
+              const isToday = new Date().toDateString() === d.toDateString();
+              const dateStr = isToday
+                ? "Сегодня"
+                : d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+              return (
+                <div
+                  key={idx}
+                  className={`flex justify-between items-center py-1 ${idx > 0 ? "border-t border-white/[0.04]" : ""}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`size-1.5 rounded-full ${idx === 0 ? "bg-[#5B8DEF]" : "bg-white/30"}`} />
+                    <span>Штамп добавлен {item.venue ? `· ${item.venue}` : ""}</span>
+                  </div>
+                  <span className="text-[11px] text-[#F4F4F2]/45 font-mono">{dateStr}</span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-[11px] text-[#F4F4F2]/40 py-2 text-center">
+              Штампов пока нет. Приложите телефон к метке на кассе.
             </div>
-            <span className="text-[11px] text-[#F4F4F2]/45 font-mono">Сегодня</span>
-          </div>
-          <div className="flex justify-between items-center py-1 border-t border-white/[0.04]">
-            <div className="flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-white/30" />
-              <span>Штамп добавлен</span>
-            </div>
-            <span className="text-[11px] text-[#F4F4F2]/45 font-mono">Вчера</span>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -620,7 +700,7 @@ function WalletView({
     <div className="flex flex-col gap-3 animate-rise">
       <div className="flex justify-between items-baseline mb-1">
         <div className="text-xs text-[#F4F4F2]/50 font-medium">
-          {cards.length} {cards.length === 1 ? "кофейня" : "кофейни"}
+          {cards.length} {plural(cards.length, "кофейня", "кофейни", "кофеен")}
         </div>
       </div>
 
@@ -646,14 +726,19 @@ function WalletView({
   );
 }
 
-/** 08 · История наград (History view) */
+/** 08 · История наград (History view with REAL data) */
 function HistoryView({
   rewards,
   history,
+  card,
 }: {
   rewards: MiniAppState["rewards"];
   history: MiniAppState["history"];
+  card: MiniAppState["card"];
 }) {
+  const totalCups = card?.lifetime_stamps ?? card?.stamps_count ?? history.length;
+  const sparkPoints = cumulativeSpark(history);
+
   return (
     <div className="flex flex-col gap-4 animate-rise">
       {/* Stat Card */}
@@ -662,65 +747,116 @@ function HistoryView({
           История
         </div>
         <div className="flex items-baseline gap-2 mb-2">
-          <div className="text-4xl font-extrabold tracking-tight">148</div>
-          <div className="text-xs text-[#0E0F11]/60">чашек всего</div>
+          <div className="text-4xl font-extrabold tracking-tight">{totalCups}</div>
+          <div className="text-xs text-[#0E0F11]/60">{plural(totalCups, "чашка", "чашки", "чашек")} всего</div>
         </div>
 
         {/* Sparkline */}
-        <svg viewBox="0 0 300 40" width="100%" height="40" className="mt-3 overflow-visible">
-          <defs>
-            <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#5B8DEF" stopOpacity="0.25" />
-              <stop offset="1" stopColor="#5B8DEF" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <polyline points="0,32 25,28 50,30 75,22 100,24 125,16 150,18 175,10 200,14 225,8 250,12 275,6 300,4" fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <polyline points="0,32 25,28 50,30 75,22 100,24 125,16 150,18 175,10 200,14 225,8 250,12 275,6 300,4 300,40 0,40" fill="url(#histGrad)"/>
-        </svg>
+        {sparkPoints && (
+          <svg viewBox="0 0 300 40" width="100%" height="40" className="mt-3 overflow-visible">
+            <defs>
+              <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#5B8DEF" stopOpacity="0.25" />
+                <stop offset="1" stopColor="#5B8DEF" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <polyline points={sparkPoints} fill="none" stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <polyline points={`0,40 ${sparkPoints} 300,40`} fill="url(#histGrad)"/>
+          </svg>
+        )}
       </div>
 
       {/* Rewards history items */}
+      {rewards.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold px-1">
+            Готовые награды
+          </div>
+          {rewards.map((r) => (
+            <div key={r.id} className="p-4 rounded-[18px] bg-[#14161D] border border-[#5B8DEF]/30 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-xl bg-[#5B8DEF]/15 text-[#5B8DEF] grid place-items-center">
+                  ★
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-white">{r.title}</div>
+                  <div className="text-[11px] text-[#7BA5FF] mt-0.5">
+                    {r.expires_at ? `До ${new Date(r.expires_at).toLocaleDateString("ru-RU")}` : "Готово к получению"}
+                  </div>
+                </div>
+              </div>
+              <span className="font-mono text-[11px] text-[#7BA5FF] font-semibold shrink-0">
+                {r.earned_at ? new Date(r.earned_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) : "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* History log */}
       <div className="flex flex-col gap-2">
         <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold px-1">
-          Последние награды
+          История посещений
         </div>
-        <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-[#5B8DEF]/15 text-[#5B8DEF] grid place-items-center">
-              ★
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-white">Капучино в подарок</div>
-              <div className="text-[11px] text-[#F4F4F2]/45 mt-0.5">Sfumato · 2 сен</div>
-            </div>
+        {history.length > 0 ? (
+          history.map((h, i) => {
+            const d = new Date(h.created_at);
+            return (
+              <div key={i} className="p-3.5 rounded-[16px] bg-[#14161D] border border-white/[0.04] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="size-2 rounded-full bg-[#5B8DEF]" />
+                  <div className="text-xs text-white font-medium">Штамп добавлен {h.venue ? `· ${h.venue}` : ""}</div>
+                </div>
+                <span className="text-[11px] text-[#F4F4F2]/40 font-mono">
+                  {d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-6 rounded-[18px] bg-[#14161D] border border-white/[0.04] text-center text-xs text-[#F4F4F2]/40">
+            История пока пуста
           </div>
-          <span className="font-mono text-xs text-[#7BA5FF]">−0 сум</span>
-        </div>
-        <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-xl bg-[#5B8DEF]/15 text-[#5B8DEF] grid place-items-center">
-              ★
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-white">Раф в подарок</div>
-              <div className="text-[11px] text-[#F4F4F2]/45 mt-0.5">Chinor · 24 авг</div>
-            </div>
-          </div>
-          <span className="font-mono text-xs text-[#7BA5FF]">−0 сум</span>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-/** 09 · Профиль и настройки (Profile view) */
+/** Накопительный ряд штампов за последние 14 дней → точки полилинии 300x40. */
+function cumulativeSpark(history: MiniAppState["history"]): string | null {
+  if (history.length < 2) return null;
+  const days = 14;
+  const dayMs = 86_400_000;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const perDay = new Array<number>(days).fill(0);
+  for (const item of history) {
+    const diff = Math.floor((startOfToday.getTime() - new Date(item.created_at).setHours(0, 0, 0, 0)) / dayMs);
+    if (diff >= 0 && diff < days) perDay[days - 1 - diff] += 1;
+  }
+  let running = 0;
+  const cumulative = perDay.map((n) => (running += n));
+  const max = cumulative[cumulative.length - 1];
+  if (max === 0) return null;
+  const step = 300 / (days - 1);
+  return cumulative
+    .map((value, index) => `${Math.round(index * step)},${Math.round(36 - (value / max) * 32)}`)
+    .join(" ");
+}
+
+/** 09 · Профиль и настройки (Profile view with REAL data) */
 function ProfileView({
   userName,
   userHandle,
+  totalCups,
+  totalRewards,
   totalCards,
 }: {
   userName: string;
   userHandle: string;
+  totalCups: number;
+  totalRewards: number;
   totalCards: number;
 }) {
   return (
@@ -732,23 +868,23 @@ function ProfileView({
         </div>
         <div>
           <h2 className="text-lg font-bold text-white">{userName}</h2>
-          <p className="text-xs text-[#F4F4F2]/50 font-mono mt-0.5">{userHandle} · с 2025</p>
+          <p className="text-xs text-[#F4F4F2]/50 font-mono mt-0.5">{userHandle}</p>
         </div>
       </div>
 
       {/* 3 Metrics */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] text-center">
-          <div className="text-xl font-bold text-white">148</div>
-          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">чашек</div>
+          <div className="text-xl font-bold text-white">{totalCups}</div>
+          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">{plural(totalCups, "чашка", "чашки", "чашек")}</div>
         </div>
         <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] text-center">
-          <div className="text-xl font-bold text-white">12</div>
-          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">наград</div>
+          <div className="text-xl font-bold text-white">{totalRewards}</div>
+          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">{plural(totalRewards, "награда", "награды", "наград")}</div>
         </div>
         <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] text-center">
           <div className="text-xl font-bold text-white">{totalCards}</div>
-          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">кофеен</div>
+          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">{plural(totalCards, "кофейня", "кофейни", "кофеен")}</div>
         </div>
       </div>
 
@@ -759,9 +895,7 @@ function ProfileView({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             <span>Уведомления</span>
           </div>
-          <div className="w-10 h-6 rounded-full bg-[#5B8DEF] relative">
-            <div className="absolute top-1 right-1 size-4 rounded-full bg-white shadow-sm" />
-          </div>
+          <span className="text-[#F4F4F2]/50 font-mono">в Telegram</span>
         </div>
 
         <div className="p-4 flex items-center justify-between border-b border-white/[0.04]">
@@ -786,21 +920,25 @@ function ProfileView({
   );
 }
 
-/** 10 · Уведомления (Notifications view) */
+/** 10 · Уведомления (Notifications view with REAL data) */
 function NotificationsView({
   items,
   onMarkRead,
 }: {
-  items: { id: number; title: string; text: string; time: string; unread: boolean }[];
+  items: CardNotification[];
   onMarkRead: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3 animate-rise">
       <div className="flex justify-between items-center px-1 mb-1">
-        <div className="text-xs text-[#F4F4F2]/50 font-medium">{items.length} уведомления</div>
-        <button onClick={onMarkRead} className="text-[11px] text-[#5B8DEF] hover:underline">
-          Прочитать все
-        </button>
+        <div className="text-xs text-[#F4F4F2]/50 font-medium">
+          {items.length} {plural(items.length, "уведомление", "уведомления", "уведомлений")}
+        </div>
+        {items.some((i) => i.unread) && (
+          <button onClick={onMarkRead} className="text-[11px] text-[#5B8DEF] hover:underline">
+            Прочитать все
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-2.5">
@@ -866,7 +1004,7 @@ function OutsideNfcFlow({ onRetry }: { onRetry: () => void }) {
       </div>
 
       <div className="pb-4 text-[10px] font-mono text-[#F4F4F2]/30 uppercase tracking-widest">
-        Ташкент · 2026
+        Stampy · {new Date().getFullYear()}
       </div>
     </main>
   );

@@ -27,14 +27,14 @@ export function TagsPanel({ tenants, tags }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {notice && (
-        <p className={`text-sm ${notice.ok ? "text-bean-dark" : "text-red-600"}`}>{notice.message}</p>
+        <p className={`text-sm ${notice.ok ? "text-latte" : "text-red-300"}`}>{notice.message}</p>
       )}
 
-      <section className="rounded-2xl border border-line bg-white p-4">
+      <section className="rounded-2xl border border-line bg-surface p-4">
         <h2 className="mb-1 font-medium">Регистрация метки</h2>
         <p className="mb-3 text-sm text-ink-soft">
           Сначала прошейте чип ключами из{" "}
-          <code className="rounded bg-cream px-1">npm run mock-tag -- --uid … --keys</code>, потом
+          <code className="rounded bg-surface-2 px-1">npm run mock-tag -- --uid … --keys</code>, потом
           заведите UID здесь.
         </p>
         <form
@@ -73,14 +73,14 @@ export function TagsPanel({ tenants, tags }: Props) {
           <button
             type="submit"
             disabled={pending || uid.length !== 14}
-            className="rounded-2xl bg-bean px-5 py-3 font-medium text-white disabled:opacity-50"
+            className="rounded-2xl bg-bean px-5 py-3 font-medium text-[#0E1424] disabled:opacity-50"
           >
             Завести
           </button>
         </form>
       </section>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
+      <section className="rounded-2xl border border-line bg-surface p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-medium">Все метки ({visible.length})</h2>
           <input
@@ -111,7 +111,7 @@ export function TagsPanel({ tenants, tags }: Props) {
                     if (confirm(`Удалить метку ${tag.uid}?`)) run(() => deleteTag(tag.uid));
                   }}
                   disabled={pending}
-                  className="rounded-lg border border-line px-2 py-1 text-xs text-red-700 disabled:opacity-40"
+                  className="rounded-lg border border-line px-2 py-1 text-xs text-red-300 disabled:opacity-40"
                 >
                   Удалить
                 </button>

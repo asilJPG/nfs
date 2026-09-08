@@ -1,17 +1,22 @@
 "use client";
 
 import type { Brand } from "@/types/db";
+import { StampMark } from "@/components/brand/StampMark";
+import { withAlpha } from "@/lib/color";
 
 type Props = {
   filled: number;
   total: number;
-  style?: Brand["card_style"];
+  brand: Brand;
   justStamped?: number | null;
 };
 
-export function StampGrid({ filled, total, justStamped }: Props) {
-  // Up to 7 columns in one row, or 2 rows if > 7
+/** Сетка штампов в цветах кофейни — ровно то, что владелец собрал в кабинете. */
+export function StampGrid({ filled, total, brand, justStamped }: Props) {
+  // до 7 кружков в ряд, дальше — в две строки
   const cols = total <= 7 ? total : Math.ceil(total / 2);
+  const primary = brand.primary;
+  const accent = brand.accent || primary;
 
   return (
     <div
@@ -29,30 +34,29 @@ export function StampGrid({ filled, total, justStamped }: Props) {
           return (
             <div
               key={index}
-              className={`aspect-square rounded-full bg-[#5B8DEF] grid place-items-center transition-all duration-300 shadow-[0_2px_8px_rgba(91,141,239,0.3)] ${
+              className={`aspect-square rounded-full grid place-items-center transition-all duration-300 ${
                 isFresh ? "animate-stamp" : ""
               }`}
+              style={{ background: primary, boxShadow: `0 2px 8px ${withAlpha(primary, 0.3)}` }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0E1424" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
+              <StampMark style={brand.card_style} color={brand.surface} filled />
             </div>
           );
         }
 
+        // последняя ячейка — награда, её всегда видно
         if (isLast) {
           return (
             <div
               key={index}
-              className={`aspect-square rounded-full border grid place-items-center transition-all ${
-                isNext
-                  ? "border-2 border-[#5B8DEF] bg-[#5B8DEF]/20 shadow-[0_0_16px_rgba(91,141,239,0.5)]"
-                  : "border-dashed border-[#5B8DEF]/60 bg-[#5B8DEF]/10"
-              }`}
+              className="aspect-square rounded-full grid place-items-center transition-all"
+              style={{
+                border: isNext ? `2px solid ${accent}` : `1px dashed ${withAlpha(accent, 0.6)}`,
+                background: withAlpha(accent, isNext ? 0.2 : 0.1),
+                boxShadow: isNext ? `0 0 16px ${withAlpha(accent, 0.5)}` : undefined,
+              }}
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill={isNext ? "#5B8DEF" : "none"} stroke="#5B8DEF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15 8.5 22 9.5 17 14.5 18.2 21.5 12 18 5.8 21.5 7 14.5 2 9.5 9 8.5 12 2" />
-              </svg>
+              <StampMark style="stars" size={11} color={accent} filled={isNext} />
             </div>
           );
         }
@@ -60,11 +64,11 @@ export function StampGrid({ filled, total, justStamped }: Props) {
         return (
           <div
             key={index}
-            className={`aspect-square rounded-full transition-all ${
-              isNext
-                ? "border border-[#5B8DEF]/60 bg-[#5B8DEF]/10"
-                : "border border-white/15 bg-white/[0.02]"
-            }`}
+            className="aspect-square rounded-full transition-all"
+            style={{
+              border: isNext ? `1px solid ${withAlpha(primary, 0.6)}` : `1px solid ${withAlpha(brand.text, 0.15)}`,
+              background: isNext ? withAlpha(primary, 0.1) : withAlpha(brand.text, 0.03),
+            }}
           />
         );
       })}
