@@ -455,13 +455,14 @@ select option {
 
 .wallet-deck {
   position: relative;
-  min-height: 255px;
+  min-height: 340px;
+  padding: 94px 4% 0;
   isolation: isolate;
 }
 .wallet-deck-cards {
   position: absolute;
   inset: 0 0 auto;
-  height: 190px;
+  height: 270px;
   z-index: 1;
 }
 .wallet-deck-back {
@@ -471,12 +472,12 @@ select option {
 }
 .wallet-deck-back {
   position: absolute;
-  inset: 0 12% auto;
-  height: 166px;
-  padding: 22px;
+  inset: 0 7% auto;
+  height: 250px;
+  padding: 28px;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.76);
-  font: 500 10px/1.2 var(--font-mono);
+  font: 500 12px/1.2 var(--font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   transform-origin: 50% 100%;

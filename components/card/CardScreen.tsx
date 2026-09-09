@@ -809,12 +809,6 @@ function WalletView({
         </div>
       </div>
 
-      {queue.length > 1 && (
-        <div className="text-center text-[10px] text-[#F4F4F2]/35 font-mono uppercase tracking-widest">
-          Свайпните, чтобы сменить карту
-        </div>
-      )}
-
     </div>
   );
 }
