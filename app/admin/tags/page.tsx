@@ -32,5 +32,13 @@ export default async function TagsPage() {
     created_at: t.created_at,
   }));
 
-  return <TagsPanel tenants={(tenants ?? []) as TenantSummary[]} tags={rows} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">NFC-метки</h1>
+        <p className="page-subtitle">Какие чипы заведены и к какой кофейне привязаны</p>
+      </header>
+      <TagsPanel tenants={(tenants ?? []) as TenantSummary[]} tags={rows} />
+    </div>
+  );
 }

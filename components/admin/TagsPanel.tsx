@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { deleteTag, registerTag } from "@/app/admin/actions";
-import { input, useAdminAction } from "@/components/admin/shared";
+import { useAdminAction } from "@/components/admin/shared";
 import type { Tag } from "@/components/admin/AdminConsole";
 import type { TenantSummary } from "@/types/db";
 
@@ -27,12 +27,12 @@ export function TagsPanel({ tenants, tags }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {notice && (
-        <p className={`text-sm ${notice.ok ? "text-latte" : "text-red-300"}`}>{notice.message}</p>
+        <p className={`note ${notice.ok ? "note-ok" : "note-bad"}`}>{notice.message}</p>
       )}
 
-      <section className="rounded-2xl border border-line bg-surface p-4">
-        <h2 className="mb-1 font-medium">Регистрация метки</h2>
-        <p className="mb-3 text-sm text-ink-soft">
+      <section className="card p-5 md:p-6">
+        <h2 className="card-title mb-1">Регистрация метки</h2>
+        <p className="mb-4 text-[13px] leading-relaxed text-ink-soft">
           Сначала прошейте чип ключами из{" "}
           <code className="rounded bg-surface-2 px-1">npm run mock-tag -- --uid … --keys</code>, потом
           заведите UID здесь.
@@ -54,9 +54,9 @@ export function TagsPanel({ tenants, tags }: Props) {
             value={uid}
             onChange={(event) => setUid(event.target.value.toUpperCase().slice(0, 14))}
             placeholder="04A1B2C3D4E580"
-            className={`${input} font-mono`}
+            className="input font-mono"
           />
-          <select value={tagTenant} onChange={(event) => setTagTenant(event.target.value)} className={input}>
+          <select value={tagTenant} onChange={(event) => setTagTenant(event.target.value)} className="input">
             <option value="">Без кофейни</option>
             {tenants.map((tenant) => (
               <option key={tenant.id} value={tenant.id}>
@@ -68,50 +68,54 @@ export function TagsPanel({ tenants, tags }: Props) {
             value={tagLabel}
             onChange={(event) => setTagLabel(event.target.value)}
             placeholder="Подпись"
-            className={input}
+            className="input"
           />
           <button
             type="submit"
             disabled={pending || uid.length !== 14}
-            className="rounded-2xl bg-bean px-5 py-3 font-medium text-[#0E1424] disabled:opacity-50"
+            className="btn btn-accent"
           >
             Завести
           </button>
         </form>
       </section>
 
-      <section className="rounded-2xl border border-line bg-surface p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-medium">Все метки ({visible.length})</h2>
+      <section className="card p-5 md:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="card-title">Все метки ({visible.length})</h2>
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Поиск по UID, подписи, кофейне…"
-            className={`${input} max-w-xs`}
+            className="input max-w-xs"
           />
         </div>
         {visible.length === 0 ? (
-          <p className="text-sm text-ink-soft">Ничего не нашлось.</p>
+          <p className="py-6 text-center text-sm text-ink-soft">
+            {q ? "Ничего не нашлось." : "Меток пока нет — заведите первую выше."}
+          </p>
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {visible.map((tag) => (
               <li
                 key={tag.uid}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5"
               >
-                <div>
-                  <span className="font-mono text-xs">{tag.uid}</span>
-                  {tag.label && <span className="ml-2 text-ink-soft">· {tag.label}</span>}
-                  <span className="ml-2 text-ink-soft">
-                    {tag.tenant_name ? `→ ${tag.tenant_name}` : "не привязана"}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-ink">{tag.uid}</span>
+                  {tag.label && <span className="text-xs text-ink-soft">· {tag.label}</span>}
+                  {tag.tenant_name ? (
+                    <span className="badge badge-accent">{tag.tenant_name}</span>
+                  ) : (
+                    <span className="badge badge-muted">не привязана</span>
+                  )}
                 </div>
                 <button
                   onClick={() => {
                     if (confirm(`Удалить метку ${tag.uid}?`)) run(() => deleteTag(tag.uid));
                   }}
                   disabled={pending}
-                  className="rounded-lg border border-line px-2 py-1 text-xs text-red-300 disabled:opacity-40"
+                  className="btn btn-danger btn-sm"
                 >
                   Удалить
                 </button>

@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-feature-settings: 'ss01','cv11','cv02'; -webkit-font-smoothing: antialiased; background: #08090B; color: #F4F4F2; }
+  a { color: inherit; text-decoration: none; }
+  a:hover { color: #5B8DEF; }
+  ::selection { background: rgba(91,141,239,.32); }
+
+  /* Ambient motion */
+  @keyframes ringPulse { 0% { transform: scale(.6); opacity: .5; } 100% { transform: scale(2.2); opacity: 0; } }
+  @keyframes nfcDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.75); opacity: .6; } }
+  @keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px,-14px); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes glow { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes stampIn { 0% { transform: scale(0) rotate(-8deg); opacity: 0; } 60% { transform: scale(1.18) rotate(2deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+  @keyframes barGrow { from { width: 0; } to { width: var(--w,60%); } }
+  @keyframes chipShift { 0%,100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+  @keyframes qrScan { 0% { top: 4%; } 100% { top: 96%; } }
+
+  .ring { position: absolute; inset: 0; border-radius: 999px; border: 1px solid rgba(91,141,239,.35); animation: ringPulse 3.6s cubic-bezier(0.16,1,0.3,1) infinite; }
+  .ring.d1 { animation-delay: 0s; }
+  .ring.d2 { animation-delay: 1.2s; }
+  .ring.d3 { animation-delay: 2.4s; }
+
+  .nfc-dot { animation: nfcDot 1.6s ease-in-out infinite; }
+  .glow { animation: glow 3.2s ease-in-out infinite; }
+  .float { animation: floatY 3.6s ease-in-out infinite; }
+  .drift { animation: drift 8s ease-in-out infinite; }
+
+  /* Wallet card core */
+  .w-card { position: absolute; width: 240px; height: 155px; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 20px 40px -12px rgba(0,0,0,.55); transition: transform .9s cubic-bezier(0.22,1,0.36,1), box-shadow .4s, filter .6s; will-change: transform; }
+  .w-card.pos-0 { transform: translate(-72px,-124px) rotate(-14deg) scale(.94); filter: brightness(.9); z-index: 1; }
+  .w-card.pos-1 { transform: translate(-24px,-96px) rotate(-6deg) scale(.97); filter: brightness(.95); z-index: 2; }
+  .w-card.pos-2 { transform: translate(30px,-70px) rotate(6deg) scale(1); filter: brightness(1); z-index: 3; }
+  .w-card.pos-3 { transform: translate(0, 42px) rotate(0) scale(1.02); z-index: 4; box-shadow: 0 30px 55px -14px rgba(0,0,0,.7); }
+
+  /* Glass pouch fade */
+  .pouch-line { animation: fadeIn .5s cubic-bezier(0.16,1,0.3,1) both; }
+
+  /* Stamp grid */
+  .stamp { width: 100%; aspect-ratio: 1; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); transition: background .35s, border-color .35s, transform .35s; }
+  .stamp.on { background: #5B8DEF; border-color: #5B8DEF; animation: stampIn .55s cubic-bezier(0.16,1,0.3,1); }
+
+  /* Screen switching */
+  .scr { position: absolute; inset: 0; opacity: 0; transform: translateY(8px); transition: opacity .55s cubic-bezier(0.22,1,0.36,1), transform .55s cubic-bezier(0.22,1,0.36,1); pointer-events: none; }
+  .scr.on { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  .seg-btn { padding: 8px 14px; border-radius: 999px; font-size: 11px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid rgba(255,255,255,.1); background: transparent; color: rgba(244,244,242,.62); cursor: pointer; transition: all .3s; }
+  .seg-btn:hover { color: #F4F4F2; border-color: rgba(255,255,255,.2); }
+  .seg-btn.active { background: #F4F4F2; color: #0E0F11; border-color: #F4F4F2; }
+
+  .ticker-track { display: flex; gap: 48px; animation: ticker 32s linear infinite; }
+
+  .qr-scan { position: absolute; left: 4%; right: 4%; height: 2px; background: linear-gradient(90deg, transparent, #5B8DEF, transparent); animation: qrScan 2.2s ease-in-out infinite alternate; }
+
+  .bar-fill { height: 100%; background: #5B8DEF; border-radius: 999px; animation: barGrow 1.4s cubic-bezier(0.22,1,0.36,1) both; }
+
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 22px; border-radius: 999px; font-size: 14px; font-weight: 500; transition: transform .2s, background .2s; cursor: pointer; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: #F4F4F2; color: #0E0F11; }
+  .btn-primary:hover { background: #FFFFFF; }
+  .btn-ghost { background: transparent; color: #F4F4F2; border: 1px solid rgba(255,255,255,.14); }
+  .btn-ghost:hover { border-color: rgba(255,255,255,.28); }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; background: radial-gradient(ellipse at 20% 0%, rgba(91,141,239,.08), transparent 55%), radial-gradient(ellipse at 90% 40%, rgba(232,93,69,.05), transparent 50%), #08090B; padding: 56px 40px 96px; overflow: hidden;">
+
+  <!-- Top bar -->
+  <div style="max-width: 1360px; margin: 0 auto 48px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="width: 36px; height: 36px; border-radius: 10px; background: #F4F4F2; display: grid; place-items: center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E0F11" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v2M12 2v2M16 2v2M4 8h16v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M20 10h1a3 3 0 0 1 0 6h-1"/></svg>
+      </div>
+      <div style="font-size: 20px; font-weight: 600; letter-spacing: -0.03em;">Stampy</div>
+      <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 999px;">Mini app · live preview</div>
+    </div>
+    <div style="display: flex; gap: 6px;" data-scr-tabs>
+      <button class="seg-btn active" data-go="wallet">Кошелёк</button>
+      <button class="seg-btn" data-go="tap">Касание</button>
+      <button class="seg-btn" data-go="stamp">Штамп</button>
+      <button class="seg-btn" data-go="reward">Награда</button>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div style="max-width: 1360px; margin: 0 auto; display: grid; grid-template-columns: 300px 1fr 300px; gap: 40px; align-items: center;">
+
+    <!-- Left: caption -->
+    <div>
+      <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 18px;">Экран 03 · Кошелёк</div>
+      <h1 data-anim-title style="font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.05; margin: 0 0 16px;">Все карты — в одной ленте.</h1>
+      <p data-anim-sub style="font-size: 14px; color: rgba(244,244,242,.6); line-height: 1.6; margin: 0 0 32px;">Broadway, Chinor и Sfumato живут в одном месте. Активная карта опускается вниз — прогресс, награда и следующий штамп у неё под рукой.</p>
+      <div style="display: flex; flex-direction: column; gap: 14px; padding: 18px; border-radius: 18px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 12px; color: rgba(244,244,242,.55);">Активная карта</span>
+          <span data-active-label style="font-size: 12px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.1em; color: #F4F4F2;">SFUMATO</span>
+        </div>
+        <div style="height: 4px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden;">
+          <div data-active-bar class="bar-fill" style="--w:100%;"></div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px;">
+          <span style="color: rgba(244,244,242,.55);">До награды</span>
+          <span data-active-remain style="color: #F4F4F2;">Готово</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center: phone -->
+    <div style="position: relative; height: 780px; display: grid; place-items: center;">
+      <!-- Ambient rings -->
+      <div style="position: absolute; width: 520px; height: 520px; top: 60px; pointer-events: none;">
+        <div class="ring d1"></div>
+        <div class="ring d2"></div>
+        <div class="ring d3"></div>
+      </div>
+      <div class="drift" style="position: absolute; top: -20px; right: -40px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(91,141,239,.16), transparent 65%); pointer-events: none;"></div>
+
+      <!-- Phone frame -->
+      <div style="position: relative; width: 380px; height: 780px; border-radius: 52px; padding: 10px; background: #1B1E27; box-shadow: 0 80px 160px -40px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.03);">
+        <!-- Notch -->
+        <div style="position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 108px; height: 30px; border-radius: 999px; background: #08090B; z-index: 20;"></div>
+        <!-- Screen -->
+        <div style="position: relative; width: 100%; height: 100%; border-radius: 44px; overflow: hidden; background: #0E0F11;">
+          <!-- Status bar -->
+          <div style="position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 32px 8px; font-size: 13px; font-weight: 600; z-index: 15;">
+            <span>9:41</span>
+            <span style="display: inline-flex; gap: 4px; align-items: center;">
+              <svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg>
+              <svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg>
+            </span>
+          </div>
+
+          <!-- ============ WALLET SCREEN ============ -->
+          <div class="scr on" data-scr="wallet">
+            <div style="padding: 68px 22px 0; height: 100%; position: relative;">
+              <div style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 4px;">Мои карты</div>
+              <div style="font-size: 12px; color: rgba(244,244,242,.42);">4 кофейни · <span style="color: #7BA5FF;">1 награда готова</span></div>
+
+              <!-- Fan + pouch -->
+              <div data-wallet style="position: relative; height: 420px; margin-top: 40px; display: grid; place-items: center;">
+                <div class="w-card pos-0" data-card="broadway" data-count="2" data-total="6" data-title="BROADWAY" data-sub="осталось 4" style="background: linear-gradient(160deg,#7BA5FF,#4A7DE0);">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(255,255,255,.85); text-transform: uppercase; letter-spacing: 0.14em;">Broadway</div>
+                  <div><div style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: #FAFAF9;">2 / 6</div><div style="font-size: 10px; color: rgba(255,255,255,.8); margin-top: 2px;">осталось 4</div></div>
+                </div>
+                <div class="w-card pos-1" data-card="chinor" data-count="4" data-total="6" data-title="CHINOR" data-sub="осталось 2" style="background: linear-gradient(160deg,#E85D45,#C43A22);">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(255,255,255,.9); text-transform: uppercase; letter-spacing: 0.14em;">Chinor</div>
+                  <div><div style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: #FAFAF9;">4 / 6</div><div style="font-size: 10px; color: rgba(255,255,255,.85); margin-top: 2px;">осталось 2</div></div>
+                </div>
+                <div class="w-card pos-2" data-card="sfumato" data-count="6" data-total="6" data-title="SFUMATO" data-sub="награда готова" data-ready="1" style="background: linear-gradient(160deg,#F4B94A,#E89728);">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(20,15,10,.75); text-transform: uppercase; letter-spacing: 0.14em;">Sfumato</div>
+                  <div><div style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em; color: #14100C;">6 / 6</div><div style="font-size: 10px; color: rgba(20,15,10,.7); margin-top: 2px;">награда готова</div></div>
+                </div>
+
+                <!-- Glass pouch -->
+                <div class="w-card pos-3" data-pouch style="width: 288px; height: 200px; background: rgba(20,22,29,.72); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,.1); padding: 20px;">
+                  <div class="pouch-line" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                      <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.55); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 4px;" data-pouch-kicker>КОШЕЛЁК</div>
+                      <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.02em;" data-pouch-title>Активные карты</div>
+                    </div>
+                    <div style="width: 30px; height: 30px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); display: grid; place-items: center;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F4F4F2" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+                    </div>
+                  </div>
+                  <div class="pouch-line" data-pouch-stamps style="margin-top: 16px; display: grid; grid-template-columns: repeat(6,1fr); gap: 6px;"></div>
+                  <div class="pouch-line" style="display: flex; align-items: flex-end; justify-content: space-between; margin-top: 12px;">
+                    <div><div style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;" data-pouch-metric>6 / 6</div><div style="font-size: 10px; color: rgba(244,244,242,.55); margin-top: 5px;" data-pouch-hint>Sfumato · капучино в подарок</div></div>
+                    <div data-pouch-chip style="display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: rgba(91,141,239,.16); border: 1px solid rgba(91,141,239,.28); font-size: 10px; color: #7BA5FF; font-weight: 500; animation: chipShift 2.4s ease-in-out infinite;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>Готово</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ TAP SCREEN ============ -->
+          <div class="scr" data-scr="tap">
+            <div style="padding: 68px 22px 0; height: 100%; position: relative; display: flex; flex-direction: column;">
+              <div style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 4px;">Коснитесь метки</div>
+              <div style="font-size: 12px; color: rgba(244,244,242,.42);">Держите телефон рядом со стендом</div>
+
+              <div style="flex: 1; display: grid; place-items: center; position: relative;">
+                <div style="position: absolute; width: 280px; height: 280px;">
+                  <div class="ring d1"></div>
+                  <div class="ring d2"></div>
+                  <div class="ring d3"></div>
+                </div>
+                <div class="nfc-dot float" style="width: 140px; height: 140px; border-radius: 999px; background: radial-gradient(circle at 30% 30%, rgba(91,141,239,.35), rgba(91,141,239,.08) 70%); border: 1px solid rgba(91,141,239,.3); display: grid; place-items: center;">
+                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#7BA5FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.05a10 10 0 0 1 15.9 0"/><path d="M7 11.5a6 6 0 0 1 10 0"/><path d="M10 14.5a2 2 0 0 1 4 0"/></svg>
+                </div>
+              </div>
+
+              <div style="padding: 20px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); margin-bottom: 40px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(244,244,242,.55); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px;">Найдено рядом</div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(160deg,#F4B94A,#E89728);"></div>
+                  <div>
+                    <div style="font-size: 15px; font-weight: 600; letter-spacing: -0.02em;">Sfumato · Yakkasaray</div>
+                    <div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 2px;">Метка #04 · открывается…</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ STAMP SCREEN ============ -->
+          <div class="scr" data-scr="stamp">
+            <div style="padding: 68px 22px 0; height: 100%; position: relative; display: flex; flex-direction: column;">
+              <div style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;">+1 штамп · только что</div>
+              <div style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 4px;">Chinor</div>
+              <div style="font-size: 12px; color: rgba(244,244,242,.55);">Флэт уайт · <span style="color: #F4F4F2;">28 000 сум</span></div>
+
+              <div style="margin-top: 32px; padding: 24px; border-radius: 24px; background: linear-gradient(160deg,#E85D45,#C43A22); box-shadow: 0 30px 60px -20px rgba(196,58,34,.5);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,.9); letter-spacing: 0.14em;">CHINOR</div>
+                  <div style="font-size: 12px; color: rgba(255,255,255,.85);">карта №0142</div>
+                </div>
+                <div style="font-size: 44px; font-weight: 600; letter-spacing: -0.035em; color: #FAFAF9; line-height: 1;" data-stamp-count>5 / 6</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,.85); margin-top: 6px;">осталось <span data-stamp-remain>1</span></div>
+                <div data-stamp-grid style="margin-top: 24px; display: grid; grid-template-columns: repeat(6,1fr); gap: 8px;"></div>
+              </div>
+
+              <div style="margin-top: auto; padding: 20px; border-radius: 20px; background: rgba(91,141,239,.08); border: 1px solid rgba(91,141,239,.2); margin-bottom: 40px;">
+                <div style="font-size: 13px; font-weight: 500;">Ещё один — и капучино за счёт заведения.</div>
+                <div style="font-size: 12px; color: rgba(244,244,242,.6); margin-top: 4px;">Обычно вы возвращаетесь через 3 дня.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ REWARD SCREEN ============ -->
+          <div class="scr" data-scr="reward">
+            <div style="padding: 68px 22px 0; height: 100%; position: relative; display: flex; flex-direction: column;">
+              <div style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: #F4B94A; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;" class="glow">Награда готова</div>
+              <div style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 4px;">Sfumato · капучино</div>
+              <div style="font-size: 12px; color: rgba(244,244,242,.55);">Покажите баристе на кассе</div>
+
+              <div style="margin-top: 28px; padding: 24px; border-radius: 24px; background: #FAFAF9; color: #0E0F11; position: relative; overflow: hidden;">
+                <div class="qr-scan"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                  <div>
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(14,15,17,.5); letter-spacing: 0.14em;">STAMPY · REWARD</div>
+                    <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px;">SFM · 6F42A</div>
+                  </div>
+                  <div style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(160deg,#F4B94A,#E89728);"></div>
+                </div>
+                <!-- QR -->
+                <div style="width: 100%; aspect-ratio: 1; background:
+                  radial-gradient(circle at 12% 12%, #0E0F11 5%, transparent 6%) 0 0/22px 22px,
+                  radial-gradient(circle at 88% 12%, #0E0F11 5%, transparent 6%) 0 0/22px 22px,
+                  linear-gradient(45deg, #0E0F11 25%, transparent 25%) 0 0/12px 12px,
+                  linear-gradient(-45deg, #0E0F11 25%, transparent 25%) 0 0/12px 12px,
+                  #FAFAF9; border-radius: 12px; position: relative;">
+                  <!-- corner markers -->
+                  <div style="position: absolute; top: 8px; left: 8px; width: 28px; height: 28px; border: 4px solid #0E0F11; border-radius: 6px;"><div style="width: 8px; height: 8px; background: #0E0F11; margin: 6px;"></div></div>
+                  <div style="position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 4px solid #0E0F11; border-radius: 6px;"><div style="width: 8px; height: 8px; background: #0E0F11; margin: 6px;"></div></div>
+                  <div style="position: absolute; bottom: 8px; left: 8px; width: 28px; height: 28px; border: 4px solid #0E0F11; border-radius: 6px;"><div style="width: 8px; height: 8px; background: #0E0F11; margin: 6px;"></div></div>
+                </div>
+                <div style="text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(14,15,17,.55); letter-spacing: 0.14em; margin-top: 14px;">действует 15:00 мин</div>
+              </div>
+
+              <div style="margin-top: auto; margin-bottom: 40px; display: flex; gap: 10px;">
+                <button style="flex: 1; padding: 14px; border-radius: 999px; background: #F4F4F2; color: #0E0F11; font-size: 14px; font-weight: 600; border: none; font-family: inherit;">Показать</button>
+                <button style="padding: 14px 18px; border-radius: 999px; background: transparent; color: #F4F4F2; font-size: 14px; font-weight: 500; border: 1px solid rgba(255,255,255,.14); font-family: inherit;">Позже</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Home indicator -->
+          <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 128px; height: 4px; border-radius: 999px; background: rgba(244,244,242,.6); z-index: 20;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: activity feed -->
+    <div>
+      <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 18px;">Событий за сегодня</div>
+      <div style="font-size: 40px; font-weight: 600; letter-spacing: -0.035em; line-height: 1;">142</div>
+      <div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 6px; margin-bottom: 28px;">штампов и наград по всем кофейням</div>
+
+      <div data-feed style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div style="max-width: 1360px; margin: 72px auto 0; padding: 20px 0; border-top: 1px solid rgba(255,255,255,.06); border-bottom: 1px solid rgba(255,255,255,.06); overflow: hidden; position: relative;">
+    <div class="ticker-track" style="white-space: nowrap; font-size: 14px; font-weight: 500; color: rgba(244,244,242,.5); letter-spacing: -0.01em;">
+      <span style="display: inline-flex; align-items: center; gap: 48px;">
+        <span>Sfumato</span><span style="font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .15em; font-size: 12px;">CHINOR</span><span style="font-style: italic; font-weight: 400;">Broadway Roasters</span><span style="font-weight: 600; letter-spacing: -.02em;">Nur Café</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">Milk &amp; Honey</span><span style="letter-spacing: .05em;">Cezve Coffee</span><span>Kofema</span><span style="font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .15em; font-size: 12px;">BONJUR</span>
+        <span>Sfumato</span><span style="font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .15em; font-size: 12px;">CHINOR</span><span style="font-style: italic; font-weight: 400;">Broadway Roasters</span><span style="font-weight: 600; letter-spacing: -.02em;">Nur Café</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">Milk &amp; Honey</span><span style="letter-spacing: .05em;">Cezve Coffee</span><span>Kofema</span><span style="font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .15em; font-size: 12px;">BONJUR</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Footer note -->
+  <div style="max-width: 1360px; margin: 32px auto 0; display: flex; align-items: center; justify-content: space-between; gap: 24px;">
+    <div style="font-size: 12px; color: rgba(244,244,242,.42);">Автопоказ каждые 2.6 сек · нажмите на карту, чтобы взять управление</div>
+    <div style="display: flex; gap: 10px;">
+      <button data-toggle-play class="btn btn-ghost" style="font-family: inherit; cursor: pointer;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        Пауза
+      </button>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    const root = document;
+    // ---- Wallet auto-cycle ----
+    const wallet = root.querySelector('[data-wallet]');
+    const cards = [...wallet.querySelectorAll('.w-card[data-card]')];
+    const pouch = wallet.querySelector('[data-pouch]');
+    const pouchKicker = wallet.querySelector('[data-pouch-kicker]');
+    const pouchTitle = wallet.querySelector('[data-pouch-title]');
+    const pouchStamps = wallet.querySelector('[data-pouch-stamps]');
+    const pouchMetric = wallet.querySelector('[data-pouch-metric]');
+    const pouchHint = wallet.querySelector('[data-pouch-hint]');
+    const pouchChip = wallet.querySelector('[data-pouch-chip]');
+    const activeLabel = root.querySelector('[data-active-label]');
+    const activeBar = root.querySelector('[data-active-bar]');
+    const activeRemain = root.querySelector('[data-active-remain]');
+
+    // order[0..2] = back stack pos-0,pos-1,pos-2 (visual)
+    let order = cards.map((_, i) => i);
+    let playing = true;
+    let timer;
+
+    const HINTS = {
+      broadway: 'Broadway · 4-й латте бесплатно',
+      chinor: 'Chinor · капучино за счёт заведения',
+      sfumato: 'Sfumato · капучино в подарок'
+    };
+
+    function renderPouch() {
+      const topEl = cards[order[order.length - 1]];
+      const key = topEl.dataset.card;
+      const count = +topEl.dataset.count;
+      const total = +topEl.dataset.total;
+      const ready = topEl.dataset.ready === '1';
+      pouchKicker.textContent = topEl.dataset.title;
+      pouchTitle.textContent = ready ? 'Награда готова' : 'Активная карта';
+      pouchMetric.textContent = ready ? '★ 6 / 6' : (count + ' / ' + total);
+      pouchHint.textContent = HINTS[key] || '';
+      pouchChip.style.display = ready ? '' : 'none';
+      // stamps
+      pouchStamps.innerHTML = '';
+      for (let i = 0; i < total; i++) {
+        const d = document.createElement('div');
+        d.className = 'stamp' + (i < count ? ' on' : '');
+        d.style.animationDelay = (i * 40) + 'ms';
+        pouchStamps.appendChild(d);
+      }
+      // side caption
+      activeLabel.textContent = topEl.dataset.title;
+      activeBar.style.setProperty('--w', Math.round((count / total) * 100) + '%');
+      activeBar.style.animation = 'none';
+      void activeBar.offsetWidth;
+      activeBar.style.animation = '';
+      activeRemain.textContent = ready ? 'Готово' : (total - count) + ' штампа';
+      // pouch fade lines
+      pouch.querySelectorAll('.pouch-line').forEach((el, i) => {
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = 'fadeIn .5s cubic-bezier(0.16,1,0.3,1) both';
+        el.style.animationDelay = (i * 60) + 'ms';
+      });
+    }
+
+    function layout() {
+      order.forEach((cardIdx, pos) => {
+        const el = cards[cardIdx];
+        el.classList.remove('pos-0', 'pos-1', 'pos-2', 'pos-3');
+        el.classList.add('pos-' + pos);
+      });
+      renderPouch();
+    }
+
+    function cycle() {
+      // move first (back) to front
+      const first = order.shift();
+      order.push(first);
+      layout();
+    }
+
+    function bringToFront(idx) {
+      const at = order.indexOf(idx);
+      if (at === order.length - 1) return;
+      order.splice(at, 1);
+      order.push(idx);
+      layout();
+    }
+
+    function schedule() {
+      clearInterval(timer);
+      if (playing) timer = setInterval(cycle, 2600);
+    }
+
+    cards.forEach((c, i) => {
+      c.addEventListener('click', () => {
+        bringToFront(i);
+        playing = false;
+        updatePlayBtn();
+        schedule();
+      });
+    });
+
+    // Bootstrap: start with sfumato on top (matches screenshot)
+    order = [0, 1, 2]; // broadway, chinor, sfumato
+    layout();
+    schedule();
+
+    // ---- Play toggle ----
+    const playBtn = root.querySelector('[data-toggle-play]');
+    function updatePlayBtn() {
+      playBtn.innerHTML = playing
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg> Пауза'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Играть';
+    }
+    playBtn.addEventListener('click', () => {
+      playing = !playing;
+      updatePlayBtn();
+      schedule();
+    });
+
+    // ---- Screen switching ----
+    const scrs = [...root.querySelectorAll('.scr')];
+    const tabs = [...root.querySelectorAll('[data-scr-tabs] button')];
+    const titleEl = root.querySelector('[data-anim-title]');
+    const subEl = root.querySelector('[data-anim-sub]');
+    const COPY = {
+      wallet: ['Все карты — в одной ленте.', 'Broadway, Chinor и Sfumato живут в одном месте. Активная карта опускается вниз — прогресс, награда и следующий штамп у неё под рукой.'],
+      tap: ['Касание — вход.', 'Никаких установок и регистраций. Гость подносит телефон к NFC-метке у кассы — карта открывается прямо в Telegram.'],
+      stamp: ['Штамп — в реальном времени.', 'Бариста подтверждает покупку в панели — штамп появляется на карте гостя мгновенно, с мягкой анимацией.'],
+      reward: ['Награда — QR у стойки.', 'Собран шестой штамп — гость показывает одноразовый код у кассы. Списание — на месте, без ручного ввода.']
+    };
+    function go(name) {
+      scrs.forEach(s => s.classList.toggle('on', s.dataset.scr === name));
+      tabs.forEach(b => b.classList.toggle('active', b.dataset.go === name));
+      const [t, s] = COPY[name];
+      titleEl.style.animation = 'none'; subEl.style.animation = 'none';
+      void titleEl.offsetWidth;
+      titleEl.textContent = t; subEl.textContent = s;
+      titleEl.style.animation = 'fadeIn .5s cubic-bezier(0.16,1,0.3,1) both';
+      subEl.style.animation = 'fadeIn .5s cubic-bezier(0.16,1,0.3,1) both';
+      subEl.style.animationDelay = '80ms';
+    }
+    tabs.forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+
+    // ---- Stamp screen: fill on entry ----
+    const stampGrid = root.querySelector('[data-stamp-grid]');
+    const stampCount = root.querySelector('[data-stamp-count]');
+    const stampRemain = root.querySelector('[data-stamp-remain]');
+    function renderStampScreen() {
+      stampGrid.innerHTML = '';
+      for (let i = 0; i < 6; i++) {
+        const d = document.createElement('div');
+        d.className = 'stamp';
+        d.style.animationDelay = (i * 90) + 'ms';
+        if (i < 5) setTimeout(() => d.classList.add('on'), 200 + i * 130);
+        stampGrid.appendChild(d);
+      }
+      stampCount.textContent = '5 / 6';
+      stampRemain.textContent = '1';
+    }
+    // observe when stamp scr becomes active
+    const stampScr = root.querySelector('[data-scr="stamp"]');
+    const mo = new MutationObserver(() => { if (stampScr.classList.contains('on')) renderStampScreen(); });
+    mo.observe(stampScr, { attributes: true, attributeFilter: ['class'] });
+
+    // ---- Activity feed ----
+    const feed = root.querySelector('[data-feed]');
+    const events = [
+      { t: '2 мин', k: 'Штамп', c: 'Sfumato', color: '#F4B94A', name: 'Азиза К.' },
+      { t: '5 мин', k: 'Награда', c: 'Chinor', color: '#E85D45', name: 'Тимур Р.' },
+      { t: '11 мин', k: 'Новая карта', c: 'Broadway', color: '#7BA5FF', name: 'Марат Ю.' },
+      { t: '18 мин', k: 'Штамп', c: 'Sfumato', color: '#F4B94A', name: 'Диана А.' },
+      { t: '26 мин', k: 'Штамп', c: 'Chinor', color: '#E85D45', name: 'Санжар Б.' }
+    ];
+    function renderFeed() {
+      feed.innerHTML = '';
+      events.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);animation:fadeIn .5s cubic-bezier(0.16,1,0.3,1) both;animation-delay:' + (i * 80) + 'ms';
+        row.innerHTML = '<div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(160deg,' + e.color + ',rgba(0,0,0,.3));flex-shrink:0;"></div>' +
+          '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;letter-spacing:-.01em;">' + e.k + ' · ' + e.c + '</div><div style="font-size:11px;color:rgba(244,244,242,.5);margin-top:2px;">' + e.name + ' · ' + e.t + '</div></div>';
+        feed.appendChild(row);
+      });
+    }
+    renderFeed();
+    // rotate feed periodically
+    setInterval(() => {
+      events.unshift(events.pop());
+      renderFeed();
+    }, 5200);
+  }
+}
+</script>
+</body>
+</html>

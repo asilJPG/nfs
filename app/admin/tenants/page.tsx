@@ -21,5 +21,13 @@ export default async function TenantsPage() {
     tenant_name: kit.stampy_tenants?.name ?? "—",
   }));
 
-  return <TenantsPanel tenants={(tenants ?? []) as TenantSummary[]} kits={kitRows} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">Кофейни</h1>
+        <p className="page-subtitle">Подписки, тарифы и заявки на NFC-комплекты</p>
+      </header>
+      <TenantsPanel tenants={(tenants ?? []) as TenantSummary[]} kits={kitRows} />
+    </div>
+  );
 }

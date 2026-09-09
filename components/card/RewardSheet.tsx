@@ -119,7 +119,8 @@ export function RewardSheet({ reward, venueName, initData, onClose }: Props) {
 
         {phase.step === "qr" && (
           <div>
-            <div className="mx-auto my-3 size-56 rounded-[24px] bg-[#FAFAF9] p-3 shadow-[0_20px_40px_-20px_rgba(91,141,239,0.3)]">
+            <div className="mx-auto my-3 size-56 rounded-[24px] bg-[#FAFAF9] p-3 shadow-[0_20px_40px_-20px_rgba(91,141,239,0.3)] relative overflow-hidden">
+              <div className="qr-scan" />
               <img src={phase.dataUrl} alt="QR Code" className="w-full h-full object-contain rounded-xl" />
             </div>
 

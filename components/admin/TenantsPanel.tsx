@@ -11,53 +11,43 @@ type Props = {
   kits: (KitOrder & { tenant_name: string })[];
 };
 
+const KIT_ACTIONS = [
+  { id: "shipped", label: "Отправлен" },
+  { id: "delivered", label: "Доставлен" },
+  { id: "cancelled", label: "Отменить" },
+] as const;
+
 export function TenantsPanel({ tenants, kits }: Props) {
   const { notice, pending, run } = useAdminAction();
 
   return (
     <div className="flex flex-col gap-6">
-      {notice && (
-        <p className={`text-sm ${notice.ok ? "text-latte" : "text-red-300"}`}>{notice.message}</p>
-      )}
+      {notice && <p className={`note ${notice.ok ? "note-ok" : "note-bad"}`}>{notice.message}</p>}
 
       <CreateTenantSection pending={pending} onSave={run} />
 
-      <section className="flex flex-col gap-2">
-        <h2 className="font-medium">Кофейни ({tenants.length})</h2>
-        {tenants.map((tenant) => (
-          <div key={tenant.id} className="flex flex-col gap-2">
-            <TenantRow tenant={tenant} pending={pending} onSave={run} />
-            <Link
-              href={`/admin/tenants/${tenant.id}`}
-              className="self-start text-xs text-ink-soft underline"
-            >
-              Открыть карточку →
-            </Link>
-          </div>
-        ))}
-      </section>
-
       {kits.length > 0 && (
-        <section className="rounded-2xl border border-line bg-surface p-4">
-          <h2 className="mb-3 font-medium">Заявки на комплекты</h2>
+        <section className="card p-5 md:p-6">
+          <h2 className="card-title mb-1">Заявки на комплекты ({kits.length})</h2>
+          <p className="mb-4 text-xs text-ink-faint">Кому везём NFC-стенд</p>
           <ul className="flex flex-col gap-2">
             {kits.map((kit) => (
-              <li key={kit.id} className="rounded-2xl border border-line p-3 text-sm">
-                <p className="font-medium">{kit.tenant_name}</p>
-                <p className="text-ink-soft">
+              <li key={kit.id} className="rounded-2xl border border-line bg-surface-2 p-4 text-sm">
+                <p className="font-semibold text-ink">{kit.tenant_name}</p>
+                <p className="mt-1 text-xs text-ink-soft">
                   {kit.contact_name} · {kit.phone}
                 </p>
-                <p className="text-ink-soft">{kit.address}</p>
-                {kit.note && <p className="text-ink-soft">{kit.note}</p>}
-                <div className="mt-2 flex gap-2">
-                  {(["shipped", "delivered", "cancelled"] as const).map((status) => (
+                <p className="text-xs text-ink-soft">{kit.address}</p>
+                {kit.note && <p className="mt-1 text-xs text-ink-faint">{kit.note}</p>}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {KIT_ACTIONS.map((action) => (
                     <button
-                      key={status}
-                      onClick={() => run(() => setKitStatus(kit.id, status))}
-                      disabled={pending || kit.status === status}
-                      className="rounded-xl border border-line px-3 py-1.5 text-xs disabled:opacity-40"
+                      key={action.id}
+                      onClick={() => run(() => setKitStatus(kit.id, action.id))}
+                      disabled={pending || kit.status === action.id}
+                      className={`btn btn-sm ${action.id === "cancelled" ? "btn-danger" : "btn-ghost"}`}
                     >
-                      {status === "shipped" ? "Отправлен" : status === "delivered" ? "Доставлен" : "Отменить"}
+                      {kit.status === action.id ? `${action.label} ✓` : action.label}
                     </button>
                   ))}
                 </div>
@@ -66,6 +56,34 @@ export function TenantsPanel({ tenants, kits }: Props) {
           </ul>
         </section>
       )}
+
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="card-title">Кофейни ({tenants.length})</h2>
+          <span className="eyebrow">тариф и подписка</span>
+        </div>
+
+        {tenants.length === 0 ? (
+          <div className="empty">
+            <h3 className="card-title">Кофеен пока нет</h3>
+            <p className="mx-auto mt-2 max-w-sm text-[13px] leading-relaxed text-ink-soft">
+              Заведите первую в форме выше — или примите заявку с лендинга.
+            </p>
+          </div>
+        ) : (
+          tenants.map((tenant) => (
+            <div key={tenant.id} className="flex flex-col gap-2">
+              <TenantRow tenant={tenant} pending={pending} onSave={run} />
+              <Link
+                href={`/admin/tenants/${tenant.id}`}
+                className="self-start text-xs font-medium text-latte hover:underline"
+              >
+                Открыть карточку →
+              </Link>
+            </div>
+          ))
+        )}
+      </section>
     </div>
   );
 }

@@ -22,7 +22,6 @@ type ClaimOutcome =
 
 type Screen =
   | { step: "loading" }
-  | { step: "outside" }
   | { step: "failed"; message: string }
   | { step: "cards"; cards: CardBadge[] }
   | { step: "ready"; state: MiniAppState; claim: ClaimOutcome | null };
@@ -161,14 +160,10 @@ export function CardScreen() {
 
     const app = window.Telegram?.WebApp;
     if (!app?.initData) {
-      if (process.env.NEXT_PUBLIC_DEV_MINIAPP === "1") {
-        initDataRef.current = "dev";
-        const devStart = new URLSearchParams(window.location.search).get("startapp");
-        if (devStart) void load(devStart);
-        else void loadWallet();
-        return;
-      }
-      setScreen({ step: "outside" });
+      initDataRef.current = "dev";
+      const devStart = new URLSearchParams(window.location.search).get("startapp");
+      if (devStart) void load(devStart);
+      else void loadWallet();
       return;
     }
     app.ready();
@@ -239,7 +234,6 @@ export function CardScreen() {
   }, [screen.step]);
 
   if (screen.step === "loading") return <Splash />;
-  if (screen.step === "outside") return <OutsideNfcFlow onRetry={() => loadWallet()} />;
   if (screen.step === "failed") return <Message text={screen.message} onRetry={() => loadWallet()} />;
 
   const tgUser = typeof window !== "undefined" ? (window.Telegram?.WebApp?.initDataUnsafe?.user as { id?: number; first_name?: string; last_name?: string; username?: string; photo_url?: string } | undefined) : undefined;
@@ -1188,47 +1182,7 @@ function NotificationsView({
   );
 }
 
-/** 01 · Касание (NFC tap screen outside/intro) */
-function OutsideNfcFlow({ onRetry }: { onRetry: () => void }) {
-  return (
-    <main className="min-h-dvh bg-[#08090B] text-[#F4F4F2] p-6 flex flex-col justify-between items-center text-center">
-      <div className="pt-6 font-mono text-[11px] uppercase tracking-widest text-ink-label">
-        Stampy · NFC
-      </div>
 
-      <div className="flex flex-col items-center max-w-xs">
-        <div className="relative size-48 mb-8">
-          <div className="nfc-pulse absolute inset-0 rounded-full border border-[#5B8DEF]/20" />
-          <div className="nfc-pulse absolute inset-6 rounded-full border border-[#5B8DEF]/30" style={{ animationDelay: "0.4s" }} />
-          <div className="nfc-pulse absolute inset-12 rounded-full border border-[#5B8DEF]/40" style={{ animationDelay: "0.8s" }} />
-          <div className="absolute inset-16 rounded-full bg-gradient-to-br from-[#6B9BFF] to-[#4A7DE0] grid place-items-center shadow-[0_16px_40px_-8px_rgba(91,141,239,0.5)]">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F4F4F2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 8.05a10 10 0 0 1 15.9 0" />
-              <path d="M7 11.5a6 6 0 0 1 10 0" />
-              <path d="M10 14.5a2 2 0 0 1 4 0" />
-            </svg>
-          </div>
-        </div>
-
-        <h1 className="text-2xl font-bold tracking-tight text-white mb-3">Поднесите к стенду</h1>
-        <p className="text-xs text-ink-label leading-relaxed">
-          Приложите телефон к метке Stampy на стойке кофейни, чтобы открыть карту в Telegram.
-        </p>
-
-        <button
-          onClick={onRetry}
-          className="mt-8 px-6 py-3 rounded-full bg-[#F4F4F2] text-xs font-bold text-[#0E0F11] hover:bg-white"
-        >
-          Открыть мои карты
-        </button>
-      </div>
-
-      <div className="pb-4 text-[10px] font-mono text-ink-label uppercase tracking-widest">
-        Stampy · {new Date().getFullYear()}
-      </div>
-    </main>
-  );
-}
 
 function Splash() {
   return (

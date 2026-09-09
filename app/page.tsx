@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PLAN_CARDS } from "@/lib/plan";
+import { StampyLivePreview } from "@/components/landing/StampyLivePreview";
 
 export const dynamic = "force-static";
 
@@ -21,6 +22,7 @@ export default function LandingPage() {
 
           <nav className="hidden md:flex items-center gap-7 text-xs text-ink-label font-medium">
             <a href="#how" className="hover:text-[#5B8DEF] transition-colors">Как это работает</a>
+            <a href="#live-preview" className="hover:text-[#5B8DEF] transition-colors">Интерфейс</a>
             <a href="#guests" className="hover:text-[#5B8DEF] transition-colors">Гостям</a>
             <a href="#cafes" className="hover:text-[#5B8DEF] transition-colors">Кофейням</a>
             <a href="#preview" className="hover:text-[#5B8DEF] transition-colors">Панель бариста</a>
@@ -256,6 +258,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ============ LIVE MINI APP PREVIEW (from StampyLivePreview.dc.html) ============ */}
+      <StampyLivePreview />
 
       {/* ============ FOR GUESTS & CAFES ============ */}
       <section className="bg-[#F0EFEC] text-carbon py-24 sm:py-32 border-t border-black/[0.04]">

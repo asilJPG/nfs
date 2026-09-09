@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-feature-settings: 'ss01','cv11','cv02'; -webkit-font-smoothing: antialiased; background: #08090B; color: #F4F4F2; }
+  a { color: inherit; text-decoration: none; }
+  a:hover { color: #5B8DEF; }
+  ::selection { background: rgba(91,141,239,.32); }
+
+  @keyframes ringPulse { 0% { transform: scale(.6); opacity: .5; } 100% { transform: scale(2.2); opacity: 0; } }
+  @keyframes nfcDot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.75); opacity: .6; } }
+  @keyframes floatY { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes glow { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+  @keyframes qrScan { 0% { top: 4%; } 100% { top: 96%; } }
+  @keyframes stampIn { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+  @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+  @keyframes cardHover { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-3px) rotate(var(--r,0deg)); } }
+  @keyframes chipShift { 0%,100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+  @keyframes fillDot { from { background: transparent; border-color: rgba(255,255,255,.18); } to { background: #5B8DEF; border-color: #5B8DEF; } }
+
+  .ring { position: absolute; inset: 0; border-radius: 999px; border: 1px solid rgba(91,141,239,.35); animation: ringPulse 3.6s cubic-bezier(0.16,1,0.3,1) infinite; }
+  .ring.d2 { animation-delay: 1.2s; }
+  .ring.d3 { animation-delay: 2.4s; }
+  .nfc-dot { animation: nfcDot 1.6s ease-in-out infinite; }
+  .float { animation: floatY 3.6s ease-in-out infinite; }
+  .glow { animation: glow 3.2s ease-in-out infinite; }
+
+  /* Phone shell */
+  .phone { position: relative; width: 320px; height: 660px; border-radius: 44px; padding: 8px; background: #1B1E27; box-shadow: 0 40px 80px -20px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.05), inset 0 0 0 1px rgba(255,255,255,.02); flex-shrink: 0; }
+  .phone::before { content: ''; position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 90px; height: 24px; border-radius: 999px; background: #08090B; z-index: 20; }
+  .scr { position: relative; width: 100%; height: 100%; border-radius: 36px; overflow: hidden; background: #0E0F11; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 46px; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 26px 6px; font-size: 12px; font-weight: 600; z-index: 15; }
+  .home { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); width: 108px; height: 4px; border-radius: 999px; background: rgba(244,244,242,.6); z-index: 20; }
+  .body { padding: 58px 20px 40px; height: 100%; position: relative; overflow: hidden; }
+
+  /* Card grid stamp */
+  .stamp { width: 100%; aspect-ratio: 1; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); }
+  .stamp.on { background: #5B8DEF; border-color: #5B8DEF; }
+  .stamp.on.anim { animation: stampIn .5s cubic-bezier(0.16,1,0.3,1) both; }
+  .stamp.on.anim:nth-child(1){animation-delay:.05s}.stamp.on.anim:nth-child(2){animation-delay:.15s}.stamp.on.anim:nth-child(3){animation-delay:.25s}.stamp.on.anim:nth-child(4){animation-delay:.35s}.stamp.on.anim:nth-child(5){animation-delay:.45s}.stamp.on.anim:nth-child(6){animation-delay:.55s}
+
+  /* Screen frame block */
+  .frame { display: flex; flex-direction: column; gap: 20px; }
+  .frame-head { display: flex; align-items: baseline; gap: 10px; }
+  .frame-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(244,244,242,.4); letter-spacing: 0.14em; text-transform: uppercase; }
+  .frame-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+  .frame-desc { font-size: 12px; color: rgba(244,244,242,.55); line-height: 1.55; max-width: 320px; }
+  .tag { display: inline-block; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.55); text-transform: uppercase; letter-spacing: 0.14em; }
+
+  .w-card { position: absolute; width: 220px; height: 142px; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 18px 34px -10px rgba(0,0,0,.55); }
+  .qr-scan { position: absolute; left: 4%; right: 4%; height: 2px; background: linear-gradient(90deg, transparent, #5B8DEF, transparent); animation: qrScan 2.2s ease-in-out infinite alternate; }
+</style>
+</helmet>
+<meta name="design_doc_mode" content="canvas">
+
+<div style="min-width: 3200px; background: radial-gradient(ellipse at 20% 0%, rgba(91,141,239,.06), transparent 55%), #08090B; padding: 72px 80px 140px; font-family: 'Inter', sans-serif;">
+
+  <!-- Header -->
+  <div style="max-width: 3040px; margin: 0 auto 80px; display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,.08);">
+    <div>
+      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px;">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: #F4F4F2; display: grid; place-items: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E0F11" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v2M12 2v2M16 2v2M4 8h16v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M20 10h1a3 3 0 0 1 0 6h-1"/></svg>
+        </div>
+        <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.03em;">Stampy</div>
+        <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.1em; padding: 4px 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 999px;">Mini app · экраны · v1.0</div>
+      </div>
+      <h1 style="font-size: 44px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05; margin: 0 0 12px; max-width: 800px;">Полный набор экранов миниапки.</h1>
+      <p style="font-size: 15px; line-height: 1.6; color: rgba(244,244,242,.62); margin: 0; max-width: 640px;">Двенадцать состояний — от первого касания NFC до истории покупок. Каждый экран показан в реальном масштабе телефона с прописанными микро-анимациями. По этим макетам можно собирать прод.</p>
+    </div>
+    <div style="display: flex; gap: 32px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.1em;">
+      <div><div style="margin-bottom: 8px;">Формат</div><div style="color: #F4F4F2; font-size: 14px; font-family: 'Inter'; text-transform: none; letter-spacing: -0.01em;">390 × 844 · iPhone</div></div>
+      <div><div style="margin-bottom: 8px;">Шрифт</div><div style="color: #F4F4F2; font-size: 14px; font-family: 'Inter'; text-transform: none; letter-spacing: -0.01em;">Inter</div></div>
+      <div><div style="margin-bottom: 8px;">Акцент</div><div style="display: flex; align-items: center; gap: 8px;"><div style="width: 12px; height: 12px; border-radius: 3px; background: #5B8DEF;"></div><span style="color: #F4F4F2; font-size: 14px; font-family: 'Inter'; text-transform: none; letter-spacing: -0.01em;">#5B8DEF</span></div></div>
+    </div>
+  </div>
+
+  <!-- Row 1: Onboarding flow -->
+  <div style="max-width: 3040px; margin: 0 auto 80px;">
+    <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 32px;">
+      <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.12em;">01 · Первое касание</div>
+      <h2 style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em; margin: 0;">Открытие карты через NFC</h2>
+    </div>
+    <div style="display: flex; gap: 40px; overflow-x: auto; padding-bottom: 20px;">
+
+      <!-- 01. Splash -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body" style="display: grid; place-items: center;">
+            <div class="float" style="text-align: center;">
+              <div style="width: 88px; height: 88px; border-radius: 26px; background: #F4F4F2; display: grid; place-items: center; margin: 0 auto 28px; box-shadow: 0 20px 40px -12px rgba(255,255,255,.15);">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0E0F11" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v2M12 2v2M16 2v2M4 8h16v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"/><path d="M20 10h1a3 3 0 0 1 0 6h-1"/></svg>
+              </div>
+              <div style="font-size: 30px; font-weight: 600; letter-spacing: -0.03em;">Stampy</div>
+              <div style="font-size: 12px; color: rgba(244,244,242,.5); margin-top: 4px;">Кофейни Ташкента</div>
+            </div>
+            <div style="position: absolute; bottom: 60px; left: 20px; right: 20px;">
+              <div style="height: 3px; border-radius: 999px; background: rgba(255,255,255,.06); overflow: hidden; position: relative;">
+                <div style="position: absolute; inset: 0; width: 40%; background: #5B8DEF; border-radius: 999px;"></div>
+              </div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(244,244,242,.42); text-align: center; margin-top: 12px; letter-spacing: 0.14em;">ЗАГРУЗКА КОШЕЛЬКА</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">01</span><span class="frame-title">Открытие</span><span class="tag">1.2 сек</span></div>
+        <div class="frame-desc">Стартовый экран после запуска mini app. Плавно перетекает в следующий, как только Telegram отдаст токен.</div>
+      </div>
+
+      <!-- 02. NFC tap -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body" style="display: flex; flex-direction: column;">
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Коснитесь метки</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.42); margin-top: 4px;">Держите телефон рядом со стендом</div>
+            <div style="flex: 1; display: grid; place-items: center; position: relative;">
+              <div style="position: absolute; width: 240px; height: 240px;"><div class="ring"></div><div class="ring d2"></div><div class="ring d3"></div></div>
+              <div class="nfc-dot float" style="width: 120px; height: 120px; border-radius: 999px; background: radial-gradient(circle at 30% 30%, rgba(91,141,239,.35), rgba(91,141,239,.08) 70%); border: 1px solid rgba(91,141,239,.3); display: grid; place-items: center;">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#7BA5FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.05a10 10 0 0 1 15.9 0"/><path d="M7 11.5a6 6 0 0 1 10 0"/><path d="M10 14.5a2 2 0 0 1 4 0"/></svg>
+              </div>
+            </div>
+            <div style="padding: 16px; border-radius: 18px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); margin-bottom: 20px;">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.55); letter-spacing: 0.14em; margin-bottom: 6px;">ПОИСК МЕТКИ</div>
+              <div style="font-size: 13px; color: rgba(244,244,242,.8);">Приложите телефон к NFC-стенду у кассы</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">02</span><span class="frame-title">Поиск метки</span><span class="tag">анимация</span></div>
+        <div class="frame-desc">Три расходящихся кольца (3.6 сек, с шагом 1.2), пульсация иконки NFC.</div>
+      </div>
+
+      <!-- 03. Card found -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7BA5FF; letter-spacing: 0.14em; margin-bottom: 12px;">МЕТКА НАЙДЕНА</div>
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Sfumato</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 4px;">ул. Шота Руставели, 47 · Yakkasaray</div>
+
+            <div class="float" style="margin-top: 32px; --r: -2deg;">
+              <div style="width: 100%; aspect-ratio: 1.55; border-radius: 22px; background: linear-gradient(160deg,#F4B94A,#E89728); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 30px 60px -20px rgba(232,151,40,.5); transform: rotate(-2deg);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(20,15,10,.75); letter-spacing: 0.14em;">SFUMATO</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(20,15,10,.7);">новая</div>
+                </div>
+                <div>
+                  <div style="font-size: 26px; font-weight: 600; letter-spacing: -0.03em; color: #14100C; line-height: 1;">6 напитков</div>
+                  <div style="font-size: 12px; color: rgba(20,15,10,.75); margin-top: 6px;">7-й — за счёт заведения</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="position: absolute; bottom: 40px; left: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px;">
+              <button style="padding: 14px; border-radius: 999px; background: #F4F4F2; color: #0E0F11; font-size: 14px; font-weight: 600; border: none; font-family: inherit;">Добавить в кошелёк</button>
+              <button style="padding: 14px; border-radius: 999px; background: transparent; color: rgba(244,244,242,.7); font-size: 13px; border: none; font-family: inherit;">Не сейчас</button>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">03</span><span class="frame-title">Карта найдена</span><span class="tag">CTA</span></div>
+        <div class="frame-desc">Карта выезжает снизу с bounce (cubic-bezier 0.16,1,0.3,1, 550ms). Лёгкий float.</div>
+      </div>
+
+      <!-- 04. Card added celebration -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body" style="display: grid; place-items: center; text-align: center;">
+            <div style="position: absolute; width: 260px; height: 260px; top: 32%; left: 50%; transform: translate(-50%,-50%);">
+              <div class="ring"></div>
+              <div class="ring d2"></div>
+            </div>
+            <div>
+              <div class="glow" style="width: 84px; height: 84px; border-radius: 999px; background: #5B8DEF; display: grid; place-items: center; margin: 0 auto 24px; box-shadow: 0 20px 50px -10px rgba(91,141,239,.6);">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0E1424" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+              </div>
+              <div style="font-size: 26px; font-weight: 600; letter-spacing: -0.03em;">Готово</div>
+              <div style="font-size: 13px; color: rgba(244,244,242,.62); margin-top: 6px; max-width: 220px; line-height: 1.5;">Карта Sfumato в вашем кошельке. Первый штамп уже начислен.</div>
+
+              <div style="margin-top: 40px; padding: 16px; border-radius: 16px; background: rgba(91,141,239,.08); border: 1px solid rgba(91,141,239,.2); text-align: left;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(160deg,#F4B94A,#E89728);"></div>
+                  <div>
+                    <div style="font-size: 13px; font-weight: 500;">+1 штамп</div>
+                    <div style="font-size: 11px; color: rgba(244,244,242,.55); margin-top: 2px;">Sfumato · 1 / 6</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button style="position: absolute; bottom: 40px; left: 20px; right: 20px; padding: 14px; border-radius: 999px; background: #F4F4F2; color: #0E0F11; font-size: 14px; font-weight: 600; border: none; font-family: inherit;">К кошельку</button>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">04</span><span class="frame-title">Карта добавлена</span><span class="tag">success</span></div>
+        <div class="frame-desc">Пульс акцентного круга + расходящиеся кольца. Тост-нотификация о первом штампе.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Row 2: Wallet + card detail -->
+  <div style="max-width: 3040px; margin: 0 auto 80px;">
+    <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 32px;">
+      <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.12em;">02 · Основной поток</div>
+      <h2 style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em; margin: 0;">Кошелёк и карта</h2>
+    </div>
+    <div style="display: flex; gap: 40px; overflow-x: auto; padding-bottom: 20px;">
+
+      <!-- 05. Wallet fanned -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Мои карты</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.42); margin-top: 3px;">4 кофейни · <span style="color: #7BA5FF;">1 награда готова</span></div>
+            <div style="position: relative; height: 340px; margin-top: 32px; display: grid; place-items: center;">
+              <div class="w-card" style="background: linear-gradient(160deg,#7BA5FF,#4A7DE0); transform: translate(-64px,-108px) rotate(-14deg) scale(.94); z-index: 1;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(255,255,255,.85); text-transform: uppercase; letter-spacing: 0.14em;">Broadway</div>
+                <div><div style="font-size: 18px; font-weight: 600; color: #FAFAF9;">2 / 6</div><div style="font-size: 10px; color: rgba(255,255,255,.8); margin-top: 2px;">осталось 4</div></div>
+              </div>
+              <div class="w-card" style="background: linear-gradient(160deg,#E85D45,#C43A22); transform: translate(-22px,-82px) rotate(-6deg) scale(.97); z-index: 2;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(255,255,255,.9); text-transform: uppercase; letter-spacing: 0.14em;">Chinor</div>
+                <div><div style="font-size: 18px; font-weight: 600; color: #FAFAF9;">4 / 6</div><div style="font-size: 10px; color: rgba(255,255,255,.85); margin-top: 2px;">осталось 2</div></div>
+              </div>
+              <div class="w-card" style="background: linear-gradient(160deg,#F4B94A,#E89728); transform: translate(28px,-58px) rotate(6deg); z-index: 3;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(20,15,10,.75); text-transform: uppercase; letter-spacing: 0.14em;">Sfumato</div>
+                <div><div style="font-size: 18px; font-weight: 600; color: #14100C;">6 / 6</div><div style="font-size: 10px; color: rgba(20,15,10,.7); margin-top: 2px;">награда готова</div></div>
+              </div>
+              <div style="position: absolute; width: 264px; height: 178px; border-radius: 20px; background: rgba(20,22,29,.72); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); border: 1px solid rgba(255,255,255,.1); transform: translate(0, 42px); box-shadow: 0 30px 60px -14px rgba(0,0,0,.7); padding: 18px; z-index: 4;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.55); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 3px;">SFUMATO</div>
+                    <div style="font-size: 15px; font-weight: 600;">Награда готова</div>
+                  </div>
+                  <div style="width: 28px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); display: grid; place-items: center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F4F4F2" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+                </div>
+                <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(6,1fr); gap: 5px;"><div class="stamp on"></div><div class="stamp on"></div><div class="stamp on"></div><div class="stamp on"></div><div class="stamp on"></div><div class="stamp on"></div></div>
+                <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-top: 10px;">
+                  <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">★ 6 / 6</div>
+                  <div style="display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(91,141,239,.16); border: 1px solid rgba(91,141,239,.28); font-size: 10px; color: #7BA5FF; font-weight: 500; animation: chipShift 2.4s ease-in-out infinite;">Готово</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">05</span><span class="frame-title">Кошелёк · веер</span><span class="tag">home</span></div>
+        <div class="frame-desc">Веер из карт кофеен + стеклянный «кошелёк» с активной картой. Тап по любой — она приезжает вниз.</div>
+      </div>
+
+      <!-- 06. Card detail -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body" style="padding-top: 58px;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+              <div style="width: 28px; height: 28px; border-radius: 999px; background: rgba(255,255,255,.06); display: grid; place-items: center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F4F4F2" stroke-width="2.5" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg></div>
+              <div style="font-size: 13px; color: rgba(244,244,242,.6);">Кошелёк</div>
+            </div>
+            <div style="width: 100%; aspect-ratio: 1.55; border-radius: 20px; background: linear-gradient(160deg,#E85D45,#C43A22); padding: 18px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 30px 60px -20px rgba(196,58,34,.5);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,.9); letter-spacing: 0.14em;">CHINOR</div>
+                <div style="font-size: 11px; color: rgba(255,255,255,.85);">карта №0142</div>
+              </div>
+              <div><div style="font-size: 40px; font-weight: 600; letter-spacing: -0.035em; color: #FAFAF9; line-height: 1;">4 / 6</div><div style="font-size: 12px; color: rgba(255,255,255,.85); margin-top: 6px;">осталось 2 · до капучино</div></div>
+            </div>
+            <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(6,1fr); gap: 8px;"><div class="stamp on"></div><div class="stamp on"></div><div class="stamp on"></div><div class="stamp on"></div><div class="stamp"></div><div class="stamp"></div></div>
+
+            <div style="margin-top: 24px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.55); letter-spacing: 0.14em; margin-bottom: 8px;">ПРАВИЛА</div>
+              <div style="font-size: 12px; color: rgba(244,244,242,.7); line-height: 1.55;">6 напитков объёмом от 200 мл. Награда — капучино или флэт уайт. Действует бессрочно.</div>
+            </div>
+
+            <div style="margin-top: 12px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; justify-content: space-between;">
+              <div><div style="font-size: 12px; font-weight: 500;">Chinor · Мирабад</div><div style="font-size: 11px; color: rgba(244,244,242,.5); margin-top: 2px;">ул. Айбека, 12</div></div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(244,244,242,.5)" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">06</span><span class="frame-title">Карта · деталь</span></div>
+        <div class="frame-desc">Открывается через share element transition из веера. Правила, локация, история покупок ниже по скроллу.</div>
+      </div>
+
+      <!-- 07. Stamp received -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7BA5FF; letter-spacing: 0.14em; margin-bottom: 12px;" class="glow">+1 ШТАМП · ТОЛЬКО ЧТО</div>
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Chinor</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 3px;">Флэт уайт · 28 000 сум</div>
+            <div style="margin-top: 24px; padding: 20px; border-radius: 20px; background: linear-gradient(160deg,#E85D45,#C43A22); box-shadow: 0 30px 60px -20px rgba(196,58,34,.5);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(255,255,255,.9); letter-spacing: 0.14em;">CHINOR</div>
+                <div style="font-size: 11px; color: rgba(255,255,255,.85);">карта №0142</div>
+              </div>
+              <div style="font-size: 40px; font-weight: 600; letter-spacing: -0.035em; color: #FAFAF9; line-height: 1;">5 / 6</div>
+              <div style="font-size: 12px; color: rgba(255,255,255,.85); margin-top: 6px;">осталось 1</div>
+              <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(6,1fr); gap: 6px;"><div class="stamp on anim"></div><div class="stamp on anim"></div><div class="stamp on anim"></div><div class="stamp on anim"></div><div class="stamp on anim"></div><div class="stamp"></div></div>
+            </div>
+            <div style="margin-top: 20px; padding: 16px; border-radius: 16px; background: rgba(91,141,239,.08); border: 1px solid rgba(91,141,239,.2);">
+              <div style="font-size: 13px; font-weight: 500;">Ещё один — и капучино за счёт заведения.</div>
+              <div style="font-size: 11px; color: rgba(244,244,242,.6); margin-top: 4px;">Обычно вы возвращаетесь через 3 дня.</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">07</span><span class="frame-title">+1 штамп</span><span class="tag">анимация</span></div>
+        <div class="frame-desc">Штампы заполняются последовательно (100ms шаг, bounce). Kicker пульсирует.</div>
+      </div>
+
+      <!-- 08. Reward ready -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #F4B94A; letter-spacing: 0.14em; margin-bottom: 12px;" class="glow">НАГРАДА ГОТОВА</div>
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Sfumato · капучино</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 3px;">Покажите баристе на кассе</div>
+
+            <div class="float" style="margin-top: 28px;">
+              <div style="width: 100%; aspect-ratio: 1.55; border-radius: 22px; background: linear-gradient(160deg,#F4B94A,#E89728); padding: 20px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 30px 60px -20px rgba(232,151,40,.6); position: relative; overflow: hidden;">
+                <div style="position: absolute; inset: 0; background: linear-gradient(115deg, transparent 40%, rgba(255,255,255,.35) 50%, transparent 60%); animation: shimmer 3s ease-in-out infinite;"></div>
+                <div style="position: relative; display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(20,15,10,.75); letter-spacing: 0.14em;">SFUMATO · REWARD</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(20,15,10,.7);">★</div>
+                </div>
+                <div style="position: relative;">
+                  <div style="font-size: 32px; font-weight: 600; letter-spacing: -0.03em; color: #14100C; line-height: 1;">Капучино</div>
+                  <div style="font-size: 12px; color: rgba(20,15,10,.75); margin-top: 6px;">за счёт заведения</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="position: absolute; bottom: 40px; left: 20px; right: 20px; display: flex; gap: 10px;">
+              <button style="flex: 1; padding: 14px; border-radius: 999px; background: #F4F4F2; color: #0E0F11; font-size: 14px; font-weight: 600; border: none; font-family: inherit;">Получить</button>
+              <button style="padding: 14px 18px; border-radius: 999px; background: transparent; color: #F4F4F2; font-size: 14px; font-weight: 500; border: 1px solid rgba(255,255,255,.14); font-family: inherit;">Позже</button>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">08</span><span class="frame-title">Награда готова</span></div>
+        <div class="frame-desc">Shimmer-блик 3s. Karta float. Kicker дышит.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Row 3: Redeem + history + profile + empty -->
+  <div style="max-width: 3040px; margin: 0 auto 80px;">
+    <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 32px;">
+      <div style="font-size: 11px; font-family: 'JetBrains Mono', monospace; color: rgba(244,244,242,.42); text-transform: uppercase; letter-spacing: 0.12em;">03 · Второстепенные</div>
+      <h2 style="font-size: 15px; font-weight: 500; letter-spacing: -0.01em; margin: 0;">Погашение, история, профиль, пусто</h2>
+    </div>
+    <div style="display: flex; gap: 40px; overflow-x: auto; padding-bottom: 20px;">
+
+      <!-- 09. QR redeem -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #F4B94A; letter-spacing: 0.14em; margin-bottom: 12px;" class="glow">КОД ДЛЯ БАРИСТА</div>
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Sfumato · капучино</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 3px;">Одноразовый · действует 15 мин</div>
+
+            <div style="margin-top: 24px; padding: 20px; border-radius: 22px; background: #FAFAF9; color: #0E0F11; position: relative; overflow: hidden;">
+              <div class="qr-scan"></div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+                <div>
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: rgba(14,15,17,.5); letter-spacing: 0.14em;">STAMPY · REWARD</div>
+                  <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px;">SFM · 6F42A</div>
+                </div>
+                <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(160deg,#F4B94A,#E89728);"></div>
+              </div>
+              <div style="width: 100%; aspect-ratio: 1; background: linear-gradient(45deg, #0E0F11 25%, transparent 25%) 0 0/10px 10px, linear-gradient(-45deg, #0E0F11 25%, transparent 25%) 0 0/10px 10px, #FAFAF9; border-radius: 10px; position: relative;">
+                <div style="position: absolute; top: 6px; left: 6px; width: 26px; height: 26px; border: 4px solid #0E0F11; border-radius: 6px;"><div style="width: 8px; height: 8px; background: #0E0F11; margin: 5px;"></div></div>
+                <div style="position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border: 4px solid #0E0F11; border-radius: 6px;"><div style="width: 8px; height: 8px; background: #0E0F11; margin: 5px;"></div></div>
+                <div style="position: absolute; bottom: 6px; left: 6px; width: 26px; height: 26px; border: 4px solid #0E0F11; border-radius: 6px;"><div style="width: 8px; height: 8px; background: #0E0F11; margin: 5px;"></div></div>
+              </div>
+              <div style="text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(14,15,17,.55); letter-spacing: 0.14em; margin-top: 12px;">14:32 ДО ИСТЕЧЕНИЯ</div>
+            </div>
+
+            <div style="position: absolute; bottom: 40px; left: 20px; right: 20px; padding: 14px 18px; border-radius: 16px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 12px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7BA5FF" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <div style="font-size: 12px; color: rgba(244,244,242,.7);">Не показывайте код никому, кроме бариста</div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">09</span><span class="frame-title">QR-код</span><span class="tag">redeem</span></div>
+        <div class="frame-desc">Сканирующая полоса ходит вверх-вниз (2.2s). Таймер тикает.</div>
+      </div>
+
+      <!-- 10. History -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">История</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.42); margin-top: 3px;">42 штампа · 3 награды за месяц</div>
+
+            <div style="margin-top: 20px; display: flex; gap: 6px;">
+              <button style="padding: 7px 12px; border-radius: 999px; background: #F4F4F2; color: #0E0F11; font-size: 11px; font-weight: 500; border: none; font-family: inherit;">Все</button>
+              <button style="padding: 7px 12px; border-radius: 999px; background: transparent; color: rgba(244,244,242,.6); font-size: 11px; border: 1px solid rgba(255,255,255,.1); font-family: inherit;">Штампы</button>
+              <button style="padding: 7px 12px; border-radius: 999px; background: transparent; color: rgba(244,244,242,.6); font-size: 11px; border: 1px solid rgba(255,255,255,.1); font-family: inherit;">Награды</button>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.4); letter-spacing: 0.14em; margin-bottom: 2px;">СЕГОДНЯ</div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);">
+                <div style="width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(160deg,#E85D45,#C43A22);"></div>
+                <div style="flex: 1;"><div style="font-size: 13px; font-weight: 500;">+1 штамп · Chinor</div><div style="font-size: 11px; color: rgba(244,244,242,.5); margin-top: 2px;">флэт уайт · 09:12</div></div>
+                <div style="font-size: 12px; color: rgba(244,244,242,.7);">5 / 6</div>
+              </div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: rgba(244,244,242,.4); letter-spacing: 0.14em; margin: 8px 0 2px;">ВЧЕРА</div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: rgba(244,185,74,.06); border: 1px solid rgba(244,185,74,.15);">
+                <div style="width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(160deg,#F4B94A,#E89728); display: grid; place-items: center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14100C" stroke-width="3" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4.5L6 21l1.5-7.5L2 9h7z"/></svg></div>
+                <div style="flex: 1;"><div style="font-size: 13px; font-weight: 500;">Награда · Sfumato</div><div style="font-size: 11px; color: rgba(244,244,242,.5); margin-top: 2px;">капучино · 16:45</div></div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #F4B94A;">★</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);">
+                <div style="width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(160deg,#7BA5FF,#4A7DE0);"></div>
+                <div style="flex: 1;"><div style="font-size: 13px; font-weight: 500;">+1 штамп · Broadway</div><div style="font-size: 11px; color: rgba(244,244,242,.5); margin-top: 2px;">латте · 11:20</div></div>
+                <div style="font-size: 12px; color: rgba(244,244,242,.7);">2 / 6</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);">
+                <div style="width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(160deg,#E85D45,#C43A22);"></div>
+                <div style="flex: 1;"><div style="font-size: 13px; font-weight: 500;">+1 штамп · Chinor</div><div style="font-size: 11px; color: rgba(244,244,242,.5); margin-top: 2px;">капучино · 08:05</div></div>
+                <div style="font-size: 12px; color: rgba(244,244,242,.7);">4 / 6</div>
+              </div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">10</span><span class="frame-title">История</span></div>
+        <div class="frame-desc">Секции по дням. Награды выделены золотым тоном.</div>
+      </div>
+
+      <!-- 11. Profile -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body">
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Профиль</div>
+            <div style="margin-top: 24px; padding: 20px; border-radius: 20px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 14px;">
+              <div style="width: 52px; height: 52px; border-radius: 999px; background: linear-gradient(160deg,#5B8DEF,#4A7DE0); display: grid; place-items: center; font-size: 20px; font-weight: 600;">Т</div>
+              <div><div style="font-size: 15px; font-weight: 600;">Тимур Р.</div><div style="font-size: 12px; color: rgba(244,244,242,.55); margin-top: 2px;">@timur_r · с марта 2025</div></div>
+            </div>
+
+            <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;">
+              <div style="padding: 14px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);"><div style="font-size: 22px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">4</div><div style="font-size: 10px; color: rgba(244,244,242,.55); margin-top: 6px;">карты</div></div>
+              <div style="padding: 14px; border-radius: 14px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);"><div style="font-size: 22px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">42</div><div style="font-size: 10px; color: rgba(244,244,242,.55); margin-top: 6px;">штампов</div></div>
+              <div style="padding: 14px; border-radius: 14px; background: rgba(244,185,74,.06); border: 1px solid rgba(244,185,74,.15);"><div style="font-size: 22px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; color: #F4B94A;">3</div><div style="font-size: 10px; color: rgba(244,244,242,.55); margin-top: 6px;">наград</div></div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; flex-direction: column;">
+              <div style="padding: 16px 4px; border-bottom: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; justify-content: space-between;"><div style="display: flex; align-items: center; gap: 12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(244,244,242,.6)" stroke-width="2.25" stroke-linecap="round"><path d="M15 17h5l-1.4-1.4A7 7 0 0 0 19 12V9a7 7 0 0 0-14 0v3a7 7 0 0 0 .4 3.6L4 17h5"/><path d="M9 17a3 3 0 0 0 6 0"/></svg><span style="font-size: 13px;">Уведомления</span></div><span style="font-size: 12px; color: #7BA5FF;">Награды</span></div>
+              <div style="padding: 16px 4px; border-bottom: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; justify-content: space-between;"><div style="display: flex; align-items: center; gap: 12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(244,244,242,.6)" stroke-width="2.25" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span style="font-size: 13px;">История</span></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(244,244,242,.4)" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>
+              <div style="padding: 16px 4px; border-bottom: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; justify-content: space-between;"><div style="display: flex; align-items: center; gap: 12px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(244,244,242,.6)" stroke-width="2.25" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span style="font-size: 13px;">Настройки</span></div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(244,244,242,.4)" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></div>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">11</span><span class="frame-title">Профиль</span></div>
+        <div class="frame-desc">Аватар из первой буквы имени. Статы три в ряд. Список настроек.</div>
+      </div>
+
+      <!-- 12. Empty state -->
+      <div class="frame">
+        <div class="phone"><div class="scr">
+          <div class="status"><span>9:41</span><span style="display:inline-flex;gap:4px;"><svg width="14" height="10" viewBox="0 0 14 10" fill="#F4F4F2"><rect x="0" y="6" width="2" height="4" rx=".5"/><rect x="4" y="4" width="2" height="6" rx=".5"/><rect x="8" y="2" width="2" height="8" rx=".5"/><rect x="12" y="0" width="2" height="10" rx=".5"/></svg><svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#F4F4F2" stroke-width="1.2"><rect x="1" y="1" width="10" height="8" rx="1.5"/><rect x="2.5" y="2.5" width="5" height="5" rx=".5" fill="#F4F4F2"/></svg></span></div>
+          <div class="body" style="display: flex; flex-direction: column;">
+            <div style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em;">Мои карты</div>
+            <div style="font-size: 12px; color: rgba(244,244,242,.42); margin-top: 3px;">Пока пусто</div>
+            <div style="flex: 1; display: grid; place-items: center; position: relative;">
+              <div style="position: relative; display: grid; place-items: center;">
+                <div style="width: 200px; height: 130px; border-radius: 18px; border: 1.5px dashed rgba(255,255,255,.12); position: absolute; transform: rotate(-8deg) translate(-30px,-14px);"></div>
+                <div style="width: 200px; height: 130px; border-radius: 18px; border: 1.5px dashed rgba(255,255,255,.16); position: absolute; transform: rotate(4deg) translate(20px, 8px);"></div>
+                <div class="float" style="width: 200px; height: 130px; border-radius: 18px; background: rgba(91,141,239,.06); border: 1px solid rgba(91,141,239,.2); display: grid; place-items: center;">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7BA5FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.05a10 10 0 0 1 15.9 0"/><path d="M7 11.5a6 6 0 0 1 10 0"/><path d="M10 14.5a2 2 0 0 1 4 0"/></svg>
+                </div>
+              </div>
+            </div>
+            <div style="text-align: center; margin-bottom: 60px;">
+              <div style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 6px;">Ни одной карты</div>
+              <div style="font-size: 13px; color: rgba(244,244,242,.55); line-height: 1.55; max-width: 240px; margin: 0 auto;">Поднесите телефон к NFC-стенду в любой кофейне-партнёре — карта появится здесь.</div>
+              <button style="margin-top: 20px; padding: 12px 20px; border-radius: 999px; background: transparent; color: #F4F4F2; font-size: 13px; border: 1px solid rgba(255,255,255,.14); font-family: inherit;">Где найти?</button>
+            </div>
+          </div>
+          <div class="home"></div>
+        </div></div>
+        <div class="frame-head"><span class="frame-num">12</span><span class="frame-title">Пустой кошелёк</span></div>
+        <div class="frame-desc">Три «призрачные» карты — намёк на веер. NFC-иконка внутри слегка плавает.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Motion spec strip -->
+  <div style="max-width: 3040px; margin: 0 auto; padding: 32px; border-radius: 24px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: rgba(244,244,242,.42); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 24px;">Спецификация движения</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px;">
+      <div><div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Easing</div><div style="font-size: 12px; color: rgba(244,244,242,.6); line-height: 1.55; font-family: 'JetBrains Mono', monospace;">cubic-bezier(0.16, 1, 0.3, 1)</div><div style="font-size: 11px; color: rgba(244,244,242,.45); margin-top: 6px;">Основной — мягкое приземление с ощущением инерции</div></div>
+      <div><div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Длительности</div><div style="font-size: 12px; color: rgba(244,244,242,.6); line-height: 1.55; font-family: 'JetBrains Mono', monospace;">150 · 300 · 550 · 900 ms</div><div style="font-size: 11px; color: rgba(244,244,242,.45); margin-top: 6px;">Микро, переход, большой сдвиг, автоплей</div></div>
+      <div><div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">Штампы</div><div style="font-size: 12px; color: rgba(244,244,242,.6); line-height: 1.55;">scale(0)→(1.15)→(1) · 550ms · шаг 100ms</div><div style="font-size: 11px; color: rgba(244,244,242,.45); margin-top: 6px;">Заполняются последовательно, лёгкий overshoot</div></div>
+      <div><div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">NFC-волны</div><div style="font-size: 12px; color: rgba(244,244,242,.6); line-height: 1.55;">3 кольца · 3.6s loop · delay 0/1.2/2.4</div><div style="font-size: 11px; color: rgba(244,244,242,.45); margin-top: 6px;">scale(.6)→(2.2), opacity(.5)→(0)</div></div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

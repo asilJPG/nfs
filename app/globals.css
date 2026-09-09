@@ -528,12 +528,160 @@ select option {
   animation: rise 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Stampy Mini App Animations (from Stampy Mini App Screens.dc.html)
+   ───────────────────────────────────────────────────────────── */
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: ticker 28s linear infinite;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes ringPulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes nfcDot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(0.75);
+    opacity: 0.6;
+  }
+}
+
+@keyframes floatY {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes qrScan {
+  0% {
+    top: 4%;
+  }
+  100% {
+    top: 96%;
+  }
+}
+
+@keyframes stampIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes chipShift {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(91, 141, 239, 0.35);
+  animation: ringPulse 3.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+.ring.d2 {
+  animation-delay: 1.2s;
+}
+.ring.d3 {
+  animation-delay: 2.4s;
+}
+
+.float {
+  animation: floatY 3.6s ease-in-out infinite;
+}
+
+.glow {
+  animation: glow 3.2s ease-in-out infinite;
+}
+
+.qr-scan {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #5B8DEF, transparent);
+  animation: qrScan 2.2s ease-in-out infinite alternate;
+}
+
+.shimmer-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .deal > *,
   .nfc-pulse,
   .stamp-pop,
   .settle,
-  .animate-rise {
+  .animate-rise,
+  .ticker-track,
+  .ring,
+  .float,
+  .glow,
+  .qr-scan,
+  .shimmer-sweep {
     animation: none;
   }
   .animate-stamp,

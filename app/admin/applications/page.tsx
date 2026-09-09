@@ -12,5 +12,13 @@ export default async function ApplicationsPage() {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  return <ApplicationsPanel applications={(data ?? []) as Application[]} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="border-b border-line pb-5">
+        <h1 className="page-title">Заявки</h1>
+        <p className="page-subtitle">Кофейни, которые оставили заявку с лендинга и ждут ответа</p>
+      </header>
+      <ApplicationsPanel applications={(data ?? []) as Application[]} />
+    </div>
+  );
 }

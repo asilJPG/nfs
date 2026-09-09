@@ -2,9 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { impersonateTenantAction } from "@/app/admin/actions";
+import { daysLeftInTrial, isServing, PLAN_CARDS } from "@/lib/plan";
 import type { StaffUser, Tenant, Venue } from "@/types/db";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_LABELS: Record<string, string> = {
+  trial: "Пробный период",
+  active: "Активна",
+  past_due: "Ожидает оплаты",
+  suspended: "Приостановлена",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Владелец",
+  manager: "Менеджер",
+  cashier: "Бариста",
+};
 
 export default async function TenantDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,86 +51,116 @@ export default async function TenantDetail({ params }: { params: Promise<{ id: s
   if (!tenant) notFound();
 
   const bindImpersonate = impersonateTenantAction.bind(null, id);
+  const serving = isServing(tenant);
+  const planName = PLAN_CARDS.find((plan) => plan.id === tenant.plan)?.name ?? tenant.plan;
+  const trialDays = daysLeftInTrial(tenant);
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/admin/tenants" className="text-sm text-ink-soft underline">
+      <Link href="/admin/tenants" className="text-xs font-medium text-latte hover:underline">
         ← К списку кофеен
       </Link>
 
-      <header className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-line bg-surface p-5">
-        <div>
-          <h1 className="text-xl font-semibold">{tenant.name}</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            /{tenant.slug} · тариф {tenant.plan} · подписка {tenant.subscription_status}
+      <header className="card flex flex-wrap items-start justify-between gap-4 p-5 md:p-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="page-title">{tenant.name}</h1>
+            <span className={`badge ${serving ? "badge-ok" : "badge-bad"}`}>
+              {STATUS_LABELS[tenant.subscription_status] ?? tenant.subscription_status}
+            </span>
+          </div>
+          <p className="page-subtitle">
+            /{tenant.slug} · {planName}
+            {trialDays !== null && ` · осталось ${trialDays} дн. пробного`}
           </p>
         </div>
         <form action={bindImpersonate}>
-          <button className="rounded-xl bg-bean px-4 py-2 text-sm font-medium text-[#0E1424]">
-            Войти как владелец
-          </button>
+          <button className="btn btn-accent btn-sm">Войти как владелец</button>
         </form>
       </header>
 
-      <section>
-        <h2 className="mb-2 font-medium">Точки ({venues?.length ?? 0})</h2>
+      <section className="grid gap-3.5 sm:grid-cols-3">
+        <Metric label="Точек" value={venues?.length ?? 0} />
+        <Metric label="Сотрудников" value={staff?.length ?? 0} />
+        <Metric label="Меток привязано" value={tagsCount ?? 0} />
+      </section>
+
+      <section className="card p-5 md:p-6">
+        <h2 className="card-title mb-4">Точки ({venues?.length ?? 0})</h2>
         {(venues ?? []).length === 0 ? (
-          <p className="text-sm text-ink-soft">Точек нет.</p>
+          <p className="py-4 text-center text-sm text-ink-soft">Точек нет.</p>
         ) : (
-          <ul className="flex flex-col gap-1 text-sm">
-            {venues!.map((v) => (
-              <li key={v.id} className="rounded-xl border border-line bg-surface px-3 py-2">
-                {v.name}
-                {!v.active && <span className="ml-2 text-xs text-red-300">неактивна</span>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-2 font-medium">Сотрудники ({staff?.length ?? 0})</h2>
-        {(staff ?? []).length === 0 ? (
-          <p className="text-sm text-ink-soft">Никого нет.</p>
-        ) : (
-          <ul className="flex flex-col gap-1 text-sm">
-            {staff!.map((s) => (
+          <ul className="flex flex-col gap-2 text-sm">
+            {venues!.map((venue) => (
               <li
-                key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2"
+                key={venue.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5"
               >
-                <span>
-                  <span className="font-mono text-xs">{s.username}</span>
-                  <span className="ml-2 text-ink-soft">· {s.role}</span>
-                  {!s.active && <span className="ml-2 text-xs text-red-300">неактивен</span>}
-                </span>
+                <span className="font-medium text-ink">{venue.name}</span>
+                {!venue.active && <span className="badge badge-bad">неактивна</span>}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section>
-        <h2 className="mb-2 font-medium">Меток привязано: {tagsCount ?? 0}</h2>
-      </section>
-
-      <section>
-        <h2 className="mb-2 font-medium">Недавние штампы ({recent?.length ?? 0})</h2>
-        {(recent ?? []).length === 0 ? (
-          <p className="text-sm text-ink-soft">Пусто.</p>
+      <section className="card p-5 md:p-6">
+        <h2 className="card-title mb-4">Сотрудники ({staff?.length ?? 0})</h2>
+        {(staff ?? []).length === 0 ? (
+          <p className="py-4 text-center text-sm text-ink-soft">Никого нет.</p>
         ) : (
-          <ul className="flex flex-col gap-1 text-sm">
-            {recent!.map((s, i) => (
-              <li key={i} className="flex gap-3 rounded-xl border border-line bg-surface px-3 py-2">
-                <span className="text-ink-soft">{new Date(s.created_at).toLocaleString("ru-RU")}</span>
-                <span className="ml-auto text-xs text-ink-soft">
-                  {s.stampy_venues?.name ?? "—"} · {s.source === "nfc" ? "NFC" : "вручную"}
+          <ul className="flex flex-col gap-2 text-sm">
+            {staff!.map((member) => (
+              <li
+                key={member.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5"
+              >
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-ink">{member.username}</span>
+                  <span className="badge badge-muted">
+                    {ROLE_LABELS[member.role] ?? member.role}
+                  </span>
+                </span>
+                {!member.active && <span className="badge badge-bad">неактивен</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="card p-5 md:p-6">
+        <h2 className="card-title mb-1">Недавние штампы</h2>
+        <p className="mb-4 text-xs text-ink-faint">Последние {recent?.length ?? 0} начислений</p>
+        {(recent ?? []).length === 0 ? (
+          <p className="py-4 text-center text-sm text-ink-soft">Пусто.</p>
+        ) : (
+          <ul className="flex flex-col gap-2 text-sm">
+            {recent!.map((stamp, index) => (
+              <li
+                key={index}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-surface-2 px-3.5 py-2.5"
+              >
+                <span className="text-xs text-ink-soft tabular-nums">
+                  {new Date(stamp.created_at).toLocaleString("ru-RU")}
+                </span>
+                <span className="text-xs text-ink-soft">
+                  {stamp.stampy_venues?.name ?? "без точки"} ·{" "}
+                  {stamp.source === "nfc" ? "NFC" : "вручную"}
                 </span>
               </li>
             ))}
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="card p-5">
+      <span className="eyebrow block">{label}</span>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-ink tabular-nums">{value}</p>
     </div>
   );
 }
