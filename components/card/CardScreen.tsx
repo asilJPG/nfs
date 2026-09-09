@@ -245,13 +245,72 @@ export function CardScreen() {
   const userName = tgUser?.first_name || "Гость";
   const userHandle = tgUser?.username ? `@${tgUser.username}` : "Telegram";
 
-  const totalCupsCount = screen.step === "ready"
-    ? (screen.state.card?.lifetime_stamps ?? screen.state.card?.stamps_count ?? screen.state.history.length) +
-      (screen.state.otherCards?.reduce((s, c) => s + c.stamps_count, 0) ?? 0)
-    : 0;
+  // Суммарные метрики поверх всех карт — как в режиме одной кофейни, так и в кошельке.
+  const walletCards = screen.step === "cards" ? screen.cards : [];
+  const totalCupsCount =
+    screen.step === "ready"
+      ? (screen.state.card?.lifetime_stamps ?? screen.state.card?.stamps_count ?? screen.state.history.length) +
+        (screen.state.otherCards?.reduce((s, c) => s + c.stamps_count, 0) ?? 0)
+      : walletCards.reduce((s, c) => s + c.stamps_count, 0);
 
-  const totalRewardsCount = screen.step === "ready" ? screen.state.rewards.length : 0;
-  const totalCardsCount = screen.step === "ready" ? 1 + (screen.state.otherCards?.length ?? 0) : screen.step === "cards" ? screen.cards.length : 1;
+  const totalRewardsCount =
+    screen.step === "ready"
+      ? screen.state.rewards.length
+      : walletCards.filter((c) => c.stamps_required && c.stamps_count >= c.stamps_required).length;
+
+  const totalCardsCount =
+    screen.step === "ready"
+      ? 1 + (screen.state.otherCards?.length ?? 0)
+      : walletCards.length || 1;
+
+  // Уведомления в режиме кошелька — сводка по каждой карте
+  const walletNotifications: CardNotification[] =
+    screen.step === "cards"
+      ? (() => {
+          if (walletCards.length === 0) {
+            return [
+              {
+                id: "welcome-empty",
+                title: "Добро пожаловать в Stampy",
+                text: "Приложите телефон к NFC-подставке на кассе — первая карта появится здесь.",
+                time: "Сейчас",
+                unread: false,
+              },
+            ];
+          }
+          const items: CardNotification[] = [];
+          for (const c of walletCards) {
+            const req = c.stamps_required ?? 6;
+            const remaining = Math.max(0, req - c.stamps_count);
+            if (c.stamps_count >= req) {
+              items.push({
+                id: `wallet-ready-${c.slug}`,
+                title: "Награда готова",
+                text: `${c.name} — покажите QR у стойки.`,
+                time: "Сейчас",
+                unread: true,
+              });
+            } else if (remaining === 1) {
+              items.push({
+                id: `wallet-almost-${c.slug}`,
+                title: "Один штамп до награды",
+                text: `${c.name} — загляните сегодня.`,
+                time: "Сейчас",
+                unread: true,
+              });
+            } else {
+              items.push({
+                id: `wallet-progress-${c.slug}`,
+                title: `${c.name}`,
+                text: `${c.stamps_count} из ${req} штампов. Осталось ${remaining}.`,
+                time: "",
+                unread: false,
+              });
+            }
+          }
+          return items;
+        })()
+      : notifications;
 
   return (
     <div className="min-h-dvh bg-[#08090B] text-[#F4F4F2] font-sans antialiased flex flex-col justify-between selection:bg-[#5B8DEF]/30">
@@ -331,13 +390,17 @@ export function CardScreen() {
             rewards={screen.step === "ready" ? screen.state.rewards : []}
             history={screen.step === "ready" ? screen.state.history : []}
             card={screen.step === "ready" ? screen.state.card : null}
+            walletCards={walletCards}
+            totalCups={totalCupsCount}
+            totalRewards={totalRewardsCount}
+            totalCards={totalCardsCount}
           />
         )}
 
         {/* TAB 4: NOTIFICATIONS (10) */}
         {activeTab === "notifications" && (
           <NotificationsView
-            items={notifications}
+            items={walletNotifications}
             onMarkRead={() =>
               setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
             }
@@ -818,12 +881,22 @@ function HistoryView({
   rewards,
   history,
   card,
+  walletCards,
+  totalCups: totalCupsProp,
+  totalRewards,
+  totalCards,
 }: {
   rewards: MiniAppState["rewards"];
   history: MiniAppState["history"];
   card: MiniAppState["card"];
+  walletCards: CardBadge[];
+  totalCups: number;
+  totalRewards: number;
+  totalCards: number;
 }) {
-  const totalCups = card?.lifetime_stamps ?? card?.stamps_count ?? history.length;
+  // В режиме кошелька истории по одной карте нет — показываем сводку по всем.
+  const isWalletMode = !card && walletCards.length > 0;
+  const totalCups = isWalletMode ? totalCupsProp : card?.lifetime_stamps ?? card?.stamps_count ?? history.length;
   const sparkPoints = cumulativeSpark(history);
 
   return (
@@ -838,8 +911,8 @@ function HistoryView({
           <div className="text-xs text-[#0E0F11]/60">{plural(totalCups, "чашка", "чашки", "чашек")} всего</div>
         </div>
 
-        {/* Sparkline */}
-        {sparkPoints && (
+        {/* Sparkline или сводка по картам, если истории по кофейне нет */}
+        {sparkPoints && !isWalletMode && (
           <svg viewBox="0 0 300 40" width="100%" height="40" className="mt-3 overflow-visible">
             <defs>
               <linearGradient id="histGrad" x1="0" y1="0" x2="0" y2="1">
@@ -851,7 +924,55 @@ function HistoryView({
             <polyline points={`0,40 ${sparkPoints} 300,40`} fill="url(#histGrad)"/>
           </svg>
         )}
+        {isWalletMode && (
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl bg-[#0E0F11]/5 border border-black/[0.06] p-3">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#0E0F11]/50">Карт</div>
+              <div className="mt-0.5 text-lg font-bold">{totalCards}</div>
+            </div>
+            <div className="rounded-xl bg-[#0E0F11]/5 border border-black/[0.06] p-3">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[#0E0F11]/50">Наград</div>
+              <div className="mt-0.5 text-lg font-bold">{totalRewards}</div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* В режиме кошелька — список карт с прогрессом вместо истории одной кофейни */}
+      {isWalletMode && (
+        <div className="flex flex-col gap-2">
+          <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold px-1">
+            По кофейням
+          </div>
+          {walletCards.map((c) => {
+            const req = c.stamps_required ?? 6;
+            const isReady = c.stamps_count >= req;
+            const percent = Math.min(100, Math.round((c.stamps_count / req) * 100));
+            return (
+              <div
+                key={c.slug}
+                className="p-3.5 rounded-[16px] bg-[#14161D] border border-white/[0.04]"
+              >
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="font-semibold text-white truncate pr-2">{c.name}</span>
+                  <span className="font-mono text-[11px] text-[#F4F4F2]/50 shrink-0">
+                    {c.stamps_count} / {req}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${percent}%`,
+                      background: isReady ? "#5B8DEF" : withAlpha(c.brand.primary ?? "#5B8DEF", 0.9),
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Rewards history items */}
       {rewards.length > 0 && (

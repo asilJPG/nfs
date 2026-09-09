@@ -77,16 +77,16 @@ export function WalletCardRow({
       role="button"
       tabIndex={0}
       className={`relative w-full text-left cursor-pointer transition-all duration-300 ${
-        isActive ? "wallet-card-hero rounded-[28px] p-6 min-h-[230px] scale-[1.02]" : "rounded-[22px] p-5 hover:scale-[1.01]"
+        isActive ? "wallet-card-hero rounded-[28px] p-6 min-h-[230px]" : "rounded-[22px] p-5 hover:scale-[1.01]"
       }`}
       aria-label={`Карта ${card.name}: ${count} из ${required} штампов`}
       style={{
-        background: `linear-gradient(160deg, ${shade(fill, 0.1)} 0%, ${shade(fill, -0.2)} 100%)`,
+        background: `linear-gradient(160deg, ${shade(fill, 0.06)} 0%, ${shade(fill, -0.08)} 100%)`,
         color: ink,
-        border: `1px solid ${isReady ? withAlpha(accent, 0.55) : withAlpha(ink, isActive ? 0.25 : 0.12)}`,
+        border: `1px solid ${isReady ? withAlpha(accent, 0.4) : withAlpha(ink, isActive ? 0.14 : 0.1)}`,
         boxShadow: isReady
-          ? `0 20px 40px -20px rgba(0,0,0,0.7), 0 0 24px -8px ${withAlpha(accent, 0.6)}`
-          : "0 20px 40px -20px rgba(0,0,0,0.7)",
+          ? `0 18px 44px -22px ${withAlpha(fill, 0.75)}, 0 0 22px -10px ${withAlpha(accent, 0.4)}`
+          : `0 18px 44px -22px ${withAlpha(fill, 0.55)}`,
       }}
     >
       <div className="flex justify-between items-start mb-4">
