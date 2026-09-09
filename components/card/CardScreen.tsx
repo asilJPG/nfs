@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { StampGrid } from "./StampGrid";
-import { Monogram } from "./WalletCard";
+import { Monogram, WalletCardRow } from "./WalletCard";
 import { plateColors, withAlpha } from "@/lib/color";
 
 const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
@@ -695,6 +695,16 @@ function WalletView({
   cards: CardBadge[];
   onSelectCard: (slug: string) => void;
 }) {
+  const [queue, setQueue] = useState(cards);
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressClick = useRef(false);
+
+  useEffect(() => {
+    setQueue(cards);
+    setSwipeDirection(null);
+  }, [cards]);
+
   if (cards.length === 0) {
     return (
       <div className="text-center py-16 px-4">
@@ -709,6 +719,43 @@ function WalletView({
     );
   }
 
+  const active = queue[0] ?? cards[0];
+  const backCards = queue.slice(1, 4);
+
+  function rotateQueue(direction: "left" | "right") {
+    if (queue.length < 2 || swipeDirection) return;
+    suppressClick.current = true;
+    setSwipeDirection(direction);
+    window.setTimeout(() => {
+      setQueue((current) => [...current.slice(1), current[0]]);
+      setSwipeDirection(null);
+      window.setTimeout(() => {
+        suppressClick.current = false;
+      }, 0);
+    }, 280);
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (queue.length < 2 || swipeDirection) return;
+    pointerStart.current = { x: event.clientX, y: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    const start = pointerStart.current;
+    pointerStart.current = null;
+    if (!start || swipeDirection) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 52 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+    rotateQueue(deltaX < 0 ? "left" : "right");
+  }
+
+  function handleCardClick() {
+    if (suppressClick.current) return;
+    onSelectCard(active.slug);
+  }
+
   return (
     <div className="flex flex-col gap-3 animate-rise">
       <div className="flex justify-between items-baseline mb-1">
@@ -717,9 +764,17 @@ function WalletView({
         </div>
       </div>
 
-      <div className="wallet-deck" aria-label="Кошелёк карт">
+      <div
+        className="wallet-deck"
+        aria-label="Кошелёк карт"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => {
+          pointerStart.current = null;
+        }}
+      >
         <div className="wallet-deck-cards">
-          {cards.slice(0, 3).map((card, index) => (
+          {backCards.map((card, index) => (
             <button
               type="button"
               key={card.slug}
@@ -734,22 +789,31 @@ function WalletView({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="wallet-deck-front"
-          onClick={() => onSelectCard(cards[0].slug)}
-          style={{
-            background: `linear-gradient(155deg, ${withAlpha(cards[0].brand.primary, 0.9)} 0%, #14161D 82%)`,
-          }}
+        <div
+          className={`wallet-carousel-card ${swipeDirection ? `wallet-carousel-swipe-${swipeDirection}` : ""}`}
         >
-          <span className="wallet-deck-eyebrow">Кошелёк</span>
-          <span className="wallet-deck-title">Активные карты</span>
-          <span className="wallet-deck-meta">
-            {cards.length} {plural(cards.length, "карта", "карты", "карт")} в одном кошельке
-          </span>
-          <span className="wallet-deck-arrow" aria-hidden="true">→</span>
-        </button>
+          <WalletCardRow
+            card={{
+              slug: active.slug,
+              name: active.name,
+              subtitle: "Карта лояльности",
+              logo_url: active.logo_url,
+              brand: active.brand,
+              stamps_count: active.stamps_count,
+              stamps_required: active.stamps_required,
+              is_ready: active.stamps_count >= (active.stamps_required ?? 6),
+            }}
+            onClick={handleCardClick}
+            isActive
+          />
+        </div>
       </div>
+
+      {queue.length > 1 && (
+        <div className="text-center text-[10px] text-[#F4F4F2]/35 font-mono uppercase tracking-widest">
+          Свайпните, чтобы сменить карту
+        </div>
+      )}
 
     </div>
   );
