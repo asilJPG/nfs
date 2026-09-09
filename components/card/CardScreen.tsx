@@ -96,6 +96,7 @@ export function CardScreen() {
   const [showStampPop, setShowStampPop] = useState<ClaimOutcome | null>(null);
   const [freshStampIndex, setFreshStampIndex] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<CardNotification[]>([]);
+  const [readIds, setReadIds] = useState<ReadonlySet<string>>(() => new Set());
 
   const initDataRef = useRef("");
   const bootstrapped = useRef(false);
@@ -312,6 +313,13 @@ export function CardScreen() {
         })()
       : notifications;
 
+  // Один источник для колокольчика, вкладки и кнопки «Прочитать все».
+  const activeNotifications: CardNotification[] = (
+    screen.step === "cards" ? walletNotifications : notifications
+  ).map((item) => (item.unread && readIds.has(item.id) ? { ...item, unread: false } : item));
+
+  const hasUnread = activeNotifications.some((item) => item.unread);
+
   return (
     <div className="min-h-dvh bg-[#08090B] text-[#F4F4F2] font-sans antialiased flex flex-col justify-between selection:bg-[#5B8DEF]/30">
       {/* Safe container */}
@@ -353,7 +361,7 @@ export function CardScreen() {
               className="size-8 rounded-full bg-white/[0.06] border border-white/10 grid place-items-center text-xs relative text-[#F4F4F2]/70"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-              {notifications.some((n) => n.unread) && (
+              {hasUnread && (
                 <span className="absolute top-1 right-1 size-2 rounded-full bg-[#5B8DEF]" />
               )}
             </button>
@@ -400,9 +408,13 @@ export function CardScreen() {
         {/* TAB 4: NOTIFICATIONS (10) */}
         {activeTab === "notifications" && (
           <NotificationsView
-            items={walletNotifications}
+            items={activeNotifications}
             onMarkRead={() =>
-              setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+              setReadIds((prev) => {
+                const next = new Set(prev);
+                for (const item of activeNotifications) next.add(item.id);
+                return next;
+              })
             }
           />
         )}
@@ -461,7 +473,7 @@ export function CardScreen() {
             <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
           </svg>
           <span>События</span>
-          {notifications.some((n) => n.unread) && (
+          {hasUnread && (
             <span className="absolute top-0 right-3 size-1.5 rounded-full bg-[#5B8DEF]" />
           )}
         </button>

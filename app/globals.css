@@ -18,6 +18,8 @@
   --color-bean: #5B8DEF;
   --color-bean-dark: #4A7DE0;
   --color-latte: #7BA5FF;
+  /* Акцент для текста на светлых поверхностях: #5B8DEF на кремовом даёт всего 2.8:1 */
+  --color-bean-ink: #2F5CAF;
   --color-line: rgba(255, 255, 255, 0.08);
   --color-line-strong: rgba(255, 255, 255, 0.16);
 

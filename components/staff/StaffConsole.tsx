@@ -279,12 +279,12 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов</div>
                   <div className="text-2xl font-bold tracking-tight">{stats?.stampsToday ?? 0}</div>
-                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">за сегодня</div>
+                  <div className="text-[10px] text-bean-ink font-medium mt-1">за сегодня</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
                   <div className="text-2xl font-bold tracking-tight">{stats?.guestsToday ?? 0}</div>
-                  <div className="text-[10px] text-[#5B8DEF] font-medium mt-1">уникальных</div>
+                  <div className="text-[10px] text-bean-ink font-medium mt-1">уникальных</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Наград</div>
