@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { StampGrid } from "./StampGrid";
-import { Monogram, WalletCardRow } from "./WalletCard";
+import { Monogram } from "./WalletCard";
 import { plateColors, withAlpha } from "@/lib/color";
 
 const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
@@ -718,17 +718,20 @@ function WalletView({
       </div>
 
       <div className="wallet-deck" aria-label="Кошелёк карт">
-        <div className="wallet-deck-cards" aria-hidden="true">
+        <div className="wallet-deck-cards">
           {cards.slice(0, 3).map((card, index) => (
-            <div
+            <button
+              type="button"
               key={card.slug}
               className={`wallet-deck-back wallet-deck-back-${index}`}
+              aria-label={`Открыть карту ${card.name}`}
+              onClick={() => onSelectCard(card.slug)}
               style={{
                 background: `linear-gradient(155deg, ${card.brand.primary} 0%, ${withAlpha(card.brand.primary, 0.52)} 100%)`,
               }}
             >
               <span>{card.name}</span>
-            </div>
+            </button>
           ))}
         </div>
         <button
@@ -748,24 +751,6 @@ function WalletView({
         </button>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {cards.map((card) => (
-          <WalletCardRow
-            key={card.slug}
-            card={{
-              slug: card.slug,
-              name: card.name,
-              subtitle: "Карта лояльности",
-              logo_url: card.logo_url,
-              brand: card.brand,
-              stamps_count: card.stamps_count,
-              stamps_required: card.stamps_required,
-              is_ready: card.stamps_count >= (card.stamps_required ?? 6),
-            }}
-            onClick={() => onSelectCard(card.slug)}
-          />
-        ))}
-      </div>
     </div>
   );
 }

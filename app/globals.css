@@ -416,6 +416,21 @@ select option {
   100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 
+@keyframes walletFanLeft {
+  from { transform: translateY(30px) rotate(0deg) scale(0.94); opacity: 0; }
+  to { transform: translateY(12px) rotate(-13deg) scale(1); opacity: 0.78; }
+}
+
+@keyframes walletFanRight {
+  from { transform: translateY(24px) rotate(0deg) scale(0.95); opacity: 0; }
+  to { transform: translateY(4px) rotate(9deg) scale(1); opacity: 0.9; }
+}
+
+@keyframes walletFanMiddle {
+  from { transform: translateY(18px) rotate(0deg) scale(0.96); opacity: 0; }
+  to { transform: translateY(-4px) rotate(-3deg) scale(1); opacity: 0.95; }
+}
+
 .deal > * { animation: deal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .deal > *:nth-child(1) { animation-delay: 0ms; }
 .deal > *:nth-child(2) { animation-delay: 70ms; }
@@ -439,7 +454,7 @@ select option {
   position: absolute;
   inset: 0 0 auto;
   height: 190px;
-  pointer-events: none;
+  z-index: 1;
 }
 .wallet-deck-back,
 .wallet-deck-front {
@@ -458,10 +473,12 @@ select option {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   transform-origin: 50% 100%;
+  cursor: pointer;
+  text-align: left;
 }
-.wallet-deck-back-0 { transform: translateY(12px) rotate(-13deg); opacity: 0.78; }
-.wallet-deck-back-1 { transform: translateY(4px) rotate(9deg); opacity: 0.9; }
-.wallet-deck-back-2 { transform: translateY(-4px) rotate(-3deg); opacity: 0.95; }
+.wallet-deck-back-0 { animation: walletFanLeft 620ms 80ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.wallet-deck-back-1 { animation: walletFanRight 620ms 140ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.wallet-deck-back-2 { animation: walletFanMiddle 620ms 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 .wallet-deck-front {
   position: absolute;
   inset: 48px 4% 0;
@@ -540,6 +557,11 @@ select option {
   .animate-stamp,
   .stamp-grid-celebrate,
   .stamp-success-mark {
+    animation: none;
+  }
+  .wallet-deck-back-0,
+  .wallet-deck-back-1,
+  .wallet-deck-back-2 {
     animation: none;
   }
 }
