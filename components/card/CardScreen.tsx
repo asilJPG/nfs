@@ -94,6 +94,7 @@ export function CardScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("card");
   const [openReward, setOpenReward] = useState<CardReward | null>(null);
   const [showStampPop, setShowStampPop] = useState<ClaimOutcome | null>(null);
+  const [freshStampIndex, setFreshStampIndex] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<CardNotification[]>([]);
 
   const initDataRef = useRef("");
@@ -124,6 +125,8 @@ export function CardScreen() {
 
       if (payload.claim?.kind === "stamped") {
         setShowStampPop(payload.claim);
+        setFreshStampIndex(Math.max(0, payload.claim.stamps_count - 1));
+        window.setTimeout(() => setFreshStampIndex(null), 900);
         window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
       }
     } catch {
@@ -211,6 +214,8 @@ export function CardScreen() {
 
           if (nextStamps > prevStamps || nextRewards > prevRewards) {
             window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
+            setFreshStampIndex(Math.max(0, nextStamps - 1));
+            window.setTimeout(() => setFreshStampIndex(null), 900);
             setShowStampPop({
               kind: "stamped",
               stamps_count: nextStamps,
@@ -306,6 +311,7 @@ export function CardScreen() {
         {activeTab === "card" && screen.step === "ready" && (
           <CardView
             state={screen.state}
+            freshStampIndex={freshStampIndex}
             onOpenReward={(reward) => setOpenReward(reward)}
             onViewHistory={() => setActiveTab("history")}
           />
@@ -443,10 +449,12 @@ export function CardScreen() {
 /** 02, 03, 05 · Экран карты лояльности */
 function CardView({
   state,
+  freshStampIndex,
   onOpenReward,
   onViewHistory,
 }: {
   state: MiniAppState;
+  freshStampIndex: number | null;
   onOpenReward: (reward: CardReward) => void;
   onViewHistory: () => void;
   }) {
@@ -491,8 +499,13 @@ function CardView({
         </div>
 
         {/* Stamp Grid */}
-        <div className="mb-6 relative">
-          <StampGrid filled={filled} total={total} brand={{ ...tenant.brand, ...brand }} />
+        <div className={`mb-6 relative ${freshStampIndex !== null ? "stamp-grid-celebrate" : ""}`}>
+          <StampGrid
+            filled={filled}
+            total={total}
+            brand={{ ...tenant.brand, ...brand }}
+            justStamped={freshStampIndex}
+          />
         </div>
 
         {/* Progress Footer */}
@@ -642,7 +655,7 @@ function StampPopModal({
         className="animate-rise w-full max-w-sm rounded-[28px] border border-white/10 bg-[#14161D]/90 backdrop-blur-2xl p-6 text-center shadow-2xl relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-4 size-16 rounded-full bg-gradient-to-br from-[#6B9BFF] to-[#4A7DE0] grid place-items-center shadow-[0_12px_30px_rgba(91,141,239,0.5)]">
+        <div className="stamp-success-mark mx-auto mb-4 size-16 rounded-full bg-gradient-to-br from-[#6B9BFF] to-[#4A7DE0] grid place-items-center shadow-[0_12px_30px_rgba(91,141,239,0.5)]">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F4F4F2" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
@@ -702,6 +715,37 @@ function WalletView({
         <div className="text-xs text-[#F4F4F2]/50 font-medium">
           {cards.length} {plural(cards.length, "кофейня", "кофейни", "кофеен")}
         </div>
+      </div>
+
+      <div className="wallet-deck" aria-label="Кошелёк карт">
+        <div className="wallet-deck-cards" aria-hidden="true">
+          {cards.slice(0, 3).map((card, index) => (
+            <div
+              key={card.slug}
+              className={`wallet-deck-back wallet-deck-back-${index}`}
+              style={{
+                background: `linear-gradient(155deg, ${card.brand.primary} 0%, ${withAlpha(card.brand.primary, 0.52)} 100%)`,
+              }}
+            >
+              <span>{card.name}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="wallet-deck-front"
+          onClick={() => onSelectCard(cards[0].slug)}
+          style={{
+            background: `linear-gradient(155deg, ${withAlpha(cards[0].brand.primary, 0.9)} 0%, #14161D 82%)`,
+          }}
+        >
+          <span className="wallet-deck-eyebrow">Кошелёк</span>
+          <span className="wallet-deck-title">Активные карты</span>
+          <span className="wallet-deck-meta">
+            {cards.length} {plural(cards.length, "карта", "карты", "карт")} в одном кошельке
+          </span>
+          <span className="wallet-deck-arrow" aria-hidden="true">→</span>
+        </button>
       </div>
 
       <div className="flex flex-col gap-3">
