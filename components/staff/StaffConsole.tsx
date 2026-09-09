@@ -164,7 +164,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                   className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
                     activeTab === "stamps"
                       ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
                   }`}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -175,7 +175,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                   className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
                     activeTab === "rewards"
                       ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
                   }`}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -186,7 +186,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                   className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
                     activeTab === "analytics"
                       ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
                   }`}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
@@ -197,7 +197,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                   className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
                     activeTab === "history"
                       ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-[#0E0F11]/60 hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
                   }`}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -207,7 +207,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
 
               {venues.length > 1 && (
                 <div className="mt-4 pt-4 border-t border-black/[0.06]">
-                  <label className="text-[10px] font-mono text-[#0E0F11]/45 uppercase tracking-wider block mb-1.5 font-semibold">Точка</label>
+                  <label className="text-[10px] font-mono text-carbon-label uppercase tracking-wider block mb-1.5 font-semibold">Точка</label>
                   <select
                     value={venueId ?? ""}
                     onChange={(e) => setVenueId(e.target.value || null)}
@@ -228,7 +228,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-semibold truncate leading-tight">{staffName}</div>
-                <div className="text-[10px] text-[#0E0F11]/50 truncate">
+                <div className="text-[10px] text-carbon-label truncate">
                   {staffRole}
                   {activeVenueName ? ` · ${activeVenueName}` : ""}
                 </div>
@@ -243,7 +243,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               <div className="flex flex-wrap justify-between items-end gap-3 mb-6">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-[#0E0F11]">Сегодня</h1>
-                  <div className="text-xs text-[#0E0F11]/60 mt-1 font-medium">
+                  <div className="text-xs text-carbon-label mt-1 font-medium">
                     {new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "short" })}
                   </div>
                 </div>
@@ -277,24 +277,24 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               {/* 4 Stats Cards with REAL data */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
-                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов</div>
                   <div className="text-2xl font-bold tracking-tight">{stats?.stampsToday ?? 0}</div>
                   <div className="text-[10px] text-bean-ink font-medium mt-1">за сегодня</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
-                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
                   <div className="text-2xl font-bold tracking-tight">{stats?.guestsToday ?? 0}</div>
                   <div className="text-[10px] text-bean-ink font-medium mt-1">уникальных</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
-                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Наград</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Наград</div>
                   <div className="text-2xl font-bold tracking-tight">{stats?.rewardsToday ?? 0}</div>
-                  <div className="text-[10px] text-[#0E0F11]/50 font-medium mt-1">выдано сегодня</div>
+                  <div className="text-[10px] text-carbon-label font-medium mt-1">выдано сегодня</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
-                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold mb-1.5">Активность</div>
-                  <div className="text-2xl font-bold tracking-tight">{stats?.returnRate ?? 0}<span className="text-base text-[#0E0F11]/40 font-normal">%</span></div>
-                  <div className="text-[10px] text-[#0E0F11]/50 font-medium mt-1">базы за сегодня</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Активность</div>
+                  <div className="text-2xl font-bold tracking-tight">{stats?.returnRate ?? 0}<span className="text-base text-carbon-label font-normal">%</span></div>
+                  <div className="text-[10px] text-carbon-label font-medium mt-1">базы за сегодня</div>
                 </div>
               </div>
 
@@ -302,7 +302,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               <div className="p-4 rounded-2xl border border-black/[0.06] bg-white mb-6">
                 <div className="flex justify-between items-center mb-3">
                   <div className="text-xs font-semibold">Штампы за неделю</div>
-                  <div className="text-[10px] text-[#0E0F11]/50 font-mono uppercase tracking-wider font-semibold">7д</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold">7д</div>
                 </div>
                 <svg viewBox="0 0 400 90" width="100%" height="90" className="overflow-visible">
                   <defs>
@@ -320,7 +320,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
 
               {/* Recent Activity Live Feed with REAL data */}
               <div>
-                <div className="text-[10px] text-[#0E0F11]/45 font-mono uppercase tracking-widest font-semibold mb-2.5">Последние события</div>
+                <div className="text-[10px] text-carbon-label font-mono uppercase tracking-widest font-semibold mb-2.5">Последние события</div>
                 <div className="flex flex-col gap-2">
                   {stats?.recentEvents && stats.recentEvents.length > 0 ? (
                     stats.recentEvents.map((ev) => (
@@ -329,11 +329,11 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                           <span className={`size-2 rounded-full ${ev.type === "reward" ? "bg-[#7BA5FF]" : "bg-[#5B8DEF]"}`} />
                           <span className="font-medium">{ev.title} · {ev.subtitle}</span>
                         </div>
-                        <span className="text-[11px] text-[#0E0F11]/50 font-mono">{ev.time}</span>
+                        <span className="text-[11px] text-carbon-label font-mono">{ev.time}</span>
                       </div>
                     ))
                   ) : (
-                    <div className="p-4 rounded-xl bg-[#F0EFEC] text-xs text-[#0E0F11]/50 text-center font-medium">
+                    <div className="p-4 rounded-xl bg-[#F0EFEC] text-xs text-carbon-label text-center font-medium">
                       Событий за сегодня пока нет. Приложите телефон к NFC метке или отсканируйте QR награды.
                     </div>
                   )}
@@ -342,7 +342,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
             </div>
 
             {/* Footer */}
-            <div className="mt-8 pt-4 border-t border-black/[0.06] text-center text-[11px] text-[#0E0F11]/45 font-mono">
+            <div className="mt-8 pt-4 border-t border-black/[0.06] text-center text-[11px] text-carbon-label font-mono">
               Stampy Barista · NFC &amp; QR Terminal · {new Date().getFullYear()}
             </div>
           </main>
@@ -361,7 +361,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                   setShowScannerModal(false);
                   setScan({ kind: "idle" });
                 }}
-                className="size-7 rounded-full bg-white/10 grid place-items-center text-xs text-white/70 hover:text-white"
+                className="size-7 rounded-full bg-white/10 grid place-items-center text-xs text-ink-body hover:text-white"
               >
                 ✕
               </button>
@@ -375,7 +375,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                 className={`h-full w-full object-cover ${scan.kind === "scanning" ? "" : "hidden"}`}
               />
               {scan.kind !== "scanning" && (
-                <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center text-xs text-white/60">
+                <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center text-xs text-ink-label">
                   <span className="text-3xl mb-2">📷</span>
                   {scan.kind === "starting" && "Запуск камеры…"}
                   {scan.kind === "idle" && "Наведите камеру на QR-код гостя"}

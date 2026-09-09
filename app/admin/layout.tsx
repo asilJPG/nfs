@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               Все системы в норме
             </div>
             <form action="/auth/signout" method="post">
-              <button className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-[#F4F4F2]/70 hover:text-white hover:bg-white/10 transition-all">
+              <button className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-ink-body hover:text-white hover:bg-white/10 transition-all">
                 Выйти
               </button>
             </form>

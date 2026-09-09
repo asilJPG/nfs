@@ -25,7 +25,7 @@ export function AdminTabs() {
             className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition-all ${
               active
                 ? "bg-[#5B8DEF]/15 text-[#7BA5FF] border border-[#5B8DEF]/30 shadow-sm"
-                : "text-[#F4F4F2]/60 hover:text-white hover:bg-white/[0.04]"
+                : "text-ink-label hover:text-white hover:bg-white/[0.04]"
             }`}
           >
             {tab.label}

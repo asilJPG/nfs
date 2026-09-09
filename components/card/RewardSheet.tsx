@@ -92,14 +92,14 @@ export function RewardSheet({ reward, venueName, initData, onClose }: Props) {
         </div>
 
         <h2 className="text-2xl font-bold tracking-tight text-white mb-1">{reward.title}</h2>
-        <p className="text-xs text-[#F4F4F2]/60 mb-5">
+        <p className="text-xs text-ink-label mb-5">
           {venueName ? `Покажите баристе в ${venueName}` : "Покажите баристе у стойки"}
         </p>
 
         {phase.step === "loading" && (
           <div className="my-10 flex flex-col items-center justify-center gap-3">
             <div className="size-8 animate-spin rounded-full border-2 border-white/15 border-t-[#5B8DEF]" />
-            <p className="text-xs text-[#F4F4F2]/50">Генерируем персональный QR…</p>
+            <p className="text-xs text-ink-label">Генерируем персональный QR…</p>
           </div>
         )}
 
@@ -123,11 +123,11 @@ export function RewardSheet({ reward, venueName, initData, onClose }: Props) {
               <img src={phase.dataUrl} alt="QR Code" className="w-full h-full object-contain rounded-xl" />
             </div>
 
-            <div className="mt-4 font-mono text-xs tracking-[0.2em] text-[#F4F4F2]/60">
+            <div className="mt-4 font-mono text-xs tracking-[0.2em] text-ink-label">
               {phase.token.toUpperCase().slice(0, 16).replace(/(.{4})/g, "$1 ")}
             </div>
 
-            <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-[#F4F4F2]/45">
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-ink-label">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
@@ -150,7 +150,7 @@ export function RewardSheet({ reward, venueName, initData, onClose }: Props) {
 
         <button
           onClick={onClose}
-          className="mt-5 w-full rounded-full py-2.5 text-xs font-medium text-[#F4F4F2]/50 hover:text-white transition-colors"
+          className="mt-5 w-full rounded-full py-2.5 text-xs font-medium text-ink-label hover:text-white transition-colors"
         >
           Закрыть
         </button>

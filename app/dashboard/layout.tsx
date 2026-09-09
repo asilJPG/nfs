@@ -29,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-bold tracking-tight text-white">{tenant.name}</p>
-              <p className="truncate text-[10px] font-mono uppercase tracking-wider text-[#F4F4F2]/40">Ташкент</p>
+              <p className="truncate text-[10px] font-mono uppercase tracking-wider text-ink-label">Ташкент</p>
             </div>
           </div>
 
@@ -44,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-semibold text-white">@{staff.username}</p>
-                <p className="truncate text-[10px] text-[#F4F4F2]/45">
+                <p className="truncate text-[10px] text-ink-label">
                   {ROLE_LABELS[staff.role] ?? staff.role}
                 </p>
               </div>
@@ -53,7 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <button
                 title="Выйти"
                 aria-label="Выйти"
-                className="rounded-lg p-2 text-[#F4F4F2]/40 transition-colors hover:bg-white/5 hover:text-white"
+                className="rounded-lg p-2 text-ink-label transition-colors hover:bg-white/5 hover:text-white"
               >
                 <IconLogout />
               </button>

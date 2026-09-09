@@ -68,7 +68,7 @@ export function DashboardNav({
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
-                active ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold" : "text-[#F4F4F2]/60 hover:bg-white/[0.04] hover:text-white"
+                active ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold" : "text-ink-label hover:bg-white/[0.04] hover:text-white"
               }`}
             >
               <item.Icon className="size-4" />
@@ -110,7 +110,7 @@ function NavGroup({
 }) {
   return (
     <div>
-      <div className="px-3 pb-2 text-[10px] font-mono font-semibold uppercase tracking-wider text-[#F4F4F2]/40">
+      <div className="px-3 pb-2 text-[10px] font-mono font-semibold uppercase tracking-wider text-ink-label">
         {title}
       </div>
       <div className="flex flex-col gap-1">
@@ -125,10 +125,10 @@ function NavGroup({
               className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                 active
                   ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold"
-                  : "text-[#F4F4F2]/65 hover:bg-white/[0.04] hover:text-white"
+                  : "text-ink-body hover:bg-white/[0.04] hover:text-white"
               }`}
             >
-              <item.Icon className={`size-4 shrink-0 ${active ? "text-[#7BA5FF]" : "text-[#F4F4F2]/50"}`} />
+              <item.Icon className={`size-4 shrink-0 ${active ? "text-[#7BA5FF]" : "text-ink-label"}`} />
               <span className="truncate">{item.label}</span>
               {locked && <IconLock className="ml-auto size-3.5 opacity-40" />}
               <PendingDot className="ml-auto size-2" />

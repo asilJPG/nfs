@@ -10,6 +10,7 @@
  * прозрачности (`/60`) плюс `bg-white`, `text-white`, `bg-black`, `text-black`:
  * на лендинге и в мини-аппе палитра задана именно так.
  */
+import fs from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import LandingPage from "../app/page";
 import { contrastRatio, relativeLuminance } from "../lib/color";
@@ -37,7 +38,42 @@ const NAMED: Record<string, string> = {
   transparent: "",
   current: "",
   inherit: "",
+  ...readThemeColors(),
 };
+
+/**
+ * Токены палитры читаем прямо из globals.css, чтобы проверка и браузер брали
+ * цвета из одного места. Поддержаны формы #RGBA-hex и rgba(...).
+ */
+function readThemeColors(): Record<string, string> {
+  const css = fs.readFileSync("app/globals.css", "utf8");
+  const colors: Record<string, string> = {};
+  const rule = /--color-([a-z0-9-]+):s*([^;]+);/gi;
+  let match: RegExpExecArray | null;
+  while ((match = rule.exec(css)) !== null) {
+    const [, name, raw] = match;
+    const value = raw.trim();
+
+    const hex8 = /^#([0-9a-f]{6})([0-9a-f]{2})$/i.exec(value);
+    if (hex8) {
+      colors[name] = `#${hex8[1]}`;
+      colors[`${name}__alpha`] = String(parseInt(hex8[2], 16) / 255);
+      continue;
+    }
+    const hex6 = /^#([0-9a-f]{6})$/i.exec(value);
+    if (hex6) {
+      colors[name] = value;
+      continue;
+    }
+    const rgba = /^rgba?(s*(d+)[,s]+(d+)[,s]+(d+)(?:[,s/]+([d.]+))?s*)$/i.exec(value);
+    if (rgba) {
+      const [, r, g, b, a] = rgba;
+      colors[name] = `#${[r, g, b].map((c) => Number(c).toString(16).padStart(2, "0")).join("")}`;
+      if (a !== undefined) colors[`${name}__alpha`] = a;
+    }
+  }
+  return colors;
+}
 
 /**
  * `bgs` — все подложки элемента. У сплошного фона она одна, у градиента их
@@ -67,6 +103,9 @@ function readColorClass(token: string, prefix: "bg" | "text"): { hex: string; al
   const named = NAMED[rest];
   if (named === undefined) return null;
   if (named === "") return null;
+  // у токена прозрачность зашита в сам цвет (#RRGGBBAA или rgba)
+  const tokenAlpha = NAMED[`${rest}__alpha`];
+  if (tokenAlpha !== undefined) alpha *= Number(tokenAlpha);
   return { hex: named, alpha };
 }
 

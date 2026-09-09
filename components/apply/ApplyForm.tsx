@@ -40,7 +40,7 @@ export function ApplyForm() {
             ✓
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">Заявка отправлена</h1>
-          <p className="mt-2 text-xs text-[#F4F4F2]/60 leading-relaxed">
+          <p className="mt-2 text-xs text-ink-label leading-relaxed">
             Мы свяжемся с вами в течение дня, обсудим детали и подготовим систему лояльности для вашей кофейни.
           </p>
           <Link href="/" className="btn btn-primary mt-6 w-full text-xs font-bold py-3.5">
@@ -64,7 +64,7 @@ export function ApplyForm() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Подключение кофейни</h1>
-          <p className="mt-1 text-xs text-[#F4F4F2]/60">
+          <p className="mt-1 text-xs text-ink-label">
             Оставьте заявку — свяжемся и бесплатно настроим систему
           </p>
         </header>
@@ -148,7 +148,7 @@ export function ApplyForm() {
             {pending ? "Отправляем…" : "Отправить заявку"}
           </button>
 
-          <p className="text-center text-xs text-[#F4F4F2]/50 pt-2">
+          <p className="text-center text-xs text-ink-label pt-2">
             Уже подключены?{" "}
             <Link href="/login" className="font-semibold text-[#7BA5FF] hover:underline">
               Войти
@@ -172,8 +172,8 @@ function Field({
   return (
     <label className="block">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-mono uppercase tracking-wider text-[#F4F4F2]/50 font-semibold">{label}</span>
-        {hint && <span className="text-[10px] text-[#F4F4F2]/40 font-mono">{hint}</span>}
+        <span className="text-[11px] font-mono uppercase tracking-wider text-ink-label font-semibold">{label}</span>
+        {hint && <span className="text-[10px] text-ink-label font-mono">{hint}</span>}
       </div>
       {children}
     </label>

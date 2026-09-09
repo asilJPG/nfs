@@ -56,7 +56,7 @@ export default async function AdminOverview() {
       {/* Platform KPI Grid */}
       <div className="flex justify-between items-baseline">
         <div>
-          <div className="text-[11px] font-mono text-[#F4F4F2]/45 uppercase tracking-wider font-semibold">Сеть Stampy</div>
+          <div className="text-[11px] font-mono text-ink-label uppercase tracking-wider font-semibold">Сеть Stampy</div>
           <h1 className="text-2xl font-bold tracking-tight text-white mt-0.5">Ключевые показатели</h1>
         </div>
       </div>
@@ -157,14 +157,14 @@ function Tile({
   const body = (
     <div className="rounded-[20px] border border-white/[0.06] bg-[#14161D] p-5 shadow-lg shadow-black/40 hover:border-[#5B8DEF]/30 transition-all flex flex-col justify-between">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-[10px] uppercase font-mono tracking-wider text-[#F4F4F2]/50 font-semibold">{label}</span>
+        <span className="text-[10px] uppercase font-mono tracking-wider text-ink-label font-semibold">{label}</span>
         {change && <span className={`text-[11px] font-mono font-semibold ${changeColor}`}>{change}</span>}
       </div>
       <div className="text-2xl font-bold text-white tracking-tight leading-tight">
         {typeof value === "number" ? value.toLocaleString("ru-RU") : value}
       </div>
       {series && <Sparkline series={series} />}
-      {hint && <p className="mt-2 text-[11px] text-[#F4F4F2]/45 font-medium">{hint}</p>}
+      {hint && <p className="mt-2 text-[11px] text-ink-label font-medium">{hint}</p>}
     </div>
   );
   return href ? <Link href={href}>{body}</Link> : body;
@@ -185,12 +185,12 @@ function SimpleTile({
 }) {
   const body = (
     <div className="rounded-[20px] border border-white/[0.06] bg-[#14161D] p-5 hover:border-white/10 transition-all">
-      <span className="text-[10px] uppercase font-mono tracking-wider text-[#F4F4F2]/45 font-semibold block mb-2">{label}</span>
+      <span className="text-[10px] uppercase font-mono tracking-wider text-ink-label font-semibold block mb-2">{label}</span>
       <div className="text-xl font-bold text-white tracking-tight">
         {typeof value === "number" ? value.toLocaleString("ru-RU") : value}
       </div>
       {series && <Sparkline series={series} />}
-      {hint && <p className="mt-1 text-[11px] text-[#F4F4F2]/40 font-medium">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-ink-label font-medium">{hint}</p>}
     </div>
   );
   return href ? <Link href={href}>{body}</Link> : body;

@@ -330,7 +330,7 @@ export function CardScreen() {
             {screen.step === "ready" && (
               <button
                 onClick={() => void loadWallet()}
-                className="size-8 rounded-full bg-white/[0.06] border border-white/10 grid place-items-center text-xs text-[#F4F4F2]/70 hover:text-white"
+                className="size-8 rounded-full bg-white/[0.06] border border-white/10 grid place-items-center text-xs text-ink-body hover:text-white"
               >
                 ‹
               </button>
@@ -347,7 +347,7 @@ export function CardScreen() {
                         ? "Уведомления"
                         : "Профиль"}
               </h1>
-              <p className="text-[11px] font-mono text-[#F4F4F2]/40 uppercase tracking-wider">
+              <p className="text-[11px] font-mono text-ink-label uppercase tracking-wider">
                 {activeTab === "card" && screen.step === "ready"
                   ? screen.state.tenant.name
                   : "Stampy"}
@@ -358,7 +358,7 @@ export function CardScreen() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab("notifications")}
-              className="size-8 rounded-full bg-white/[0.06] border border-white/10 grid place-items-center text-xs relative text-[#F4F4F2]/70"
+              className="size-8 rounded-full bg-white/[0.06] border border-white/10 grid place-items-center text-xs relative text-ink-body"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
               {hasUnread && (
@@ -439,7 +439,7 @@ export function CardScreen() {
             else setActiveTab("wallet");
           }}
           className={`flex flex-col items-center gap-1 text-[10px] font-medium transition-colors ${
-            activeTab === "card" || activeTab === "wallet" ? "text-[#5B8DEF]" : "text-[#F4F4F2]/45 hover:text-white"
+            activeTab === "card" || activeTab === "wallet" ? "text-[#5B8DEF]" : "text-ink-label hover:text-white"
           }`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -452,7 +452,7 @@ export function CardScreen() {
         <button
           onClick={() => setActiveTab("history")}
           className={`flex flex-col items-center gap-1 text-[10px] font-medium transition-colors ${
-            activeTab === "history" ? "text-[#5B8DEF]" : "text-[#F4F4F2]/45 hover:text-white"
+            activeTab === "history" ? "text-[#5B8DEF]" : "text-ink-label hover:text-white"
           }`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -465,7 +465,7 @@ export function CardScreen() {
         <button
           onClick={() => setActiveTab("notifications")}
           className={`flex flex-col items-center gap-1 text-[10px] font-medium transition-colors relative ${
-            activeTab === "notifications" ? "text-[#5B8DEF]" : "text-[#F4F4F2]/45 hover:text-white"
+            activeTab === "notifications" ? "text-[#5B8DEF]" : "text-ink-label hover:text-white"
           }`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -481,7 +481,7 @@ export function CardScreen() {
         <button
           onClick={() => setActiveTab("profile")}
           className={`flex flex-col items-center gap-1 text-[10px] font-medium transition-colors ${
-            activeTab === "profile" ? "text-[#5B8DEF]" : "text-[#F4F4F2]/45 hover:text-white"
+            activeTab === "profile" ? "text-[#5B8DEF]" : "text-ink-label hover:text-white"
           }`}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -641,7 +641,7 @@ function CardView({
           </div>
           <div className="flex-1">
             <div className="text-xs font-semibold text-white">Загляните в {tenant.name} сегодня</div>
-            <div className="text-[11px] text-[#F4F4F2]/65 mt-0.5">
+            <div className="text-[11px] text-ink-body mt-0.5">
               Ещё один штамп — и «{program?.reward_title ?? "награда"}» за счёт заведения.
             </div>
           </div>
@@ -655,7 +655,7 @@ function CardView({
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold text-white truncate">{tenant.name}</div>
-          <div className="text-[11px] text-[#F4F4F2]/45 truncate mt-0.5">
+          <div className="text-[11px] text-ink-label truncate mt-0.5">
             {program
               ? `${total} ${plural(total, "штамп", "штампа", "штампов")} → ${program.reward_title}`
               : "Программа лояльности ещё настраивается"}
@@ -666,7 +666,7 @@ function CardView({
       {/* Activity Section with REAL data */}
       <div className="p-4 rounded-[20px] bg-[#14161D] border border-white/[0.06]">
         <div className="flex justify-between items-center mb-3">
-          <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold">
+          <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold">
             Активность
           </div>
           {state.history.length > 0 && (
@@ -692,12 +692,12 @@ function CardView({
                     <span className={`size-1.5 rounded-full ${idx === 0 ? "bg-[#5B8DEF]" : "bg-white/30"}`} />
                     <span>Штамп добавлен {item.venue ? `· ${item.venue}` : ""}</span>
                   </div>
-                  <span className="text-[11px] text-[#F4F4F2]/45 font-mono">{dateStr}</span>
+                  <span className="text-[11px] text-ink-label font-mono">{dateStr}</span>
                 </div>
               );
             })
           ) : (
-            <div className="text-[11px] text-[#F4F4F2]/40 py-2 text-center">
+            <div className="text-[11px] text-ink-label py-2 text-center">
               Штампов пока нет. Приложите телефон к метке на кассе.
             </div>
           )}
@@ -737,7 +737,7 @@ function StampPopModal({
         </div>
 
         <h2 className="text-xl font-bold tracking-tight text-white mb-2">Штамп добавлен</h2>
-        <p className="text-xs text-[#F4F4F2]/65 leading-relaxed mb-6">
+        <p className="text-xs text-ink-body leading-relaxed mb-6">
           {hasReward
             ? "Поздравляем! Ваша награда готова к получению."
             : `${count} из ${total} — ещё ${Math.max(0, total - count)}, и напиток за счёт заведения.`}
@@ -787,7 +787,7 @@ function WalletView({
           ☕
         </div>
         <h2 className="text-lg font-bold text-white mb-2">Пока нет ни одной карты</h2>
-        <p className="text-xs text-[#F4F4F2]/50 max-w-xs mx-auto leading-relaxed">
+        <p className="text-xs text-ink-label max-w-xs mx-auto leading-relaxed">
           Приложите телефон к NFC-стенду на стойке любой кофейни Stampy, чтобы добавить карту.
         </p>
       </div>
@@ -834,7 +834,7 @@ function WalletView({
   return (
     <div className="flex flex-col gap-3 animate-rise">
       <div className="flex justify-between items-baseline mb-1">
-        <div className="text-xs text-[#F4F4F2]/50 font-medium">
+        <div className="text-xs text-ink-label font-medium">
           {cards.length} {plural(cards.length, "кофейня", "кофейни", "кофеен")}
         </div>
       </div>
@@ -915,12 +915,12 @@ function HistoryView({
     <div className="flex flex-col gap-4 animate-rise">
       {/* Stat Card */}
       <div className="p-6 rounded-[24px] bg-[#FAFAF9] text-[#0E0F11] border border-black/[0.06] shadow-sm">
-        <div className="text-[11px] font-mono uppercase tracking-widest text-[#0E0F11]/50 font-semibold mb-1">
+        <div className="text-[11px] font-mono uppercase tracking-widest text-carbon-label font-semibold mb-1">
           История
         </div>
         <div className="flex items-baseline gap-2 mb-2">
           <div className="text-4xl font-extrabold tracking-tight">{totalCups}</div>
-          <div className="text-xs text-[#0E0F11]/60">{plural(totalCups, "чашка", "чашки", "чашек")} всего</div>
+          <div className="text-xs text-carbon-label">{plural(totalCups, "чашка", "чашки", "чашек")} всего</div>
         </div>
 
         {/* Sparkline или сводка по картам, если истории по кофейне нет */}
@@ -939,11 +939,11 @@ function HistoryView({
         {isWalletMode && (
           <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-xl bg-[#0E0F11]/5 border border-black/[0.06] p-3">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#0E0F11]/50">Карт</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-carbon-label">Карт</div>
               <div className="mt-0.5 text-lg font-bold">{totalCards}</div>
             </div>
             <div className="rounded-xl bg-[#0E0F11]/5 border border-black/[0.06] p-3">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#0E0F11]/50">Наград</div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-carbon-label">Наград</div>
               <div className="mt-0.5 text-lg font-bold">{totalRewards}</div>
             </div>
           </div>
@@ -953,7 +953,7 @@ function HistoryView({
       {/* В режиме кошелька — список карт с прогрессом вместо истории одной кофейни */}
       {isWalletMode && (
         <div className="flex flex-col gap-2">
-          <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold px-1">
+          <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold px-1">
             По кофейням
           </div>
           {walletCards.map((c) => {
@@ -967,7 +967,7 @@ function HistoryView({
               >
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="font-semibold text-white truncate pr-2">{c.name}</span>
-                  <span className="font-mono text-[11px] text-[#F4F4F2]/50 shrink-0">
+                  <span className="font-mono text-[11px] text-ink-label shrink-0">
                     {c.stamps_count} / {req}
                   </span>
                 </div>
@@ -989,7 +989,7 @@ function HistoryView({
       {/* Rewards history items */}
       {rewards.length > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold px-1">
+          <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold px-1">
             Готовые награды
           </div>
           {rewards.map((r) => (
@@ -1015,7 +1015,7 @@ function HistoryView({
 
       {/* History log */}
       <div className="flex flex-col gap-2">
-        <div className="font-mono text-[10px] text-[#F4F4F2]/45 uppercase tracking-widest font-semibold px-1">
+        <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold px-1">
           История посещений
         </div>
         {history.length > 0 ? (
@@ -1027,14 +1027,14 @@ function HistoryView({
                   <span className="size-2 rounded-full bg-[#5B8DEF]" />
                   <div className="text-xs text-white font-medium">Штамп добавлен {h.venue ? `· ${h.venue}` : ""}</div>
                 </div>
-                <span className="text-[11px] text-[#F4F4F2]/40 font-mono">
+                <span className="text-[11px] text-ink-label font-mono">
                   {d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
             );
           })
         ) : (
-          <div className="p-6 rounded-[18px] bg-[#14161D] border border-white/[0.04] text-center text-xs text-[#F4F4F2]/40">
+          <div className="p-6 rounded-[18px] bg-[#14161D] border border-white/[0.04] text-center text-xs text-ink-label">
             История пока пуста
           </div>
         )}
@@ -1088,7 +1088,7 @@ function ProfileView({
         </div>
         <div>
           <h2 className="text-lg font-bold text-white">{userName}</h2>
-          <p className="text-xs text-[#F4F4F2]/50 font-mono mt-0.5">{userHandle}</p>
+          <p className="text-xs text-ink-label font-mono mt-0.5">{userHandle}</p>
         </div>
       </div>
 
@@ -1096,15 +1096,15 @@ function ProfileView({
       <div className="grid grid-cols-3 gap-2.5">
         <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] text-center">
           <div className="text-xl font-bold text-white">{totalCups}</div>
-          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">{plural(totalCups, "чашка", "чашки", "чашек")}</div>
+          <div className="text-[10px] text-ink-label mt-1">{plural(totalCups, "чашка", "чашки", "чашек")}</div>
         </div>
         <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] text-center">
           <div className="text-xl font-bold text-white">{totalRewards}</div>
-          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">{plural(totalRewards, "награда", "награды", "наград")}</div>
+          <div className="text-[10px] text-ink-label mt-1">{plural(totalRewards, "награда", "награды", "наград")}</div>
         </div>
         <div className="p-4 rounded-[18px] bg-[#14161D] border border-white/[0.06] text-center">
           <div className="text-xl font-bold text-white">{totalCards}</div>
-          <div className="text-[10px] text-[#F4F4F2]/50 mt-1">{plural(totalCards, "кофейня", "кофейни", "кофеен")}</div>
+          <div className="text-[10px] text-ink-label mt-1">{plural(totalCards, "кофейня", "кофейни", "кофеен")}</div>
         </div>
       </div>
 
@@ -1115,7 +1115,7 @@ function ProfileView({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             <span>Уведомления</span>
           </div>
-          <span className="text-[#F4F4F2]/50 font-mono">в Telegram</span>
+          <span className="text-ink-label font-mono">в Telegram</span>
         </div>
 
         <div className="p-4 flex items-center justify-between border-b border-white/[0.04]">
@@ -1123,7 +1123,7 @@ function ProfileView({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
             <span>Язык</span>
           </div>
-          <span className="text-[#F4F4F2]/50 font-mono">Русский</span>
+          <span className="text-ink-label font-mono">Русский</span>
         </div>
 
         <div className="p-4 flex items-center justify-between">
@@ -1151,7 +1151,7 @@ function NotificationsView({
   return (
     <div className="flex flex-col gap-3 animate-rise">
       <div className="flex justify-between items-center px-1 mb-1">
-        <div className="text-xs text-[#F4F4F2]/50 font-medium">
+        <div className="text-xs text-ink-label font-medium">
           {items.length} {plural(items.length, "уведомление", "уведомления", "уведомлений")}
         </div>
         {items.some((i) => i.unread) && (
@@ -1177,9 +1177,9 @@ function NotificationsView({
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline mb-0.5">
                 <span className="text-xs font-semibold text-white">{item.title}</span>
-                <span className="text-[10px] text-[#F4F4F2]/45 font-mono">{item.time}</span>
+                <span className="text-[10px] text-ink-label font-mono">{item.time}</span>
               </div>
-              <p className="text-[11px] text-[#F4F4F2]/60 leading-relaxed">{item.text}</p>
+              <p className="text-[11px] text-ink-label leading-relaxed">{item.text}</p>
             </div>
           </div>
         ))}
@@ -1192,7 +1192,7 @@ function NotificationsView({
 function OutsideNfcFlow({ onRetry }: { onRetry: () => void }) {
   return (
     <main className="min-h-dvh bg-[#08090B] text-[#F4F4F2] p-6 flex flex-col justify-between items-center text-center">
-      <div className="pt-6 font-mono text-[11px] uppercase tracking-widest text-[#F4F4F2]/40">
+      <div className="pt-6 font-mono text-[11px] uppercase tracking-widest text-ink-label">
         Stampy · NFC
       </div>
 
@@ -1211,7 +1211,7 @@ function OutsideNfcFlow({ onRetry }: { onRetry: () => void }) {
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-white mb-3">Поднесите к стенду</h1>
-        <p className="text-xs text-[#F4F4F2]/60 leading-relaxed">
+        <p className="text-xs text-ink-label leading-relaxed">
           Приложите телефон к метке Stampy на стойке кофейни, чтобы открыть карту в Telegram.
         </p>
 
@@ -1223,7 +1223,7 @@ function OutsideNfcFlow({ onRetry }: { onRetry: () => void }) {
         </button>
       </div>
 
-      <div className="pb-4 text-[10px] font-mono text-[#F4F4F2]/30 uppercase tracking-widest">
+      <div className="pb-4 text-[10px] font-mono text-ink-label uppercase tracking-widest">
         Stampy · {new Date().getFullYear()}
       </div>
     </main>
@@ -1242,7 +1242,7 @@ function Message({ text, onRetry }: { text: string; onRetry: () => void }) {
   return (
     <div className="grid min-h-dvh place-items-center px-6 text-center bg-[#08090B]">
       <div className="max-w-xs">
-        <p className="text-xs leading-relaxed text-[#F4F4F2]/60 mb-6">{text}</p>
+        <p className="text-xs leading-relaxed text-ink-label mb-6">{text}</p>
         <button
           onClick={onRetry}
           className="px-6 py-2.5 rounded-full bg-white/[0.08] text-xs font-semibold text-white border border-white/10"

@@ -33,12 +33,12 @@ function LoginForm() {
           </svg>
         </div>
         <h1 className="text-xl font-bold tracking-tight text-white">Вход в кабинет</h1>
-        <p className="mt-1 text-xs text-[#F4F4F2]/50">Кабинет кофейни и касса бариста</p>
+        <p className="mt-1 text-xs text-ink-label">Кабинет кофейни и касса бариста</p>
       </div>
 
       <div className="flex flex-col gap-4 relative">
         <label className="block">
-          <span className="mb-1.5 block text-[11px] font-mono uppercase tracking-wider text-[#F4F4F2]/50 font-semibold">Логин</span>
+          <span className="mb-1.5 block text-[11px] font-mono uppercase tracking-wider text-ink-label font-semibold">Логин</span>
           <input
             value={login}
             onChange={(event) => setLogin(event.target.value)}
@@ -51,7 +51,7 @@ function LoginForm() {
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-[11px] font-mono uppercase tracking-wider text-[#F4F4F2]/50 font-semibold">Пароль</span>
+          <span className="mb-1.5 block text-[11px] font-mono uppercase tracking-wider text-ink-label font-semibold">Пароль</span>
           <input
             type="password"
             value={password}
@@ -77,7 +77,7 @@ function LoginForm() {
         </button>
       </div>
 
-      <div className="mt-6 border-t border-white/[0.06] pt-5 text-center text-xs text-[#F4F4F2]/50">
+      <div className="mt-6 border-t border-white/[0.06] pt-5 text-center text-xs text-ink-label">
         <p>
           Ещё не подключены?{" "}
           <Link href="/apply" className="font-semibold text-[#7BA5FF] hover:underline">
@@ -92,7 +92,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-5 py-8 bg-[#08090B] font-sans antialiased">
-      <Suspense fallback={<p className="text-xs text-[#F4F4F2]/40 font-mono">Загрузка…</p>}>
+      <Suspense fallback={<p className="text-xs text-ink-label font-mono">Загрузка…</p>}>
         <LoginForm />
       </Suspense>
     </main>
