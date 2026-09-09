@@ -464,8 +464,7 @@ select option {
   height: 190px;
   z-index: 1;
 }
-.wallet-deck-back,
-.wallet-deck-front {
+.wallet-deck-back {
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.9);

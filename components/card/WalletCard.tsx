@@ -69,15 +69,17 @@ export function WalletCardRow({
   const required = card.stamps_required ?? 6;
   const count = card.stamps_count;
   const isReady = card.is_ready || count >= required;
+  const columns = required <= 7 ? required : Math.ceil(required / 2);
 
   return (
     <div
       onClick={onClick}
       role="button"
       tabIndex={0}
-      className={`relative w-full rounded-[22px] p-5 text-left cursor-pointer transition-all duration-300 ${
-        isActive ? "scale-[1.02]" : "hover:scale-[1.01]"
+      className={`relative w-full text-left cursor-pointer transition-all duration-300 ${
+        isActive ? "wallet-card-hero rounded-[28px] p-6 min-h-[230px] scale-[1.02]" : "rounded-[22px] p-5 hover:scale-[1.01]"
       }`}
+      aria-label={`Карта ${card.name}: ${count} из ${required} штампов`}
       style={{
         background: `linear-gradient(160deg, ${shade(fill, 0.1)} 0%, ${shade(fill, -0.2)} 100%)`,
         color: ink,
@@ -95,7 +97,7 @@ export function WalletCardRow({
           >
             {card.name}
           </div>
-          <div className="text-base font-bold tracking-tight">
+          <div className={`${isActive ? "wallet-card-count text-2xl" : "text-base"} font-bold tracking-tight`}>
             {isReady ? "Награда готова" : `${count} из ${required}`}
           </div>
         </div>
@@ -115,8 +117,11 @@ export function WalletCardRow({
 
       {/* Мини-слоты штампов */}
       <div
-        className="grid grid-cols-7 gap-1.5 pt-2"
-        style={{ borderTop: `1px solid ${withAlpha(ink, 0.12)}` }}
+        className={`grid ${isActive ? "gap-2.5 pt-5" : "gap-1.5 pt-2"}`}
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          borderTop: `1px solid ${withAlpha(ink, 0.12)}`,
+        }}
       >
         {Array.from({ length: required }, (_, i) => {
           const filled = i < count;
@@ -137,7 +142,7 @@ export function WalletCardRow({
               {filled && (
                 <StampMark
                   style={card.brand.card_style ?? "circles"}
-                  size={8}
+                  size={isActive ? 12 : 8}
                   color={fill}
                   filled
                 />
