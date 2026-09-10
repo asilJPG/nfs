@@ -532,6 +532,7 @@ function CardView({
   const total = program?.stamps_required ?? 6;
   const remaining = Math.max(0, total - filled);
   const isRewardReady = rewards.length > 0 || remaining === 0;
+  const returnDays = averageReturnDays(state.history);
 
   const brand = plateColors(tenant.brand);
 
@@ -656,6 +657,12 @@ function CardView({
           </div>
         </div>
       </div>
+
+      {returnDays !== null && (
+        <div className="px-1 text-[11px] text-ink-label">
+          Обычно вы возвращаетесь через {returnDays} {plural(returnDays, "день", "дня", "дней")}.
+        </div>
+      )}
 
       {/* Activity Section with REAL data */}
       <div className="p-4 rounded-[20px] bg-[#14161D] border border-white/[0.06]">
@@ -980,59 +987,164 @@ function HistoryView({
         </div>
       )}
 
-      {/* Rewards history items */}
-      {rewards.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold px-1">
-            Готовые награды
-          </div>
-          {rewards.map((r) => (
-            <div key={r.id} className="p-4 rounded-[18px] bg-[#14161D] border border-[#5B8DEF]/30 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="size-9 rounded-xl bg-[#5B8DEF]/15 text-[#5B8DEF] grid place-items-center">
-                  ★
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-white">{r.title}</div>
-                  <div className="text-[11px] text-[#7BA5FF] mt-0.5">
-                    {r.expires_at ? `До ${new Date(r.expires_at).toLocaleDateString("ru-RU")}` : "Готово к получению"}
-                  </div>
-                </div>
-              </div>
-              <span className="font-mono text-[11px] text-[#7BA5FF] font-semibold shrink-0">
-                {r.earned_at ? new Date(r.earned_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" }) : "—"}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Лента событий: фильтры, секции по дням, награды золотом — как в макете */}
+      {!isWalletMode && <HistoryTimeline rewards={rewards} history={history} />}
+    </div>
+  );
+}
 
-      {/* History log */}
-      <div className="flex flex-col gap-2">
-        <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold px-1">
-          История посещений
-        </div>
-        {history.length > 0 ? (
-          history.map((h, i) => {
-            const d = new Date(h.created_at);
-            return (
-              <div key={i} className="p-3.5 rounded-[16px] bg-[#14161D] border border-white/[0.04] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="size-2 rounded-full bg-[#5B8DEF]" />
-                  <div className="text-xs text-white font-medium">Штамп добавлен {h.venue ? `· ${h.venue}` : ""}</div>
-                </div>
-                <span className="text-[11px] text-ink-label font-mono">
-                  {d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-            );
-          })
-        ) : (
-          <div className="p-6 rounded-[18px] bg-[#14161D] border border-white/[0.04] text-center text-xs text-ink-label">
-            История пока пуста
-          </div>
-        )}
+/**
+ * Через сколько дней гость обычно возвращается. Берём медиану промежутков между
+ * штампами: одна долгая пауза не должна перекашивать подсказку. Нужно хотя бы
+ * три штампа, иначе говорить не о чем.
+ */
+function averageReturnDays(history: MiniAppState["history"]): number | null {
+  if (history.length < 3) return null;
+  const times = history
+    .map((item) => new Date(item.created_at).getTime())
+    .sort((a, b) => b - a);
+  const gaps: number[] = [];
+  for (let i = 0; i < times.length - 1; i += 1) {
+    gaps.push((times[i] - times[i + 1]) / 86_400_000);
+  }
+  gaps.sort((a, b) => a - b);
+  const median = gaps[Math.floor(gaps.length / 2)];
+  const rounded = Math.round(median);
+  return rounded >= 1 && rounded <= 60 ? rounded : null;
+}
+
+const REWARD_GOLD = "#F4B94A";
+
+type TimelineItem =
+  | { kind: "stamp"; at: Date; venue: string | null }
+  | { kind: "reward"; at: Date; title: string; expiresAt: string | null };
+
+/** «Сегодня» / «Вчера» / «3 сентября» — заголовок секции для дня. */
+function dayLabel(date: Date): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const day = new Date(date);
+  day.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - day.getTime()) / 86_400_000);
+  if (diff === 0) return "Сегодня";
+  if (diff === 1) return "Вчера";
+  return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
+}
+
+/** История одной карты: штампы и награды в одной ленте, сгруппированные по дням. */
+function HistoryTimeline({
+  rewards,
+  history,
+}: {
+  rewards: MiniAppState["rewards"];
+  history: MiniAppState["history"];
+}) {
+  const [filter, setFilter] = useState<"all" | "stamps" | "rewards">("all");
+
+  const items: TimelineItem[] = [
+    ...history.map((item) => ({
+      kind: "stamp" as const,
+      at: new Date(item.created_at),
+      venue: item.venue,
+    })),
+    ...rewards.map((reward) => ({
+      kind: "reward" as const,
+      at: new Date(reward.earned_at ?? Date.now()),
+      title: reward.title,
+      expiresAt: reward.expires_at,
+    })),
+  ]
+    .filter((item) => (filter === "all" ? true : filter === "stamps" ? item.kind === "stamp" : item.kind === "reward"))
+    .sort((a, b) => b.at.getTime() - a.at.getTime());
+
+  // группируем по дню, сохраняя порядок «свежие сверху»
+  const groups: { label: string; items: TimelineItem[] }[] = [];
+  for (const item of items) {
+    const label = dayLabel(item.at);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.items.push(item);
+    else groups.push({ label, items: [item] });
+  }
+
+  const FILTERS = [
+    { id: "all", label: "Все" },
+    { id: "stamps", label: "Штампы" },
+    { id: "rewards", label: "Награды" },
+  ] as const;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-1 rounded-full bg-white/[0.04] border border-white/[0.06] p-1 text-[11px]">
+        {FILTERS.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => setFilter(option.id)}
+            className={`flex-1 rounded-full py-1.5 font-semibold transition-colors ${
+              filter === option.id ? "bg-[#5B8DEF] text-[#0E1424]" : "text-ink-label"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
+
+      {groups.length === 0 ? (
+        <div className="p-6 rounded-[18px] bg-[#14161D] border border-white/[0.04] text-center text-xs text-ink-label">
+          {filter === "rewards" ? "Наград пока не было." : "История пока пуста."}
+        </div>
+      ) : (
+        groups.map((group) => (
+          <div key={group.label} className="flex flex-col gap-2">
+            <div className="font-mono text-[10px] text-ink-label uppercase tracking-widest font-semibold px-1">
+              {group.label}
+            </div>
+            {group.items.map((item, index) =>
+              item.kind === "reward" ? (
+                <div
+                  key={`r-${index}`}
+                  className="p-4 rounded-[18px] bg-[#14161D] flex items-center justify-between"
+                  style={{ border: `1px solid ${withAlpha(REWARD_GOLD, 0.35)}` }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="size-9 rounded-xl grid place-items-center shrink-0"
+                      style={{ background: withAlpha(REWARD_GOLD, 0.15), color: REWARD_GOLD }}
+                    >
+                      ★
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-white truncate">{item.title}</div>
+                      <div className="text-[11px] mt-0.5" style={{ color: REWARD_GOLD }}>
+                        {item.expiresAt
+                          ? `До ${new Date(item.expiresAt).toLocaleDateString("ru-RU")}`
+                          : "Готово к получению"}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="font-mono text-[11px] shrink-0" style={{ color: REWARD_GOLD }}>
+                    {item.at.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ) : (
+                <div
+                  key={`s-${index}`}
+                  className="p-3.5 rounded-[16px] bg-[#14161D] border border-white/[0.04] flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="size-2 rounded-full bg-[#5B8DEF] shrink-0" />
+                    <div className="text-xs text-white font-medium truncate">
+                      Штамп добавлен{item.venue ? ` · ${item.venue}` : ""}
+                    </div>
+                  </div>
+                  <span className="text-[11px] text-ink-label font-mono shrink-0">
+                    {item.at.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              ),
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 }

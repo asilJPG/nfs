@@ -21,36 +21,36 @@ type CardData = {
 const CARDS: CardData[] = [
   {
     id: "broadway",
-    name: "Кофейня на Навои",
-    title: "КОФЕЙНЯ НА НАВОИ",
+    name: "Broadway",
+    title: "BROADWAY",
     count: 2,
     total: 6,
     sub: "осталось 4",
-    hint: "Кофейня на Навои · 4-й латте бесплатно",
+    hint: "Broadway · 4-й латте бесплатно",
     bg: "linear-gradient(160deg,#7BA5FF,#4A7DE0)",
     textColor: "#FAFAF9",
     subColor: "rgba(255,255,255,.8)",
   },
   {
     id: "chinor",
-    name: "Пекарня у дома",
-    title: "ПЕКАРНЯ У ДОМА",
+    name: "Chinor",
+    title: "CHINOR",
     count: 4,
     total: 6,
     sub: "осталось 2",
-    hint: "Пекарня у дома · капучино за счёт заведения",
+    hint: "Chinor · капучино за счёт заведения",
     bg: "linear-gradient(160deg,#E85D45,#C43A22)",
     textColor: "#FAFAF9",
     subColor: "rgba(255,255,255,.85)",
   },
   {
     id: "sfumato",
-    name: "Обжарка №7",
-    title: "ОБЖАРКА №7",
+    name: "Sfumato",
+    title: "SFUMATO",
     count: 6,
     total: 6,
     sub: "награда готова",
-    hint: "Обжарка №7 · капучино в подарок",
+    hint: "Sfumato · капучино в подарок",
     ready: true,
     bg: "linear-gradient(160deg,#F4B94A,#E89728)",
     textColor: "#14100C",
@@ -62,7 +62,7 @@ const SCREEN_COPY: Record<ScreenKey, { title: string; sub: string; kicker: strin
   wallet: {
     kicker: "Экран 01 · Кошелёк",
     title: "Все карты — в одной ленте.",
-    sub: "Кофейня на Навои, Пекарня у дома и Обжарка №7 живут в одном месте. Активная карта опускается вниз — прогресс, награда и следующий штамп всегда под рукой.",
+    sub: "Broadway, Chinor и Sfumato живут в одном месте. Активная карта опускается вниз — прогресс, награда и следующий штамп всегда под рукой.",
   },
   tap: {
     kicker: "Экран 02 · Касание NFC",
@@ -91,13 +91,56 @@ const SCREEN_COPY: Record<ScreenKey, { title: string; sub: string; kicker: strin
   },
 };
 
-const INITIAL_EVENTS = [
-  { t: "2 мин", k: "Штамп", c: "Обжарка №7", color: "#F4B94A", name: "Азиза К." },
-  { t: "5 мин", k: "Награда", c: "Пекарня у дома", color: "#E85D45", name: "Тимур Р." },
-  { t: "11 мин", k: "Новая карта", c: "Кофейня на Навои", color: "#7BA5FF", name: "Марат Ю." },
-  { t: "18 мин", k: "Штамп", c: "Обжарка №7", color: "#F4B94A", name: "Диана А." },
-  { t: "26 мин", k: "Штамп", c: "Пекарня у дома", color: "#E85D45", name: "Санжар Б." },
+/** Кофейни Ташкента из дизайн-макетов — те же, что на экранах мини-аппа. */
+const FEED_CAFES = [
+  { name: "Sfumato", color: "#F4B94A" },
+  { name: "Chinor", color: "#E85D45" },
+  { name: "Broadway", color: "#7BA5FF" },
+  { name: "Nur Café", color: "#5B8DEF" },
+  { name: "Cezve Coffee", color: "#8B6F47" },
+  { name: "Milk & Honey", color: "#C8A27A" },
 ];
+
+const FEED_GUESTS = [
+  "Азиза К.", "Тимур Р.", "Марат Ю.", "Диана А.", "Санжар Б.",
+  "Нигора С.", "Жасур Т.", "Камила Н.", "Отабек М.", "Лола И.",
+];
+
+const FEED_KINDS = ["Штамп", "Награда", "Новая карта"] as const;
+
+type FeedEvent = {
+  id: number;
+  kind: (typeof FEED_KINDS)[number];
+  cafe: string;
+  color: string;
+  guest: string;
+  at: number;
+};
+
+let feedCounter = 0;
+
+function makeEvent(at: number): FeedEvent {
+  const cafe = FEED_CAFES[Math.floor(Math.random() * FEED_CAFES.length)];
+  // награда выпадает реже штампа — как и в жизни
+  const roll = Math.random();
+  const kind = roll > 0.86 ? "Награда" : roll > 0.72 ? "Новая карта" : "Штамп";
+  return {
+    id: (feedCounter += 1),
+    kind,
+    cafe: cafe.name,
+    color: cafe.color,
+    guest: FEED_GUESTS[Math.floor(Math.random() * FEED_GUESTS.length)],
+    at,
+  };
+}
+
+/** «только что» / «7 мин» / «2 ч» — метка стареет вместе с событием. */
+function timeAgo(at: number, now: number): string {
+  const minutes = Math.floor((now - at) / 60000);
+  if (minutes < 1) return "только что";
+  if (minutes < 60) return `${minutes} мин назад`;
+  return `${Math.floor(minutes / 60)} ч назад`;
+}
 
 type HistoryItem = {
   id: string;
@@ -117,7 +160,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "today",
     type: "stamp",
     title: "+1 штамп",
-    cafe: "Пекарня у дома",
+    cafe: "Chinor",
     item: "флэт уайт",
     time: "09:12",
     count: "5 / 6",
@@ -128,7 +171,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "yesterday",
     type: "reward",
     title: "Награда",
-    cafe: "Обжарка №7",
+    cafe: "Sfumato",
     item: "капучино",
     time: "16:45",
     count: "★",
@@ -139,7 +182,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "yesterday",
     type: "stamp",
     title: "+1 штамп",
-    cafe: "Кофейня на Навои",
+    cafe: "Broadway",
     item: "латте",
     time: "11:20",
     count: "2 / 6",
@@ -150,7 +193,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "yesterday",
     type: "stamp",
     title: "+1 штамп",
-    cafe: "Пекарня у дома",
+    cafe: "Chinor",
     item: "капучино",
     time: "08:05",
     count: "4 / 6",
@@ -162,7 +205,10 @@ export function StampyLivePreview() {
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("wallet");
   const [order, setOrder] = useState<number[]>([0, 1, 2]); // visual stack positions
   const [isPlaying, setIsPlaying] = useState(true);
-  const [feed, setFeed] = useState(INITIAL_EVENTS);
+  // Лента наполняется на клиенте: на сервере Math.random дал бы одну разметку,
+  // а на гидратации другую.
+  const [feed, setFeed] = useState<FeedEvent[]>([]);
+  const [now, setNow] = useState(() => Date.now());
   const [stampStep, setStampStep] = useState(0);
   const [tapAdded, setTapAdded] = useState(false);
   const [qrMode, setQrMode] = useState(false);
@@ -203,17 +249,25 @@ export function StampyLivePreview() {
     return () => clearInterval(interval);
   }, [isPlaying, activeScreen, cycleCards]);
 
-  // Feed rotation
+  // Заполняем ленту событиями «за последние полчаса», дальше добавляем новые сверху
+  useEffect(() => {
+    const start = Date.now();
+    setFeed(
+      Array.from({ length: 5 }, (_, index) => makeEvent(start - (index * 6 + 2) * 60000)),
+    );
+  }, []);
+
   useEffect(() => {
     const feedInterval = setInterval(() => {
-      setFeed((prev) => {
-        const next = [...prev];
-        const last = next.pop()!;
-        next.unshift(last);
-        return next;
-      });
+      setFeed((prev) => [makeEvent(Date.now()), ...prev].slice(0, 8));
     }, 5200);
     return () => clearInterval(feedInterval);
+  }, []);
+
+  // Отдельный тик, чтобы «2 мин назад» превращалось в «3 мин назад»
+  useEffect(() => {
+    const clock = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(clock);
   }, []);
 
   // Stamp screen animation & resets on screen switch
@@ -549,7 +603,7 @@ export function StampyLivePreview() {
                             {/* Cafe Info */}
                             <div className="mb-4">
                               <h3 className="text-2xl font-bold tracking-tight text-white leading-tight">
-                                Обжарка №7
+                                Sfumato
                               </h3>
                               <p className="text-xs text-ink-label mt-0.5 flex items-center gap-1">
                                 <span>ул. Шота Руставели, 47</span>
@@ -562,7 +616,7 @@ export function StampyLivePreview() {
                             <div className="relative w-full aspect-[1.6/1] rounded-2xl bg-gradient-to-br from-[#F4B94A] to-[#E89728] p-4 text-[#14100C] shadow-[0_24px_48px_-16px_rgba(232,151,40,0.45)] flex flex-col justify-between mb-5 select-none float">
                               <div className="flex justify-between items-start">
                                 <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-[#14100C]">
-                                  ОБЖАРКА №7
+                                  SFUMATO
                                 </div>
                                 <span className="text-[9px] font-mono font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/15 text-[#14100C]">
                                   Новая карта
@@ -632,14 +686,14 @@ export function StampyLivePreview() {
                               Готово
                             </h3>
                             <p className="text-xs text-ink-label leading-relaxed max-w-[220px] mx-auto">
-                              Карта Обжарка №7 в вашем кошельке. Первый штамп уже начислен.
+                              Карта Sfumato в вашем кошельке. Первый штамп уже начислен.
                             </p>
 
                             <div className="mt-6 p-3.5 rounded-2xl bg-[#5B8DEF]/10 border border-[#5B8DEF]/25 flex items-center gap-3 text-left">
                               <div className="size-9 rounded-xl bg-gradient-to-br from-[#F4B94A] to-[#E89728] shrink-0" />
                               <div>
                                 <div className="text-xs font-semibold text-white">+1 штамп</div>
-                                <div className="text-[11px] text-ink-label mt-0.5">Обжарка №7 · 1 / 6</div>
+                                <div className="text-[11px] text-ink-label mt-0.5">Sfumato · 1 / 6</div>
                               </div>
                             </div>
                           </div>
@@ -672,7 +726,7 @@ export function StampyLivePreview() {
                         +1 штамп · только что
                       </div>
                       <div className="text-2xl font-bold tracking-tight text-white mb-0.5">
-                        Пекарня у дома
+                        Chinor
                       </div>
                       <div className="text-xs text-ink-label mb-4">
                         Флэт уайт · <span className="text-white font-medium">28 000 сум</span>
@@ -682,7 +736,7 @@ export function StampyLivePreview() {
                       <div className="p-5 rounded-3xl bg-gradient-to-br from-[#E85D45] to-[#C43A22] text-white shadow-xl shadow-[#C43A22]/30">
                         <div className="flex justify-between items-start mb-6">
                           <span className="font-mono text-[10px] tracking-widest uppercase font-bold text-ink-body">
-                            ПЕКАРНЯ У ДОМА
+                            CHINOR
                           </span>
                           <span className="text-xs text-ink-body">карта №0142</span>
                         </div>
@@ -742,7 +796,7 @@ export function StampyLivePreview() {
                             НАГРАДА ГОТОВА
                           </div>
                           <div className="text-2xl font-bold tracking-tight text-white mb-0.5">
-                            Обжарка №7 · капучино
+                            Sfumato · капучино
                           </div>
                           <div className="text-xs text-ink-label mb-4">
                             Покажите баристе на кассе
@@ -752,7 +806,7 @@ export function StampyLivePreview() {
                             <div className="shimmer-sweep" />
                             <div className="relative flex justify-between items-start">
                               <div className="font-mono text-[10px] uppercase tracking-widest text-[#14100C] font-semibold">
-                                ОБЖАРКА №7 · REWARD
+                                SFUMATO · REWARD
                               </div>
                               <div className="font-bold text-[#14100C]">★</div>
                             </div>
@@ -767,7 +821,7 @@ export function StampyLivePreview() {
                           </div>
 
                           <div className="mt-4 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-xs text-ink-label leading-relaxed">
-                            Действует в любой кофейне Обжарка №7. Бариста отсканирует ваш персональный одноразовый QR-код.
+                            Действует в любой кофейне Sfumato. Бариста отсканирует ваш персональный одноразовый QR-код.
                           </div>
 
                           <div className="mt-auto mb-2">
@@ -796,7 +850,7 @@ export function StampyLivePreview() {
                             </button>
                           </div>
                           <div className="text-2xl font-bold tracking-tight text-white mb-0.5">
-                            Обжарка №7 · капучино
+                            Sfumato · капучино
                           </div>
                           <div className="text-xs text-ink-label mb-3">
                             Одноразовый код списания
@@ -1118,32 +1172,32 @@ export function StampyLivePreview() {
             <div className="text-[11px] font-mono uppercase tracking-widest text-ink-label mb-2">
               События в реальном времени
             </div>
-            <div className="text-4xl font-bold tracking-tight text-white leading-none mb-1">
-              142
+            <div className="text-4xl font-bold tracking-tight text-white leading-none mb-1 tabular-nums">
+              {feed.length}
             </div>
             <div className="text-xs text-ink-label mb-6">
-              начислений и наград по всем кофейням сети
+              событий в демонстрации — так лента выглядит у кофейни
             </div>
 
             {/* Live Feed List */}
             <div className="flex flex-col gap-2.5">
-              {feed.slice(0, 4).map((item, i) => (
+              {feed.slice(0, 4).map((item) => (
                 <div
-                  key={`${item.name}-${i}`}
+                  key={item.id}
                   className="card p-3 flex items-center gap-3 bg-surface-2/60 border-white/[0.06] transition-all"
                 >
                   <div
                     className="size-8 rounded-lg flex-shrink-0 grid place-items-center font-bold text-xs text-white"
                     style={{ background: `linear-gradient(160deg, ${item.color}, rgba(0,0,0,0.4))` }}
                   >
-                    {item.c[0]}
+                    {item.cafe[0]}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold text-white truncate">
-                      {item.k} · {item.c}
+                      {item.kind} · {item.cafe}
                     </div>
                     <div className="text-[10px] text-ink-faint mt-0.5">
-                      {item.name} · {item.t} назад
+                      {item.guest} · {timeAgo(item.at, now)}
                     </div>
                   </div>
                 </div>
@@ -1180,9 +1234,9 @@ export function StampyLivePreview() {
         <div className="mt-16 pt-6 pb-2 border-t border-white/[0.06] overflow-hidden">
           <div className="ticker-track flex items-center text-sm font-medium text-ink-faint whitespace-nowrap">
             <div className="flex items-center gap-12 pr-12">
-              <span>Обжарка №7</span>
-              <span className="font-mono uppercase tracking-widest text-xs">ПЕКАРНЯ У ДОМА</span>
-              <span className="italic font-normal">Кофейня на Навои Roasters</span>
+              <span>Sfumato</span>
+              <span className="font-mono uppercase tracking-widest text-xs">CHINOR</span>
+              <span className="italic font-normal">Broadway Roasters</span>
               <span className="font-semibold tracking-tight">Nur Café</span>
               <span className="font-mono text-xs">Milk &amp; Honey</span>
               <span className="tracking-wide">Cezve Coffee</span>
@@ -1190,9 +1244,9 @@ export function StampyLivePreview() {
               <span className="font-mono uppercase tracking-widest text-xs">BONJUR</span>
             </div>
             <div className="flex items-center gap-12 pr-12" aria-hidden="true">
-              <span>Обжарка №7</span>
-              <span className="font-mono uppercase tracking-widest text-xs">ПЕКАРНЯ У ДОМА</span>
-              <span className="italic font-normal">Кофейня на Навои Roasters</span>
+              <span>Sfumato</span>
+              <span className="font-mono uppercase tracking-widest text-xs">CHINOR</span>
+              <span className="italic font-normal">Broadway Roasters</span>
               <span className="font-semibold tracking-tight">Nur Café</span>
               <span className="font-mono text-xs">Milk &amp; Honey</span>
               <span className="tracking-wide">Cezve Coffee</span>
