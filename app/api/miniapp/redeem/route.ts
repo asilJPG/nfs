@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { InitDataError, resolveUser } from "@/lib/telegram/initData";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rateLimit";
 import type { IssueCodeResult } from "@/types/db";
 
 export const runtime = "nodejs";
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const code = error instanceof InitDataError ? error.code : "invalid";
     return NextResponse.json({ error: code }, { status: 401 });
+  }
+
+  // Один гость не должен генерить бесконечно QR: 20 запросов в минуту хватит на любые ретраи.
+  const gate = rateLimit(`redeem:${telegramId}`, 20, 60);
+  if (!gate.ok) {
+    return NextResponse.json({ error: "rate_limited", retry_after: gate.retryAfterSeconds }, { status: 429 });
   }
 
   const { data, error } = await supabaseAdmin().rpc("issue_redeem_code", {

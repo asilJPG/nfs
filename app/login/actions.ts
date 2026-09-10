@@ -1,9 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 import { loginToAuthEmail, normalizeLogin } from "@/lib/login";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 const schema = z.object({
   login: z.string().trim().min(3).max(40),
@@ -18,9 +20,17 @@ export async function signIn(input: z.input<typeof schema>): Promise<SignInError
   const parsed = schema.safeParse(input);
   if (!parsed.success) return { message: "Введите логин и пароль." };
 
+  // Rate-limit брутфорса: 8 попыток в минуту на связку IP+логин
+  const ip = clientIp(await headers());
+  const login = normalizeLogin(parsed.data.login);
+  const gate = rateLimit(`login:${ip}:${login}`, 8, 60);
+  if (!gate.ok) {
+    return { message: `Слишком много попыток. Подождите ${gate.retryAfterSeconds} сек.` };
+  }
+
   const supabase = await supabaseServer();
   const { error } = await supabase.auth.signInWithPassword({
-    email: loginToAuthEmail(normalizeLogin(parsed.data.login)),
+    email: loginToAuthEmail(login),
     password: parsed.data.password,
   });
 

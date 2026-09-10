@@ -76,7 +76,7 @@ export function ApplyForm() {
               onChange={(event) => setCafeName(event.target.value)}
               required
               maxLength={80}
-              placeholder="Sfumato Coffee"
+              placeholder="Aroma"
               className="input text-xs"
             />
           </Field>

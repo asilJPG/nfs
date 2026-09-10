@@ -302,7 +302,10 @@ export async function impersonateTenantAction(tenantId: string): Promise<void> {
 
 export async function stopImpersonatingAction(returnTo?: string): Promise<void> {
   await clearImpersonation();
-  redirect(returnTo && returnTo.startsWith("/") ? returnTo : "/admin/tenants");
+  // scheme-relative "//host" пролез бы через startsWith("/") — режем открытые редиректы
+  const safe =
+    returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/admin/tenants";
+  redirect(safe);
 }
 
 export async function setGuestBlocked(customerId: string, blocked: boolean): Promise<Result> {

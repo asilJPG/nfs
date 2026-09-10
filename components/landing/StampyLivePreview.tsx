@@ -21,36 +21,36 @@ type CardData = {
 const CARDS: CardData[] = [
   {
     id: "broadway",
-    name: "Broadway",
+    name: "Rise",
     title: "BROADWAY",
     count: 2,
     total: 6,
     sub: "осталось 4",
-    hint: "Broadway · 4-й латте бесплатно",
+    hint: "Rise · 4-й латте бесплатно",
     bg: "linear-gradient(160deg,#7BA5FF,#4A7DE0)",
     textColor: "#FAFAF9",
     subColor: "rgba(255,255,255,.8)",
   },
   {
     id: "chinor",
-    name: "Chinor",
+    name: "Corner",
     title: "CHINOR",
     count: 4,
     total: 6,
     sub: "осталось 2",
-    hint: "Chinor · капучино за счёт заведения",
+    hint: "Corner · капучино за счёт заведения",
     bg: "linear-gradient(160deg,#E85D45,#C43A22)",
     textColor: "#FAFAF9",
     subColor: "rgba(255,255,255,.85)",
   },
   {
     id: "sfumato",
-    name: "Sfumato",
+    name: "Aroma",
     title: "SFUMATO",
     count: 6,
     total: 6,
     sub: "награда готова",
-    hint: "Sfumato · капучино в подарок",
+    hint: "Aroma · капучино в подарок",
     ready: true,
     bg: "linear-gradient(160deg,#F4B94A,#E89728)",
     textColor: "#14100C",
@@ -62,7 +62,7 @@ const SCREEN_COPY: Record<ScreenKey, { title: string; sub: string; kicker: strin
   wallet: {
     kicker: "Экран 01 · Кошелёк",
     title: "Все карты — в одной ленте.",
-    sub: "Broadway, Chinor и Sfumato живут в одном месте. Активная карта опускается вниз — прогресс, награда и следующий штамп всегда под рукой.",
+    sub: "Rise, Corner и Aroma живут в одном месте. Активная карта опускается вниз — прогресс, награда и следующий штамп всегда под рукой.",
   },
   tap: {
     kicker: "Экран 02 · Касание NFC",
@@ -93,12 +93,12 @@ const SCREEN_COPY: Record<ScreenKey, { title: string; sub: string; kicker: strin
 
 /** Кофейни Ташкента из дизайн-макетов — те же, что на экранах мини-аппа. */
 const FEED_CAFES = [
-  { name: "Sfumato", color: "#F4B94A" },
-  { name: "Chinor", color: "#E85D45" },
-  { name: "Broadway", color: "#7BA5FF" },
-  { name: "Nur Café", color: "#5B8DEF" },
-  { name: "Cezve Coffee", color: "#8B6F47" },
-  { name: "Milk & Honey", color: "#C8A27A" },
+  { name: "Aroma", color: "#F4B94A" },
+  { name: "Corner", color: "#E85D45" },
+  { name: "Rise", color: "#7BA5FF" },
+  { name: "Loft", color: "#5B8DEF" },
+  { name: "Terrace", color: "#8B6F47" },
+  { name: "Pekarnya", color: "#C8A27A" },
 ];
 
 const FEED_GUESTS = [
@@ -160,7 +160,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "today",
     type: "stamp",
     title: "+1 штамп",
-    cafe: "Chinor",
+    cafe: "Corner",
     item: "флэт уайт",
     time: "09:12",
     count: "5 / 6",
@@ -171,7 +171,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "yesterday",
     type: "reward",
     title: "Награда",
-    cafe: "Sfumato",
+    cafe: "Aroma",
     item: "капучино",
     time: "16:45",
     count: "★",
@@ -182,7 +182,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "yesterday",
     type: "stamp",
     title: "+1 штамп",
-    cafe: "Broadway",
+    cafe: "Rise",
     item: "латте",
     time: "11:20",
     count: "2 / 6",
@@ -193,7 +193,7 @@ const HISTORY_DATA: HistoryItem[] = [
     day: "yesterday",
     type: "stamp",
     title: "+1 штамп",
-    cafe: "Chinor",
+    cafe: "Corner",
     item: "капучино",
     time: "08:05",
     count: "4 / 6",
@@ -603,7 +603,7 @@ export function StampyLivePreview() {
                             {/* Cafe Info */}
                             <div className="mb-4">
                               <h3 className="text-2xl font-bold tracking-tight text-white leading-tight">
-                                Sfumato
+                                Aroma
                               </h3>
                               <p className="text-xs text-ink-label mt-0.5 flex items-center gap-1">
                                 <span>ул. Шота Руставели, 47</span>
@@ -686,14 +686,14 @@ export function StampyLivePreview() {
                               Готово
                             </h3>
                             <p className="text-xs text-ink-label leading-relaxed max-w-[220px] mx-auto">
-                              Карта Sfumato в вашем кошельке. Первый штамп уже начислен.
+                              Карта Aroma в вашем кошельке. Первый штамп уже начислен.
                             </p>
 
                             <div className="mt-6 p-3.5 rounded-2xl bg-[#5B8DEF]/10 border border-[#5B8DEF]/25 flex items-center gap-3 text-left">
                               <div className="size-9 rounded-xl bg-gradient-to-br from-[#F4B94A] to-[#E89728] shrink-0" />
                               <div>
                                 <div className="text-xs font-semibold text-white">+1 штамп</div>
-                                <div className="text-[11px] text-ink-label mt-0.5">Sfumato · 1 / 6</div>
+                                <div className="text-[11px] text-ink-label mt-0.5">Aroma · 1 / 6</div>
                               </div>
                             </div>
                           </div>
@@ -726,7 +726,7 @@ export function StampyLivePreview() {
                         +1 штамп · только что
                       </div>
                       <div className="text-2xl font-bold tracking-tight text-white mb-0.5">
-                        Chinor
+                        Corner
                       </div>
                       <div className="text-xs text-ink-label mb-4">
                         Флэт уайт · <span className="text-white font-medium">28 000 сум</span>
@@ -796,7 +796,7 @@ export function StampyLivePreview() {
                             НАГРАДА ГОТОВА
                           </div>
                           <div className="text-2xl font-bold tracking-tight text-white mb-0.5">
-                            Sfumato · капучино
+                            Aroma · капучино
                           </div>
                           <div className="text-xs text-ink-label mb-4">
                             Покажите баристе на кассе
@@ -821,7 +821,7 @@ export function StampyLivePreview() {
                           </div>
 
                           <div className="mt-4 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-xs text-ink-label leading-relaxed">
-                            Действует в любой кофейне Sfumato. Бариста отсканирует ваш персональный одноразовый QR-код.
+                            Действует в любой кофейне Aroma. Бариста отсканирует ваш персональный одноразовый QR-код.
                           </div>
 
                           <div className="mt-auto mb-2">
@@ -850,7 +850,7 @@ export function StampyLivePreview() {
                             </button>
                           </div>
                           <div className="text-2xl font-bold tracking-tight text-white mb-0.5">
-                            Sfumato · капучино
+                            Aroma · капучино
                           </div>
                           <div className="text-xs text-ink-label mb-3">
                             Одноразовый код списания
@@ -1234,24 +1234,24 @@ export function StampyLivePreview() {
         <div className="mt-16 pt-6 pb-2 border-t border-white/[0.06] overflow-hidden">
           <div className="ticker-track flex items-center text-sm font-medium text-ink-faint whitespace-nowrap">
             <div className="flex items-center gap-12 pr-12">
-              <span>Sfumato</span>
+              <span>Aroma</span>
               <span className="font-mono uppercase tracking-widest text-xs">CHINOR</span>
-              <span className="italic font-normal">Broadway Roasters</span>
-              <span className="font-semibold tracking-tight">Nur Café</span>
+              <span className="italic font-normal">Rise</span>
+              <span className="font-semibold tracking-tight">Loft</span>
               <span className="font-mono text-xs">Milk &amp; Honey</span>
-              <span className="tracking-wide">Cezve Coffee</span>
-              <span>Kofema</span>
-              <span className="font-mono uppercase tracking-widest text-xs">BONJUR</span>
+              <span className="tracking-wide">Terrace</span>
+              <span>Panorama</span>
+              <span className="font-mono uppercase tracking-widest text-xs">MANZIL</span>
             </div>
             <div className="flex items-center gap-12 pr-12" aria-hidden="true">
-              <span>Sfumato</span>
+              <span>Aroma</span>
               <span className="font-mono uppercase tracking-widest text-xs">CHINOR</span>
-              <span className="italic font-normal">Broadway Roasters</span>
-              <span className="font-semibold tracking-tight">Nur Café</span>
+              <span className="italic font-normal">Rise</span>
+              <span className="font-semibold tracking-tight">Loft</span>
               <span className="font-mono text-xs">Milk &amp; Honey</span>
-              <span className="tracking-wide">Cezve Coffee</span>
-              <span>Kofema</span>
-              <span className="font-mono uppercase tracking-widest text-xs">BONJUR</span>
+              <span className="tracking-wide">Terrace</span>
+              <span>Panorama</span>
+              <span className="font-mono uppercase tracking-widest text-xs">MANZIL</span>
             </div>
           </div>
         </div>

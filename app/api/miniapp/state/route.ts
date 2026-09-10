@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { InitDataError, profileOf, resolveUser } from "@/lib/telegram/initData";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rateLimit";
 import { listCards, loadState, tenantIdBySlug, type CardBadge, type MiniAppState } from "@/lib/miniapp/state";
 import { rememberedTenant, rememberTenant } from "@/lib/session";
 import type { ClaimStampResult, Reward } from "@/types/db";
@@ -43,6 +44,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: code }, { status: 401 });
   }
 
+  // Ограничиваем спам claim_stamp/state — 60 запросов в минуту на одного гостя.
+  // Штатный polling 4с даёт 15/мин, оставляем запас.
+  const gate = rateLimit(`miniapp:${user.id}`, 60, 60);
+  if (!gate.ok) {
+    return NextResponse.json({ error: "rate_limited", retry_after: gate.retryAfterSeconds }, { status: 429 });
+  }
+
   // wallet: true — гость сам открыл список карт. Тут нельзя подставлять
   // запомненную кофейню, иначе экран «Мои карты» никогда не показался бы.
   if (parsed.data.wallet) {
@@ -68,10 +76,23 @@ export async function POST(request: NextRequest) {
       });
     }
   } else if (startParam?.startsWith(TAP_PREFIX)) {
-    // демо-путь для дешёвых меток: создаём одноразовый токен на сервере и штампуем
-    const result = await claimTapDemo(startParam.slice(TAP_PREFIX.length), user.id, profileOf(user));
-    tenantId = result.tenantId;
-    claim = result.outcome;
+    // демо-путь для дешёвых меток без крипты — только в dev.
+    // В проде кто угодно, зная slug кофейни, штамповал бы себе бесплатно.
+    if (process.env.STAMPY_DEV_MODE === "1") {
+      const result = await claimTapDemo(startParam.slice(TAP_PREFIX.length), user.id, profileOf(user));
+      tenantId = result.tenantId;
+      claim = result.outcome;
+    } else {
+      // Тихо игнорируем — просто открываем кошелёк без штампа
+      tenantId = await tenantIdBySlug(startParam.slice(TAP_PREFIX.length));
+      if (tenantId) {
+        await db.rpc("ensure_membership", {
+          p_tenant: tenantId,
+          p_telegram_id: user.id,
+          p_profile: profileOf(user),
+        });
+      }
+    }
   } else if (startParam) {
     const result = await claimTap(startParam, user.id, profileOf(user));
     tenantId = result.tenantId;

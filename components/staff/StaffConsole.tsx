@@ -46,8 +46,10 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
   const [pending, startTransition] = useTransition();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const detectorRef = useRef<any>(null);
+  const jsQRRef = useRef<((data: Uint8ClampedArray, w: number, h: number) => { data: string } | null) | null>(null);
   const rafRef = useRef<number | null>(null);
   const busyRef = useRef(false);
 
@@ -64,14 +66,23 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
   async function startScanner() {
     setShowScannerModal(true);
     setResult(null);
-    if (typeof window === "undefined" || !("BarcodeDetector" in window)) {
-      setScan({ kind: "unsupported" });
-      return;
-    }
     setScan({ kind: "starting" });
-    try {
+
+    // BarcodeDetector — Chrome/Android. Для iOS Safari грузим jsQR лениво.
+    if (typeof window !== "undefined" && "BarcodeDetector" in window) {
       const Detector = (window as any).BarcodeDetector;
       detectorRef.current = new Detector({ formats: ["qr_code"] });
+    } else {
+      try {
+        const mod = await import("jsqr");
+        jsQRRef.current = mod.default as any;
+      } catch {
+        setScan({ kind: "unsupported" });
+        return;
+      }
+    }
+
+    try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" } },
         audio: false,
@@ -89,19 +100,40 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
 
   function tick() {
     const video = videoRef.current;
-    const detector = detectorRef.current;
-    if (!video || !detector || !streamRef.current) return;
-    detector
-      .detect(video)
-      .then((codes: any[]) => {
-        if (codes && codes[0]?.rawValue && !busyRef.current) {
-          handleToken(codes[0].rawValue);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (streamRef.current) rafRef.current = requestAnimationFrame(tick);
-      });
+    if (!video || !streamRef.current) return;
+
+    const finish = () => {
+      if (streamRef.current) rafRef.current = requestAnimationFrame(tick);
+    };
+
+    if (detectorRef.current) {
+      detectorRef.current
+        .detect(video)
+        .then((codes: any[]) => {
+          if (codes && codes[0]?.rawValue && !busyRef.current) handleToken(codes[0].rawValue);
+        })
+        .catch(() => {})
+        .finally(finish);
+      return;
+    }
+
+    // jsQR-путь: снимаем кадр с video в canvas, скармливаем ImageData
+    const jsQR = jsQRRef.current;
+    if (!jsQR || video.videoWidth === 0) {
+      finish();
+      return;
+    }
+    const canvas = canvasRef.current ?? document.createElement("canvas");
+    canvasRef.current = canvas;
+    const w = (canvas.width = video.videoWidth);
+    const h = (canvas.height = video.videoHeight);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return finish();
+    ctx.drawImage(video, 0, 0, w, h);
+    const img = ctx.getImageData(0, 0, w, h);
+    const code = jsQR(img.data, w, h);
+    if (code?.data && !busyRef.current) handleToken(code.data);
+    finish();
   }
 
   function handleToken(rawToken: string) {

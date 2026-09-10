@@ -176,10 +176,26 @@ export async function resetStaffPassword(staffId: string, password: string): Pro
 }
 
 export async function removeStaff(staffId: string): Promise<Result> {
-  const { tenant, staff } = await requireRole("owner", "manager");
-  if (staffId === staff.id) return { ok: false, message: "Себя удалить нельзя." };
+  const { tenant, staff: caller } = await requireRole("owner", "manager");
+  if (staffId === caller.id) return { ok: false, message: "Себя удалить нельзя." };
 
   const supabase = await supabaseServer();
+  const { data: member } = await supabase
+    .from("stampy_staff_users")
+    .select("role")
+    .eq("id", staffId)
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+  if (!member) return { ok: false, message: "Сотрудник не найден." };
+
+  // управляющий не может отключить владельца или другого управляющего
+  if (member.role === "owner" && caller.role !== "owner") {
+    return { ok: false, message: "Владельца отключает только сам владелец." };
+  }
+  if (member.role === "manager" && caller.role !== "owner") {
+    return { ok: false, message: "Управляющего отключает только владелец." };
+  }
+
   const { error } = await supabase
     .from("stampy_staff_users")
     .update({ active: false })
