@@ -1,1259 +1,228 @@
 # Девлог
 
-## Сессия 10 сентября 2026 — супер-админка, живая витрина Mini App и полировка мобильного UX
-
-Большая сессия по приведению платформы в соответствие с дизайн-системой Stampy (`дизайн/Stampy.dc (3).html`, `StampyLivePreview.dc.html`, `Stampy Mini App Screens.dc.html`): оживление нулевых метрик супер-админки, внедрение интерактивной витрины гостя на лендинг, запуск бегущей строки и удаление лишних экранов ожидания.
-
-### 1. Супер-админка платформы (`/admin`)
-
-- **Проблема:** панель отображала нули по кофейням, гостям и штампам, несмотря на существующие данные в Supabase. SQL-функция `admin_platform_overview` падала в Postgres из-за несовпадения типов параметров в `admin_plan_price_uzs(tenant_plan)` (enum vs text).
-- **Решение:**
-  - Запрос метрик в [`app/admin/page.tsx`](file:///C:/all_ai/nfsss/app/admin/page.tsx) переписан на прямые безопасные агрегации из живых таблиц (`tenants`, `guests`, `stamps`, `stamp_cards`, `applications`, `nfc_tags`) с graceful fallback.
-  - Email супер-админа `asilchik18@gmail.com` добавлен в `stampy_platform_admins`.
-- **Редизайн по Screen 14 («Stampy super-admin»):**
-  - Создан [`components/admin/AdminSidebar.tsx`](file:///C:/all_ai/nfsss/components/admin/AdminSidebar.tsx): тёмный сайдбар 220px с живыми счётчиками объектов (`tenants`, `guests`, `applications`, `tags`), индикатором окружения (`staging: prod`) и мобильной нижней панелью.
-  - Реализованы 4 KPI-тайла со спарклайнами за 14 дней (MRR 490 000 сум, Кофейни 2, Гости 4, Штампы 21).
-  - Сетка 1.6fr / 1fr: сводная таблица сети кофеен (аватары, тарифы `loyalty`/`marketing`, штампы, индикаторы здоровья) + виджеты статуса инфраструктуры (Supabase, Bot Webhook, Cron) и инцидентов.
-  - Формы и списки в [`components/admin/AdminConsole.tsx`](file:///C:/all_ai/nfsss/components/admin/AdminConsole.tsx), [`TagsPanel.tsx`](file:///C:/all_ai/nfsss/components/admin/TagsPanel.tsx), [`GuestsPanel.tsx`](file:///C:/all_ai/nfsss/components/admin/GuestsPanel.tsx), [`GuestDetailActions.tsx`](file:///C:/all_ai/nfsss/components/admin/GuestDetailActions.tsx) приведены к токенам `.card`, `.input`, `.btn`, `.badge`.
-
-### 2. Интерактивная витрина на лендинге (`StampyLivePreview.tsx`)
-
-- Создан и встроен в [`app/page.tsx`](file:///C:/all_ai/nfsss/app/page.tsx) интерактивный компонент [`components/landing/StampyLivePreview.tsx`](file:///C:/all_ai/nfsss/components/landing/StampyLivePreview.tsx).
-- **Исправлена бегущая строка кофеен («АФК»):**
-  - В [`app/globals.css`](file:///C:/all_ai/nfsss/app/globals.css) добавлены анимация `@keyframes ticker` (28s linear infinite) и стили `.ticker-track` с паузой на `:hover`.
-  - Структура бегущей строки переведена на два одинаковых блока с отрицательным сдвигом `-50%` и компенсацией `gap-12 pr-12` — строка движется абсолютно плавно и бесшовно без рывков.
-- **Удалён экран ожидания/радара («поиск тега с вайфаем»):**
-  - По требованию владельца экран «Коснитесь метки» с кругами радара вырезан — в реальном продукте гость уже коснулся NFC на кассе.
-  - Вместо него реализован экран **«Касание NFC» (Screen 03 & 04)**: на фоне затемнённого кошелька снизу плавно выезжает модальное окно (Bottom Sheet) кофейни Sfumato (метка #04, правила, карта в градиенте).
-  - По нажатию на «Добавить в кошелёк» отрабатывает экран успешного добавления (Screen 04) с расходящимися кольцами (`.ring`), пульсирующим чекмарком (`.glow`) и тостом `+1 штамп`.
-- **Реализованы все 6 экранов из `Stampy Mini App Screens.dc.html` (все рабочие, не мокапы):**
-  1. `wallet` (Кошелёк · веер): переключение карт Broadway, Chinor, Sfumato по клику, стеклянный карман активной карты с живыми точками штампов.
-  2. `tap` (Касание NFC): всплывающее окно заведения + переход в Screen 04 «Готово» по кнопке добавления.
-  3. `stamp` (Штамп): последовательное тактильное заполнение ячеек штампов Chinor 5/6 с кнопкой повтора анимации.
-  4. `reward` (Награда): переключение между шиммер-карточкой капучино (`.shimmer-sweep`) и белым QR-билетом для баристы с лазерной полосой сканирования (`.qr-scan`) и тикающим обратным таймером.
-  5. `history` (История): реальный список визитов по дням (СЕГОДНЯ / ВЧЕРА) с **работающими кнопками-фильтрами** «Все / Штампы / Награды».
-  6. `profile` (Профиль): карточка гостя Тимур Р., 3 плитки со статистикой (4 карты, 42 штампа, 3 награды), рабочий тумблер уведомлений.
-  - Внутри экрана телефона добавлена нативная нижняя навигация Telegram Mini App (Карты, Вход, Штамп, Награда, Профиль).
-
-### 3. Чистка реального приложения `/card`
-
-- Из [`components/card/CardScreen.tsx`](file:///C:/all_ai/nfsss/components/card/CardScreen.tsx) полностью удалён `OutsideNfcFlow` и состояние `step: "outside"` (тот самый экран ожидания с иконкой волн).
-- Если гость или разработчик открывает `/card` напрямую в браузере вне Telegram, приложение не упирается в тупиковый экран с требованием коснуться стенда, а сразу открывает кошелёк с картами.
-- В окно выдачи награды [`components/card/RewardSheet.tsx`](file:///C:/all_ai/nfsss/components/card/RewardSheet.tsx) добавлена лазерная сканирующая полоса `.qr-scan` из дизайн-макета.
-
-### 4. Статус сборки и тестов
-
-- `npm run verify:contrast`: все проверки контрастности (WCAG AA ≥ 4.5:1) пройдены чисто.
-- `npm run typecheck`: TypeScript компилируется без единой ошибки.
-- `npm run build`: Next.js 15.5.25 собирается начисто за 3.7 с.
-- Ветка: `main`, все изменения добавлены в git staging.
-
----
-
-## Сессия 9 сентября 2026 — визуальная итерация мини-аппа
-
-По запросу владельца обновлён только визуальный слой `/card`, без изменений в
-API, polling, Telegram-auth, NFC, QR-наградах и обработчиках базы данных.
-
-### Что изменилось
-
-- В кошельке добавлен декоративный веер из первых карт и передняя карточка
-  «Активные карты» в стиле референса. Передняя карточка остаётся кликабельной
-  и открывает первую кофейню; существующий список всех карт сохранён ниже.
-- При получении нового штампа теперь анимируется именно новый слот: появление,
-  короткое свечение и лёгкое движение всей сетки. Существующий pop-up и haptic
-  feedback сохранены и дополнены анимацией отметки.
-- Добавлены hover/active/focus-visible состояния для новой карточки кошелька.
-- Для `prefers-reduced-motion: reduce` новые анимации отключаются.
-
-### Что намеренно не менялось
-
-- Вся загрузка `/api/miniapp/state`, live polling и повторная обработка tap-токена.
-- QR-награды, server actions, Telegram initData и визуальная бренд-логика кофеен.
-- Данные кошелька: новая веерная карточка использует только уже загруженные
-  `CardBadge`; сетка полного списка остаётся прежней.
-
-### Ограничение
-
-Веер — декоративный слой, а не новая модель навигации: при нажатии на переднюю
-карточку открывается первая карта, а выбрать любую кофейню по-прежнему можно в
-списке ниже. Реальный скриншот-прогон в Telegram ещё нужно сделать после сборки.
-
-### Уточнение по кошельку
-
-По новому референсу нижний список полноразмерных карт убран: на экране кошелька
-оставлена только композиция из передней карточки и веера. Задние карточки теперь
-являются кнопками с доступными областями и открывают соответствующую кофейню;
-передняя карточка по-прежнему открывает первую карту. При монтировании экрана
-задние карточки плавно расходятся влево/вправо с небольшими задержками.
-
-### Карусель карт
-
-Передняя карточка веера теперь показывает реальную карту текущей кофейни:
-название, прогресс и превью штампов. Нижнего списка карт нет. На карточке можно
-сделать горизонтальный свайп в любую сторону — текущая карта плавно уезжает и
-переходит в конец очереди, следующая становится передней. Нажатие без свайпа
-открывает полный экран выбранной карты. Вертикальный скролл страницы не блокируется.
-
-### Пропорции активной карты
-
-Активная карточка в карусели переведена из плоского row-формата в более высокий
-hero-формат: увеличены высота, внутренние отступы, счётчик и слоты штампов.
-Количество колонок теперь рассчитывается по числу штампов, поэтому шесть слотов
-не выглядят прижатыми к одной стороне и композиция остаётся симметричной.
-
-### Композиция кошелька по референсу
-
-Кошелёк дополнительно приближен к переданному референсу: задние карты стали
-крупнее и заметнее, передняя hero-карта опускается поверх веера, а лишняя
-текстовая подсказка под композицией убрана. В передней карте сохранена наша
-механика прогресса и превью штампов; свайп и открытие карты не менялись.
-
-Состояние проекта на 4 сентября 2026. Файл для того, чтобы продолжить работу с
-другой машины, не поднимая контекст заново.
+Компактный справочник по состоянию проекта. Дата актуализации — 10 сентября 2026.
+История сессий свёрнута; ниже — то, что есть сейчас и что осталось сделать.
 
 ## Что это
 
-**Stampy** — SaaS карт лояльности для кофеен. Бумажная карточка со штампами
-переехала в Telegram Mini App: гость прикладывает телефон к NFC-подставке на
-кассе, получает штамп, после N штампов — бесплатный напиток по коду.
+**Stampy** — SaaS карт лояльности для кофеен. Бумажная штамп-карточка переехала
+в Telegram Mini App: гость прикладывает телефон к NFC-подставке на кассе,
+получает штамп, после N штампов — бесплатный напиток по QR у бариста.
 
-Все кофейни живут внутри **одного** общего бота: каждая регистрируется сама,
-настраивает своё оформление и получает карту в том же мини-аппе. Отдельные боты
-не заводятся.
+Один бот на всех, каждая кофейня внутри со своим брендом, тёмная дизайн-система
+(Stampy.dc). Тарифы Solo / Chain / Group (UZS), оплата вручную — Click/Payme
+пока не подключён.
 
-Репозиторий: `github.com/asilJPG/nfs` (ветка `main`).
-Vercel-проект: `nfsss` (`prj_DBV0FkqCxLIbuOkWSwZp96ypZo6O`).
-Supabase: `qrfdpzigcarbethrsioe`.
+- Репо: `github.com/asilJPG/nfs`, ветка `main`
+- Vercel-проект: `nfsss`, регион `hnd1` (Токио, рядом с базой)
+- Supabase: `qrfdpzigcarbethrsioe`, регион `ap-northeast-1` (Токио)
+- Bot: `@uuiopiasodfpio_bot`, вебхук на `nfs-tau.vercel.app`
 
 ## Стек
 
-Next.js 15 (App Router, Server Actions, TypeScript, Tailwind 4) · Supabase
-(Postgres + RLS + Auth + Storage) · Vercel (хостинг и cron) · Telegram Bot API.
-Recharts для графиков, zod для валидации входа server actions.
+Next.js 15 (App Router, Server Actions, TS, Tailwind 4) · Supabase
+(Postgres + RLS + Auth + Storage) · Vercel · Telegram Bot API. Recharts,
+zod. Время в UTC (`timestamptz`), аналитика в `Asia/Tashkent`.
 
-Время в базе — UTC (`timestamptz`), аналитика и расписания считаются в
-`Asia/Tashkent`.
+## Разделы
 
-## Что реализовано
-
-### Роли и разделы
-
-| Путь | Кто | Что уже работает |
+| Путь | Кто | Что |
 |---|---|---|
-| `/` | кофейня | лендинг |
-| `/register` | кофейня | саморегистрация: название, логин, пароль; триал 30 дней |
-| `/login` | кофейня | вход по логину и паролю |
-| `/dashboard` | владелец, управляющий | аналитика, оформление карты, точки, метки, рассылки, подписка |
-| `/staff` | бариста | выдать награду по коду, ручной штамп |
-| `/admin` | платформа | кофейни, подписки, регистрация меток, заявки на комплекты |
-| `/card` | гость | мини-апп: карта, штампы, награды |
-| `/t` | — | эндпоинт NFC-касания |
+| `/` | публично | лендинг Stampy + StampyLivePreview (интерактивная витрина 6 экранов) |
+| `/apply` | публично | заявка на подключение (rate-limit 3/день/телефон, tg-уведомление ADMIN_TELEGRAM_ID) |
+| `/login` | сотрудники | логин + пароль (`<login>@stampy.local` под капотом) |
+| `/dashboard` | владелец/управляющий | аналитика, оформление карты, точки, метки, рассылки, подписка |
+| `/staff` | бариста | сканер QR наград (камера) |
+| `/admin` | платформа | AdminSidebar + KPI + таблица кофеен, гости, заявки, метки, health-виджеты |
+| `/card` | гость | мини-апп: кошелёк, карта, история, события, профиль |
+| `/t` | NFC | приём тапа NTAG 424, создание stamp_token, редирект |
 
-### Путь одного штампа
+## Ключевые архитектурные решения
 
-1. Тап по метке → браузер открывает `/t?picc_data=…&cmac=…`.
-2. `app/t/route.ts` расшифровывает PICCData, проверяет CMAC (`lib/nfc/sun.ts`),
-   требует, чтобы счётчик касаний вырос — это защита от повтора ссылки.
-3. Создаётся одноразовый `stamp_token` (TTL 3 минуты) → 302 в мини-апп.
-4. Мини-апп отдаёт подписанный Telegram `initData` в `/api/miniapp/state`.
-5. SQL-функция `claim_stamp` одной транзакцией проверяет токен, подписку и
-   антифрод-паузу, пишет штамп и, если карта заполнилась, выдаёт награду.
+**Auth без сети.** `lib/auth.ts` использует `getClaims()` с JWKS (кеш в модуле
+10 минут) вместо `getUser()`. Раньше было 2 сетевых вызова Auth на клик, стало
+0 — подпись JWT проверяется локально. `React.cache` дедупицирует
+`requireStaff` в рамках запроса + JOIN staff/tenant одним запросом (было 6
+SQL на страницу, стало 1-2).
 
-Штампы и награды пишутся **только** через SECURITY DEFINER функции
-(`claim_stamp`, `add_manual_stamp`, `redeem_reward`). Прямых INSERT-политик нет —
-это осознанно, чтобы никакой клиент не смог начислить штамп мимо проверок.
+**Регион.** `vercel.json`: `"regions": ["hnd1"]`. Функции в том же ДЦ, что и
+БД — internal RTT 5мс вместо 340мс через океан. Ташкент → Токио ~130мс на
+клик. План на Frankfurt (`docs/region-migration.md`) отложен.
 
-### NFC
+**NFC.** NTAG 424 DNA SUN. `NFC_MASTER_KEY` (32 байта hex) в env, из него
+выводятся `K_meta` (общий) и `K_mac(UID)` (per-tag) через HMAC-SHA256. Чип
+шифрует AES-CBC + подписывает CMAC, сервер (`lib/nfc/sun.ts`) проверяет.
+Защита от повтора — атомарный UPDATE `stampy_nfc_tags` с `last_counter < tap.counter`.
 
-Метки — **NTAG 424 DNA** (SUN/SDM). NTAG213/215/216 не годятся: у них статичная
-ссылка, её копируют и ставят штампы дома. Ключи каждой метки выводятся из
-`NFC_MASTER_KEY`: `K_meta` общий (UID лежит внутри шифротекста, иначе его не
-расшифровать), `K_mac` уникален по UID. Прошивка описана в
-`docs/nfc-provisioning.md`.
+**Демо-путь для дешёвых меток.** `startapp=tap_<slug>` в мини-аппе (см.
+`claimTapDemo` в `app/api/miniapp/state/route.ts`) — без крипты, находит первую
+активную метку кофейни и штампует. Для показа кофейне «почему нужен NTAG 424».
 
-**Важно:** прод-мастер-ключ выбирается один раз, до прошивки первой партии.
-Метка, прошитая одним ключом, не работает в окружении с другим.
+**Штампы и награды пишутся только через SECURITY DEFINER функции**
+(`claim_stamp`, `add_manual_stamp`, `redeem_reward`), прямых INSERT-политик
+нет.
 
-### Вход без почты
+**Рассылки.** `queue_broadcast` материализует таргеты, атомарный
+`claim_broadcast_batch` (`FOR UPDATE SKIP LOCKED`) отсекает дубли при
+параллельных drain'ах. Триггер после кнопки — через `after()` из
+`next/server`, иначе Vercel убивает `void fetch` до завершения. Дневной cron
+на `vercel.json` как страховка.
 
-Supabase Auth умеет опознавать только email, поэтому под капотом заводится
-служебный адрес `<логин>@stampy.local` — наружу не показывается, письма не
-уходят. Аккаунты создаются админским API с `email_confirm: true`. Сотрудников
-заводит владелец сам (логин + пароль, передаёт лично), сброс пароля — кнопкой в
-кабинете. Почта осталась необязательным контактным полем.
+**QR-погашение.** `issue_redeem_code` выдаёт 32-hex токен (через
+`gen_random_uuid()`, чтобы работало и в PGlite, и в Supabase без pgcrypto).
+Мини-апп рисует QR, бариста сканит камерой в `/staff`.
 
-### Тарифы и доступ
+**Импресонация.** Cookie `__Host-stampy_impersonate` (подпись HMAC от
+SESSION_SECRET, TTL 2ч). Платформенный админ на `/admin/tenants/[id]` жмёт
+«Войти как владелец» → cookie ставится → `requireStaff` возвращает контекст
+владельца. В шапке дашборда жёлтый баннер + «Выйти из режима».
 
-Два тарифа: `loyalty` (290 000 сум/мес) и `marketing` (490 000 сум/мес —
-рассылки, тепловая карта, когорты, несколько точек, экспорт). Триал открывает
-всё, чтобы кофейня видела, за что платит. Логика в `lib/plan.ts` и зеркалящей её
-`tenant_is_serving()` в SQL — менять надо обе.
-
-### Рассылки
-
-Очередь не ждёт планировщик: стартует сразу после создания рассылки, после
-каждого батча эндпоинт вызывает сам себя, пока есть адресаты (~25 сообщений/с,
-обработка 429 и блокировок). Причина — Hobby-план Vercel отклоняет **весь
-деплой** при расписании чаще суточного («Hobby accounts are limited to daily
-cron jobs»). Суточные задания в `vercel.json` остались страховкой, если цепочка
-оборвалась. На Pro можно вернуть `* * * * *`, поведение не изменится.
-
-### Тенанты
-
-`tenant_id` во всех таблицах, RLS по `stampy_staff_users`. Гости мини-аппа не
-аутентифицируются в Postgres: их личность — подпись Telegram, проверенная на
-сервере, а запросы идут через service-role.
-
-### Именование
-
-Все таблицы с префиксом `stampy_`, бакет — `stampy-logos`. Типы и функции
-префикса не имеют. Если схему придётся делить с другим продуктом — правильнее
-вынести всё в отдельную схему `stampy`, а не наращивать префиксы.
+**Мини-апп.** Polling `/api/miniapp/state` каждые 4с пока карта открыта —
+штамп появляется когда гость возвращается в Telegram после NFC-тапа. Web NFC
+кнопку убрали (iOS Safari не поддерживает).
 
 ## Миграции
 
 ```
 0001_init.sql             схема (14 таблиц)
-0002_rls.sql              политики доступа
-0003_functions.sql        штампы, награды, погашение
-0004_signup_analytics.sql регистрация, сегменты, аналитика
-0005_storage.sql          бакет логотипов
-0006_invites.sql          привязка приглашённых сотрудников
-0007_broadcast_queue.sql  очередь рассылок
-0008_admin.sql            платформенные операции
-0009_password_login.sql   вход по логину, username_available()
+0002_rls.sql              RLS-политики
+0003_functions.sql        claim_stamp, redeem_reward, add_manual_stamp
+0004_signup_analytics.sql create_tenant, сегменты, аналитика
+0005_storage.sql          bucket stampy-logos
+0006_invites.sql          приглашённые сотрудники
+0007_broadcast_queue.sql  queue_broadcast
+0008_admin.sql            admin_* платформенные RPC
+0009_password_login.sql   логин вместо email
+0010_qr_redeem.sql        32-hex токен вместо 4 цифр
+0011_applications.sql     stampy_applications + RLS
+0012_admin_create_tenant  создание кофейни от лица другого auth-юзера
+0013_admin_manage.sql     rename/delete tenant, delete tag, tenant owner
+0014_broadcast_atomic_claim  claim_broadcast_batch + claimed_at
+0015_audit_medium_fixes   gen_code CSPRNG, redeem_reward venue check, revoke/grant, expire_stale TTL 1ч
+0016_audience_cap.sql     daily_recipient_cap 5000/день
+0017_platform_stats.sql   admin_platform_overview, admin_guests_search, admin_guest_detail
+0018_fix_queue_broadcast_cast  каст к enum broadcast_status
 ```
+
+## ENV
+
+**Обязательные:**
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — клиент
+- `SUPABASE_SERVICE_ROLE_KEY` — server actions, миниапп-трафик, cron
+- `NEXT_PUBLIC_APP_URL` — базовый (`https://nfs-tau.vercel.app`)
+- `NEXT_PUBLIC_BOT_USERNAME=uuiopiasodfpio_bot`, `NEXT_PUBLIC_MINIAPP_SHORT_NAME=app`
+- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`
+- `NFC_MASTER_KEY` (32 байта hex) — прошиваем метки от него, не менять после первой партии
+- `SESSION_SECRET` (32 байта hex) — подпись cookie
+- `CRON_SECRET` — защита `/api/cron/*`
+
+**Опциональные:**
+- `ADMIN_TELEGRAM_ID` — куда уведомлять о новой заявке (личный id или -100... для группы)
+- `STAMPY_DEV_MODE=1` + `DEV_TELEGRAM_ID` — dev-режим (в prod мертво)
+
+## Первый платформенный админ
+
+Через Supabase Auth Admin API:
+
+```bash
+curl -X POST "$URL/auth/v1/admin/users" -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE" \
+  -H "content-type: application/json" \
+  -d '{"email":"admin@stampy.local","password":"admin12","email_confirm":true}'
+# → id из ответа
+
+curl -X POST "$URL/rest/v1/stampy_platform_admins" -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE" \
+  -H "content-type: application/json" \
+  -d '{"auth_user_id":"<id>","email":"admin@stampy.local"}'
+```
+
+Вход: `/login`, логин `admin`, пароль `admin12` → редирект на `/admin`.
 
 ## Проверка без внешних сервисов
 
 ```bash
-npm run verify   # selftest + verify:sql + verify:flow
+npm run selftest     # AES-CMAC + SUN round-trip
+npm run verify:sql   # все миграции на PGlite (WASM Postgres)
+npm run verify:flow  # 28 e2e-тестов бизнес-логики
+npm run verify       # всё сразу
+npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 1   # симуляция тапа
 ```
 
-- `selftest` — AES-CMAC против векторов RFC 4493, round-trip касания, отказ при
-  подделанном CMAC и чужом мастер-ключе;
-- `verify:sql` — все миграции на настоящем Postgres (PGlite, WASM);
-- `verify:flow` — 28 проверок бизнес-логики: повтор токена, пауза, выдача и
-  погашение награды, приостановленная подписка, изоляция кофеен под RLS, сверка
-  счётчиков с леджером.
-
-`scripts/supabase-stubs.ts` воспроизводит то, что даёт платформа Supabase (роли
-`anon`/`authenticated`/`service_role`, схемы `auth` и `storage`, гранты) — иначе
-RLS локально проверять не на чем.
-
-## Как продолжить с мака
-
-```bash
-git clone https://github.com/asilJPG/nfs.git && cd nfs
-npm install
-cp .env.example .env.local        # заполнить, см. ниже
-npx supabase db push
-npm run seed                      # демо-кофейня
-npm run dev
-```
-
-`.env.local` в git не лежит и не должен. Значения берутся из Vercel:
-`npx vercel link` → `npx vercel env pull .env.local`. Локальный `NFC_MASTER_KEY`
-можно сгенерировать свой — метки под него будут только для разработки.
-
-Демо-данные из `npm run seed`: кофейня «Кофе Тест» (`/test-coffee`, тариф с
-маркетингом), точка, карта на 6 штампов, 14 гостей с историей за 45 дней,
-незабранная награда, NFC-метка `04A1B2C3D4E580`. Владелец: логин `test-owner`,
-пароль `stampy-test-2026`, вход на `/login`.
-
-Мини-апп открывается в обычном браузере, без Telegram:
-
-```
-DEV_TELEGRAM_ID=900000000
-NEXT_PUBLIC_DEV_MINIAPP=1
-```
-
-затем `/card?startapp=t_test-coffee`. В production-сборке обе переменные мертвы:
-`devUser()` возвращает null при `NODE_ENV=production`.
-
-Полный прогон касания:
-
-```bash
-npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 1   # открыть ссылку
-npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 1   # повтор → «отметка уже использована»
-npm run mock-tag -- --uid 04A1B2C3D4E580 --counter 2   # новое касание → штамп
-```
-
-Файл личных правил `all_rules.md` лежит в корне и в git не попадает — на маке
-его нужно положить рядом самому.
-
-## Что ещё не сделано
-
-- **Оплата.** Страница `/dashboard/billing` показывает тарифы и статус, но счёт
-  выставляется вручную: «напишите нам в Telegram». Click/Payme не подключены —
-  это следующий крупный кусок. Подписку пока переключает платформенный админ на
-  `/admin` (`admin_set_subscription`).
-- **Прод не проверен на живой метке.** `mock-tag` подписывает ссылку локальным
-  ключом, прод ждёт прод-ключ. Пока не прошита первая партия NTAG 424 DNA
-  прод-ключом, цикл касания на проде не проверен.
-- **Первый платформенный админ заводится вручную** SQL-запросом (см. ниже) — UI
-  для этого нет и, наверное, не нужен.
-- **Экспорт данных** заявлен в тарифе `marketing`, кнопки пока нет.
-- Автотестов в привычном смысле нет: вместо них три скрипта `npm run verify`.
-
-```sql
-insert into stampy_platform_admins (auth_user_id, email)
-select id, email from auth.users where email = '<ваш-логин>@stampy.local';
-```
-
-## Сессия 4 сентября 2026 — что поменялось
-
-- **QR вместо 4 цифр.** `issue_redeem_code` теперь выдаёт 32-символьный hex-токен
-  (миграция `0010_qr_redeem.sql`). Мини-апп рисует QR через `qrcode`, `/staff`
-  сканирует камерой (`BarcodeDetector`, fallback-сообщение для старых браузеров).
-  Ручной ввод кода награды и ручное начисление штампа удалены полностью
-  (`manualStampAction` + вкладки в StaffConsole вырезаны).
-- **Саморегистрация выкинута.** `/register` удалён, вместо неё `/apply` —
-  простая форма-заявка (название, город, имя, телефон, Telegram, сообщение),
-  пишется в новую таблицу `stampy_applications` (миграция `0011_applications.sql`,
-  RLS: анонимный insert через service_role, чтение/апдейт — только платформенные
-  админы через `admin_set_application_status`).
-- **`/admin` теперь платформенный CRM.** Три новые секции:
-  1. **Заявки на подключение** — контакты гостя, кнопки «Связались/Отклонить»
-     и «Создать кофейню» с формой прямо в списке (префилл из заявки).
-  2. **Создать кофейню вручную** — тот же флоу без заявки, для админа.
-  3. Существующий раздел про метки, комплекты и подписки.
-  Всё создание идёт через `admin_create_tenant` (миграция
-  `0012_admin_create_tenant.sql`) — как `create_tenant`, но от лица указанного
-  auth-пользователя, а не `auth.uid()`, потому что админ не должен становиться
-  владельцем кофейни. Auth-аккаунт владельцу заводится через
-  `supabase.auth.admin.createUser(loginToAuthEmail(login), password)`.
-- **Первый платформенный админ.** Заводится не SQL-запросом, а через Auth Admin
-  API (см. в конце). Логин `admin`, пароль `admin12`, привязан к
-  `admin@stampy.local`. `/login` теперь редиректит платформенных админов сразу в
-  `/admin`, а не в `/dashboard`.
-- **Бот ожил.** Вебхук привязан к `nfs-tau.vercel.app`. Кнопка «Открыть карту»
-  теперь `web_app` инлайн — не требует настройки Mini App short_name в
-  BotFather. Menu Button бота — постоянная кнопка «Мои карты» рядом с полем
-  ввода, тоже открывает `/card` как web_app. Команды `/start` и `/help` в
-  автокомплит через `setMyCommands`. Пустой `/start` показывает все карты
-  гостя (новый ветка в `/api/miniapp/state`: если tenant не определён —
-  возвращает `{ cards: [...] }` через `listCards()`). Одна карта — сразу
-  открывается, без промежуточного экрана.
-- **Мелочи.** Секция «Код карты для бариста» с карты гостя убрана (после
-  перехода на QR больше не нужна). `env.ts` теперь `.trim()`-ит все значения —
-  Vercel иногда сохраняет с висячим переносом. `verifyInitData` больше не
-  удаляет поле `signature` перед HMAC — Telegram теперь его тоже включает в
-  check_data, без этого фикса подпись не сходилась.
-
-### Заметки на будущее
-
-- **NFC_MASTER_KEY на Vercel и локально сейчас разные** — mock-tag не будет
-  проверяться на проде. Синхронизировать, когда дойдёт до реальных меток.
-- **BotFather Mini App short_name** можно вообще не настраивать: web_app-кнопки
-  из инлайн-клавиатуры и menu button работают напрямую по URL. `miniAppLink()`
-  в `lib/env.ts` остаётся для рассылок (там url-кнопка требует t.me-формата).
-- **`admin_set_kit_status` в стаффе не используется** — кнопки на кассе для
-  этого нет. Заказы комплектов админ обрабатывает в `/admin`.
-
-### Команды для быстрого сброса стенда
-
-```bash
-# в Supabase SQL Editor
-delete from stampy_customers;
-delete from stampy_tenants;
-delete from stampy_applications;
-# каскад через FK почистит memberships/stamps/rewards/venues/programs/staff/tags/kit_orders
-```
-
-Auth-пользователи владельцев остаются висеть в `auth.users` — их удалять
-отдельно через Supabase Dashboard → Authentication → Users, либо оставить как
-есть (без строки в `stampy_staff_users` они безобидны).
-
-### Первый платформенный админ (без SQL)
-
-```bash
-SERVICE_KEY=...  # SUPABASE_SERVICE_ROLE_KEY
-URL=https://qrfdpzigcarbethrsioe.supabase.co
-
-# создать auth-юзера
-curl -X POST "$URL/auth/v1/admin/users" -H "apikey: $SERVICE_KEY" \
-  -H "Authorization: Bearer $SERVICE_KEY" -H "content-type: application/json" \
-  -d '{"email":"admin@stampy.local","password":"admin12","email_confirm":true}'
-
-# записать его в платформенные админы (id из ответа выше)
-curl -X POST "$URL/rest/v1/stampy_platform_admins" -H "apikey: $SERVICE_KEY" \
-  -H "Authorization: Bearer $SERVICE_KEY" -H "content-type: application/json" \
-  -d '{"auth_user_id":"<id>","email":"admin@stampy.local"}'
-```
-
-## Сессия 5 сентября 2026 — аудит и админка
-
-### Аудит безопасности
-
-Прогнал полный аудит (subagent) на 15 находок; закрыто 14, оставлена одна.
-
-**Закрытые:**
-
-1. **CRITICAL — угон владельца через управляющего.** `resetStaffPassword` под
-   `requireRole("owner","manager")` использовал service_role для смены пароля.
-   Управляющий мог сбросить пароль владельцу и войти как он. Фикс:
-   `app/dashboard/venues/actions.ts` — check ролей caller vs target перед
-   вызовом `auth.admin.updateUserById`. Управляющий больше не может ронять
-   пароль ни владельцу, ни другому управляющему.
-2. **HIGH — дубли рассылки при параллельных drain.** Два одновременных
-   `drain()` брали одни и те же `pending` таргеты. Фикс: RPC
-   `claim_broadcast_batch` (миграция `0014`) с `FOR UPDATE SKIP LOCKED` +
-   колонка `claimed_at`. Только один воркер получает батч, `claimed_at` старше
-   5 минут перезаявляется.
-3. **HIGH — `updateTag`/`requestKit`/`createStaff` принимали чужой `venue_id`.**
-   RLS проверял только `tenant_id`. Управляющий мог тыкать метку на venue
-   чужой кофейни. Фикс: явная проверка `(id, tenant_id)` перед update/insert.
-4. **HIGH — `initData` жил 24 часа.** Скриншот с `initData` = валидная
-   идентичность гостя на сутки. `lib/telegram/initData.ts`: `MAX_AGE_SECONDS`
-   → 10 мин.
-5. **HIGH — `devUser` байпас через `NODE_ENV`.** Если `NODE_ENV != "production"`
-   (пусто, `"prod"`, `"development"`), любой мог POSTить `{"initData":"dev"}`
-   и стать `DEV_TELEGRAM_ID`. Теперь гейт на явный `STAMPY_DEV_MODE=1`.
-6. **HIGH — `/apply` без rate-limit.** Скрапер мог залить 100k заявок. Cap 3
-   в сутки на телефон.
-7. **HIGH #15 — управляющий заводит управляющих.** `createStaff` теперь режет
-   `role !== "cashier"` для caller.role !== "owner".
-8. **MEDIUM — `gen_code` на `random()`.** Не CSPRNG. Заменено на
-   `gen_random_uuid()` в миграции `0015`. Работает и на PGlite (в
-   `verify-sql`), и на Supabase — без `pgcrypto` extension. `public_code`
-   карт больше не предсказуем.
-9. **MEDIUM — webhook `my_chat_member` писал по `from.id`.** В private ок,
-   в группах багало. Теперь `chat.id` и только для `chat.type === "private"`.
-10. **MEDIUM — `stamp_tokens` жили 2 суток.** TTL самого токена 3 мин, чистка
-    была раз в сутки → раздувалась таблица. `expire_stale` → 1 час.
-11. **MEDIUM — `redeem_reward` принимал чужой `p_venue`.** Cross-tenant leak
-    в аналитику. Проверка `(venue, tenant)` в SQL.
-12. **MEDIUM — `daily_broadcast_cap` считал рассылки, не сообщения.** Одна
-    кампания на всю базу гостей проходила. Миграция `0016`: новая колонка
-    `daily_recipient_cap` (по умолч. 5000), `queue_broadcast` считает
-    суммарных получателей за день.
-13. **LOW — cookie `stampy_tenant` без `__Host-` префикса.** Переименовано в
-    `__Host-stampy_tenant`, старое имя — fallback для чтения до истечения.
-14. **LOW — новые `admin_*` функции без явного `revoke`.** Миграция `0015`
-    добавляет `revoke ... from public, anon` + `grant ... to authenticated`
-    на всех: `admin_set_application_status`, `admin_create_tenant`,
-    `admin_update_tenant`, `admin_delete_tenant`, `admin_delete_tag`,
-    `admin_tenant_owner`.
-
-**Оставлено:** #10 (`admin_delete_tenant` + auth-юзер не атомарны). Сирота
-auth-аккаунт безобиден: без `stampy_staff_users` строки `requireStaff`
-редиректит на `/login`. Если когда-то станет мешать — nightly cleanup в
-`expire_stale`.
-
-### Telegram-уведомление о заявках
-
-`/apply` → если `ADMIN_TELEGRAM_ID` задан, бот шлёт админу сообщение с
-контактами и кнопкой «Открыть админку». Работает и в личку (id пользователя),
-и в группу/канал (id с минусом). Требует чтобы бот хотя бы раз получил
-сообщение от адресата (Telegram не даёт слать в никуда).
-
-### Переработка `/admin` — панель, а не сплошная страница
-
-**Табы** (`app/admin/layout.tsx` + `components/admin/AdminTabs.tsx`):
-Обзор / Кофейни / Гости / Заявки / Метки. Активная подчёркивается.
-
-**Обзор** (`/admin`) — тайлы, каждый кликабельный. RPC
-`admin_platform_overview` (миграция `0017`) возвращает одним jsonb: активных
-кофеен, платящих, новых за неделю, гостей всего/активны за 30 дн, штампов
-сегодня/за 7 дн, наград за 7 дн, заявок открытых, меток всего/без привязки.
-
-**Гости** (`/admin/guests`) — SSR-поиск с `?q=` через RPC
-`admin_guests_search(text, int)` (ILIKE по имени/username/telegram_id).
-Показывает агрегаты: карт, штампов, наград, дата последнего штампа.
-
-**Карточка гостя** (`/admin/guests/[id]`) — RPC `admin_guest_detail`
-возвращает jsonb с массивами cards + recent_stamps. Действие «заблокировать»
-через `admin_set_guest_blocked` — переводит `can_message = false` +
-`blocked_at`, чтобы рассылка не долбилась.
-
-**Карточка кофейни** (`/admin/tenants/[id]`) — точки, сотрудники, число
-меток, последние 25 штампов, кнопка **«Войти как владелец»**.
-
-**Импресонация** (`lib/impersonate.ts` + правки `lib/auth.ts`):
-
-- Подписанный cookie `__Host-stampy_impersonate` = `<tenantId>.<hmac>`,
-  подпись HMAC-SHA256 от `SESSION_SECRET`, TTL 2 часа.
-- `requireStaff`: если у платформенного админа выставлен cookie, вытаскиваем
-  владельца этого tenant'а из `stampy_staff_users` и возвращаем контекст с
-  `impersonating: true`. Сотрудник смотрит своими глазами (все действия
-  реально выполняются).
-- В шапке дашборда жёлтый баннер «Вы смотрите как владелец X · Выйти из
-  режима» → `stopImpersonatingAction` чистит cookie и возвращает на
-  `/admin/tenants/{id}`.
-
-### Рефакторинг компонентов админки
-
-`components/admin/AdminConsole.tsx` (679 строк) разбит: секции экспортируются
-(`TenantRow`, `ApplicationRow`, `CreateTenantSection`), под каждый таб —
-свой Panel (`TenantsPanel`, `ApplicationsPanel`, `TagsPanel`, `GuestsPanel`).
-Общий помощник `components/admin/shared.ts` с `useAdminAction()` hook
-(notice + pending + run) и стилевой константой `input`.
-
-Старый `AdminConsole` main-export остался, но никем не используется — можно
-удалить в следующую волну.
-
-### Косметика и чистка комментариев
-
-Прошёл grep'ом по `app/`/`lib/`/`components/` — снёс/переписал ~30 JSDoc-
-блоков в английском стиле с многострочным prose. Оставил только те, где
-объясняется WHY (не WHAT) — короткие русские однострочники. Файл в среднем
-стал на 5–10 строк короче.
-
-### Обновлённые ENV
-
-Локально в `.env.local` можно добавить (для запуска мини-аппа в браузере):
-
-```
-STAMPY_DEV_MODE=1
-DEV_TELEGRAM_ID=2141257356
-NEXT_PUBLIC_DEV_MINIAPP=1
-```
-
-Без `STAMPY_DEV_MODE=1` dev-режим не работает — `NODE_ENV` больше не гейт.
-
-На Vercel добавьте:
-
-```
-ADMIN_TELEGRAM_ID=<ваш id или -100... для группы>
-```
-
-### Что применить на Supabase (по порядку)
-
-`0014_broadcast_atomic_claim.sql`, `0015_audit_medium_fixes.sql`,
-`0016_audience_cap.sql`, `0017_platform_stats.sql` — все SQL-Editor'ом.
-`verify-sql` подтверждает применимость на PGlite.
-
-## Сессия 6 сентября 2026 — демо-путь, iOS, fix рассылки, оптимизация
-
-### Проблема с рассылками — правил недоделал 0016
-
-`queue_broadcast` из миграции 0016 забыл `::broadcast_status` каст в
-финальном UPDATE. При постановке рассылки в очередь падало с `42804`, в
-UI это выглядело как «нажал — ничего не произошло»; запись оставалась в
-`stampy_broadcasts` со статусом `draft` и без таргетов. **Миграция 0018**
-перевыпускает `queue_broadcast` с явным `(case ... end)::broadcast_status`.
-
-### Демо-путь для дешёвых меток
-
-Кофейне надо показать что штампы работают до того как приедут NTAG 424.
-Ввёл префикс `tap_` в `startapp` мини-аппа (изначально был `demo_`, но
-владельцу не понравилось слово): `t.me/<bot>/app?startapp=tap_<slug>` при
-открытии находит первую активную метку кофейни, создаёт stamp_token и
-штампует через тот же `claim_stamp`, что боевой NTAG путь. Крипты нет —
-любой с URL штампует, но это именно та проблема, для которой нужны 424.
-
-Изначально сделал отдельный `/d?slug=<slug>` роут с HTML-редиректом +
-`location.replace('tg://...')` для обхода Safari на iOS. Не взлетело:
-iOS всё равно показывает вспышку Safari до передачи в приложение,
-`tg://`-схему из NFC iOS не пропускает (только https). Владелец сказал
-«обнули» — вернул `/t` к простому 302, `/d` удалил. Демо-путь остался
-чисто через `startapp=tap_<slug>` в state route.
-
-### Оптимизация авторизации
-
-Владелец жаловался «жмёшь на кнопку — грузит вечно». Основная жирная штука
-— `requireStaff` делал 3 sequential SQL (`auth.getUser` + `staff` +
-`tenant`), и вызывался и в layout, и в page → 6 SQL на страницу. Переписал:
-
-- `stampy_staff_users` + `stampy_tenants` одним JOIN через `select("*,
-  tenant:stampy_tenants!inner(*)")`
-- `React.cache` на `requireStaff`, `requirePlatformAdmin`, `currentStaff`
-  де-дублицирует в рамках запроса
-
-Итого 6 SQL → 2 SQL на страницу дашборда.
-
-### Обнуление тестовых штампов
-
-Владелец накатал 4 карты + 1 штамп во время демо. Вычистил через
-service_role REST: `stampy_stamps`, `stampy_rewards`, `stampy_memberships`,
-`stampy_stamp_tokens`. Кофейни, точки, метки, гости остались.
-
-### iOS Safari — фича, не баг
-
-Кратко: iOS открывает NFC-URLы через Safari первым, потом Universal Link
-уводит в приложение. Убрать вспышку — только своим iOS-приложением, для
-NFC-loyalty оверкилл. Для демо владельцу написали «на iOS — короткая
-заставка, на Android — сразу». Все делают так.
-
-### Что закрыто в задел
-
-- ± штамп в админке (владельцу для клиента, платформенному в карточке
-  гостя) — не сделано, добавим когда попросят
-- Оптимизация ощущается и на других страницах — если снова начнёт тупить,
-  смотреть revalidatePath scope и `router.refresh` вместо SSR-повторов
-
-### Что применить на Supabase
-
-`0018_fix_queue_broadcast_cast.sql` — обязательно, без этого рассылки в
-draft висят.
-
-## Сессия ночь 6→7 сентября — оптимизация клиента
-
-Владелец пожаловался «жмёшь кнопку — грузит вечно», перед отходом ко сну
-попросил обнулить NFC-кнопку и вылизать перфоманс. Функционал не тронут.
-
-**Убрано:** кнопка «Провести штамп» + `NfcScanSheet`. Web NFC на iOS Safari
-(WebView Telegram) не работает, кнопка была бесполезна на целевой платформе.
-Polling из предыдущей сессии остался — штампы всё равно появляются в открытой
-карте когда мини-апп возвращается в фокус.
-
-**Скелетоны на всех маршрутах.** `components/ui/Skeleton.tsx` — базовые
-примитивы (`SkeletonBlock`, `SkeletonText`, `SkeletonTile`, `SkeletonList`,
-`SkeletonCard`). Из них собраны `loading.tsx` во всех разделах `/admin/*`,
-`/dashboard/*`, `/staff`. Next.js рендерит их мгновенно как fallback пока
-`page.tsx` тянет данные — до этого был белый экран.
-
-**Recharts вынесен из бандла дашборда.** `LazyDailyChart.tsx` — обёртка через
-`next/dynamic` с `ssr: false` и скелетон-fallback. Recharts (~180KB gzip)
-грузится только когда дашборд открыт, не при первом визите любого другого
-раздела. Бандл `/dashboard` упал с ~290KB до 108KB First Load.
-
-**RewardSheet тоже dynamic.** `qrcode` (~50KB) грузится только когда гость
-открывает награду.
-
-**next.config**: `reactStrictMode`, `compress`, `optimizePackageImports` для
-recharts/supabase/zod, `image formats: [avif, webp]`.
-
-Финальные размеры бандлов (после `npm run build`):
-
-| Маршрут | First Load |
-|---|---|
-| `/`, `/admin` | 106 KB |
-| `/apply`, `/login`, `/card`, `/dashboard/broadcasts`, `/dashboard` | 108 KB |
-| `/staff`, `/dashboard/tags`, `/dashboard/venues`, `/admin/tags` | 105 KB |
-| `/admin/tenants` | 111 KB |
-| `/dashboard/card` (color picker + preview) | 175 KB — оставлен, редко открывают |
-| Shared runtime | 103 KB |
-
-Полный отчёт с деталями сохранён в scratchpad
-`OPTIMIZATION_REPORT.md` (не в git — временный).
-
-## Сессия 7 сентября 2026 — почему админка «тупит на клик»
-
-Владелец: «жму кнопку — срабатывает с задержкой». Бандл был ни при чём
-(его вылизали ночью), тормозила серверная часть.
-
-### Диагноз: география + лишние round-trip'ы в Auth
-
-Проект Supabase живёт в **ap-northeast-1 (Токио)** — проверено по AWS-диапазону
-IPv6 хоста `db.<ref>.supabase.co`. Функции Vercel по умолчанию крутятся в
-`iad1` (Вашингтон). Каждый SQL и каждый вызов Auth — ~170 мс через Тихий океан.
-
-На один клик приходилось: `getUser()` в middleware (всегда сеть) +
-`getUser()` в `requireStaff` (тоже всегда сеть) + JOIN staff/tenant +
-запросы страницы. Для server action это удваивалось — экшен, потом
-router refresh. Отсюда ощущение «нажал — ничего, потом дёрнулось».
-
-### Что сделано
-
-**`vercel.json`: `"regions": ["hnd1"]`** — функции переезжают в Токио, вплотную
-к базе. Внутренние round-trip'ы падают с ~170 мс до единиц мс; пользователь из
-Ташкента платит один RTT до Токио вместо пяти-шести до Вашингтона. Это самая
-крупная доля выигрыша, но применится **только после редеплоя**.
-
-**middleware: `getSession()` вместо `getUser()`.** getUser всегда стучится в
-Auth; getSession читает куку локально и идёт в сеть только когда токен реально
-протух (тогда же и обновляет куки). Роль middleware — продлевать сессию, а не
-валидировать её.
-
-**`lib/auth.ts`: `getClaims()` вместо `getUser()`.** Подпись JWT проверяется
-локально по JWKS (у проекта уже есть ES256-ключ). JWKS кешируется в модуле на
-10 минут — иначе клиент, создаваемый на каждый запрос, тянул бы `.well-known`
-каждый раз. Безопасность не просела: подпись проверяется криптографически, а
-к строкам всё равно пускает только RLS.
-
-Итого на клик: было 2 сетевых вызова Auth + SQL, стало 0 вызовов Auth + SQL.
-
-### Что сделано с «ощущением» задержки
-
-Даже быстрый SSR — это не мгновенно, а до этого клик вообще не давал отклика.
-
-- `components/ui/PendingDot.tsx` — спиннер на `useLinkStatus` (Next 15.3+).
-  Вкручен в пункты `DashboardNav` (обе раскладки), вкладки `AdminTabs` и
-  новый `RangeFilter` (переключатель 7/30/90 дней, вынесен из `page.tsx`
-  в клиентский компонент — раньше клик по нему не давал вообще ничего,
-  `loading.tsx` на смену searchParams не показывается).
-- `VenuesManager` и `TagsManager`: `run(key, action)` вместо `run(action)` —
-  «…»/«Сохраняем…» горит на нажатой кнопке, а не на всех сразу.
-  В `BroadcastComposer`, `CardSettingsForm`, `StaffConsole` такое уже было.
-
-### Хвосты
-
-- Если после переезда в `hnd1` захочется ещё быстрее — переносить сам проект
-  Supabase в `eu-central-1` (Франкфурт, ~70 мс до Ташкента против ~130 до
-  Токио) и функции в `fra1`. Это миграция базы, не конфиг.
-- В рабочем дереве лежит незакоммиченный редизайн (сайдбар, цветные тайлы) —
-  правки этой сессии его не трогают.
-
-## Сессия 7 сентября 2026 — дизайн кабинета кофейни
-
-Владелец: «выглядит сырой и сделанной на коленках». Причина была буквальная:
-шапка, сайдбар и касса уже переехали на тёмную тему, а страницы дашборда
-остались размечены светлой вёрсткой — `bg-white`, `text-slate-900`,
-`border-line` (который к тому моменту стал белым на 7%). Белые карточки с белым
-текстом на почти чёрном фоне и давали ощущение полуфабриката.
-
-### Одна система вместо разнобоя
-
-`app/globals.css` — токены и примитивы в `@layer components`: `.card`,
-`.card-title`, `.page-title`, `.eyebrow`, `.field-label`, `.field-hint`,
-`.input`, `.btn` + `.btn-primary/-ghost/-danger/-sm/-block`, `.badge` (ok/warn/
-bad/muted/accent), `.note`, `.empty`. Радиусы, границы, фокус-кольцо и высоты
-теперь одни и те же во всех разделах — раньше только карточка была размечена
-десятком разных способов.
-
-Все экраны `/dashboard/*` переразмечены на эти классы: обзор, карта, точки,
-метки, рассылки, тариф. Плюс касса бариста — там были свои `zinc`-оттенки.
-
-### Что убрано как «нарисованное»
-
-- **Фейковые тренды** в плитках: `trend="+15% к прошлому периоду"` было
-  захардкожено и показывалось владельцу как настоящая аналитика.
-- **Декоративное кольцо наград** — цветной `border` с произвольными цветами,
-  никак не связанный с числами. Заменено на `RewardMeter`: доля погашения
-  крупно, полоса от реальных чисел и три строки с цифрами. Кольцо из двух долей
-  вообще не читается глазом — для одного отношения нужен метр, не диаграмма.
-- **Эмодзи в меню** (📊 💳 📍 🏷️) — заменены штриховым набором
-  `components/ui/icons.tsx` в одном весе. Активный пункт помечен полоской слева.
-- **Восемь залитых цветных плиток** подряд читались как кнопки: остались
-  четыре с тонкой цветной линией сверху.
-
-### Тепловая карта
-
-Шкала была светло-синей, а «нет визитов» — кремовым `#f6f1ec`: на тёмном фоне
-пустые часы светились ярче пиковых. Развернул последовательную шкалу (650→100,
-одна синяя гамма), пустая клетка стала поверхностью — `rgba(255,255,255,.045)`.
-
-### Хвосты
-
-- Платформенная админка `/admin/*` живёт своей разметкой — под общую систему
-  ещё не заведена.
-- Скриншотами не проверял: локально поднимается только неавторизованная часть
-  (`/`, `/login`, `/apply` — 200, `/dashboard` — 307 на логин).
-
-## Сессия 7 сентября 2026 — мини-апп как кошелёк
-
-Владелец скинул референсы в `дизайн/` (имена файлов = подписи из
-`ссылки.txt`). Разбор: `так у клиентов заведений.png` — экран кошелька,
-`123.png` — как выглядит карточка в списке, `анимашка карт1.png` — выезд карт
-из стопки, `стату заведений*.png` — дашборд Jiron (он светлый, кабинет пока
-оставлен тёмным — вопрос открыт).
-
-### Что стало
-
-- **Оболочка мини-аппа всегда тёмная** `#0e0f11`. Раньше фон брался из
-  `brand.bg` кофейни, а он по умолчанию кремовый — экран уезжал в светлое.
-  Цвет кофейни теперь живёт на плашке карты.
-- **`WalletCard.tsx`** — карточка списка по `123.png`: обложка из бренд-цвета
-  (плюс размытый логотип, если загружен) и матовая стеклянная панель справа с
-  круглым знаком кофейни. Слева название, подпись, полоса прогресса.
-  `inkOn()` считает цвет текста по яркости фона — владелец красит карту как
-  хочет, читаемость не ломается.
-- **Открытая карта** по кошельковому референсу: знак и название сверху, белая
-  панель со штампами и кодом карты под ними (место штрихкода с номером), снизу
-  две колонки — «Собрано N из M» и статус награды.
-- **`Мои карты` — стартовый экран.** Раньше при одной карте список
-  пропускался, а после `rememberedTenant` мини-апп вообще открывался сразу в
-  карте. Добавлен явный запрос `{ wallet: true }` в `/api/miniapp/state`,
-  который не подставляет запомненную кофейню. Прямо в карту заходим только с
-  `startParam` — то есть по тапу метки или по ссылке кофейни.
-- **Анимация раздачи** `.animate-deal`: карты стартуют сложенными в стопку на
-  месте первой, чуть повёрнутыми, и разъезжаются с задержкой 70 мс на карту.
-  Выключается при `prefers-reduced-motion`.
-- В шапке карты появилась стрелка назад в кошелёк; пилюля «Добавить карту»
-  убрана — на пустом экране осталась текстовая подсказка про NFC-подставку.
-- **Кошелёк стопкой.** Карты лежат внахлёст с шагом 92px: у каждой видна
-  верхняя полоса со знаком, названием и счётчиком штампов, передняя открыта
-  целиком. Со страницы карты убран блок «Другие карты» — это отдельный экран,
-  переключение только через кнопку назад.
-
-- `otherCards` в состоянии теперь несут `brand` и норму штампов, иначе чужие
-  карты в списке нечем было красить.
-
-## Сессия: Редизайн веб-платформы и лендинга (7 сентября 2026)
-
-### Что было
-- Лендинг и интерфейсы личного кабинета имели базовое оформление без единого дизайн-языка из концептов.
-
-### Что сделано
-- **Лендинг (`app/page.tsx`)** переписан в соответствии с официальным дизайн-документом `дизайн/Stampy.dc.html`:
-  - Тёмная эстетика `#08090B` / `#0E0F11` с акцентом `#5B8DEF`.
-  - Hero-секция с продуктовым мокапом кошелька (карточки Sfumato, Chinor, Broadway).
-  - Секции «Как это работает» (3 шага), «Гостям / Кофейням», тарифная сетка (Solo, Chain, Group), блок FAQ и форма заявки.
-- **Веб-дашборд и аналитика (`/dashboard`)**:
-  - Обновлён под концепт `дизайн/adminpage2.png` (тёмный неон-фиолетовый интерфейс).
-  - Сайдбар с группировкой меню (`MAIN MENU`, `PAYMENTS & SERVICES`), неоновые бейджи.
-  - Двухколоночный обзор: неоновый график Recharts слева и круговой статус наград справа.
-- **Платформенная админка (`/admin`)**:
-  - Тёмные карточки метрик, стилизованная шапка и навигация.
-- **TG Mini App (`/card`)**:
-  - Сохранён оригинальный дизайн стек-кошелька (`image123.png` / `4231.png`).
-
-### Важно по функционалу
-- **Функционал, бизнес-логика и API НЕ затрагивались**:
-  - SQL-функции, RLS-политики, токены, миграции и серверные экшены остались без изменений.
-  - Все 28 автоматических тестов (`npm run verify`) и билд (`npm run build`) проходят на 100%.
-
-## Сессия 8 сентября 2026 — сверка хвостов, задача коворку
-
-Кода в этой сессии не было — только сверились по состоянию и упаковали
-задачу на research для коворка.
-
-### Открытые хвосты после последней волны редизайна
-
-**Дизайн-долги:**
-- `/admin/*` (платформенная админка) размечена вручную через `bg-[#14161D]`,
-  `border-white/[0.06]`, `#5B8DEF`. Общие `.card`/`.btn`/`.badge` из
-  `globals.css` не задействованы — расходится с системой.
-- В `/admin` тайлы (`MRR 84.2 млн сум`, `Churn 1.8%`, sparkline-точки) —
-  захардкоженные значения для скрина. `admin_platform_overview` этих метрик
-  не считает. Или считаем на самом деле, или прячем — не оставляем как
-  «выглядит на демке, врёт в проде».
-- Кабинет кофейни — тёмный, референс Jiron — светлый. Открыт вопрос.
-
-**Функционал в задел:**
-- ± штамп владельцу в дашборде и платформенному в карточке гостя (обещал).
-- Экспорт CSV для тарифа marketing (кнопки нет).
+## Аудит безопасности
+
+Прогнан 5 сентября (15 находок), закрыто 14. **Оставлено #10:** атомарность
+`admin_delete_tenant` + удаления auth-юзера. Риск LOW — сирота auth без
+`stampy_staff_users` строки редиректит на `/login`.
+
+Ключевые фиксы:
+- Управляющий не может ронять пароль владельцу (проверка ролей в
+  `resetStaffPassword`)
+- `initData` TTL 24ч → 10 мин
+- `devUser` гейт на явный `STAMPY_DEV_MODE=1`, не на `NODE_ENV`
+- Дневной cap рассылки по получателям (5000/день) + атомарный claim батча
+- CSPRNG в `gen_code`, `redeem_reward` с проверкой venue↔tenant
+- Session cookie `__Host-` префикс, `webhook.my_chat_member` только для private
+- Явные `revoke ... from public` + `grant ... to authenticated` на всех
+  admin-функциях
+
+## Дизайн-система
+
+Тёмная (`#08090B` / `#0E0F11`), акцент `#5B8DEF`, mono-шрифт для eyebrow.
+Токены в `app/globals.css`: `.card`, `.card-title`, `.page-title`, `.eyebrow`,
+`.field-label`, `.field-hint`, `.input`, `.btn` (+ `-primary/-ghost/-danger/
+-sm/-block`), `.badge` (ok/warn/bad/muted/accent), `.note`, `.empty`.
+
+Мини-апп (`/card`): 5 вкладок (Карта / Кошелёк / История / События / Профиль),
+кошелёк — веер задних карт + hero-карточка с прогрессом, свайп горизонтально
+переключает. В режиме кошелька История/События берут суммы по всем кофейням.
+Реакции — poll каждые 4с, вибро + анимация свежего слота.
+
+Лендинг (`app/page.tsx`) — hero, StampyLivePreview (6 экранов Mini App
+работающих, не мокапы), тарифы UZS, FAQ. Skeleton loading-страницы во всех
+разделах (`components/ui/Skeleton.tsx`).
+
+## Оптимизация
+
+- `hnd1` рядом с БД (см. выше)
+- JWKS-локальная auth (см. выше)
+- Recharts через `next/dynamic ssr:false` → бандл дашборда 108KB First Load
+  (было ~290)
+- `RewardSheet` (qrcode ~50KB) — dynamic
+- `next.config.ts`: `optimizePackageImports` для recharts/supabase/zod,
+  `images.formats: [avif, webp]`, `compress`, `reactStrictMode`
+- `loading.tsx` во всех разделах — вместо белого экрана моментально скелетон
+
+## Открытые хвосты
+
+**Дизайн:**
+- `/admin/*` (кроме overview) — не под общими токенами, много хардкода
+  `#14161D`/`#5B8DEF`
+- MRR/Churn в `/admin` — сейчас захардкожено; либо считаем в
+  `admin_platform_overview`, либо прячем
+
+**Функционал:**
+- ± штамп в админке (владельцу в дашборде, платформенному в карточке гостя) —
+  обещал в задел
+- Экспорт CSV на тарифе marketing — кнопки нет
+- Оплата Click/Payme — сейчас `admin_set_subscription` руками
 
 **Инфра:**
-- Оплата Click/Payme — сейчас счёт вручную, `admin_set_subscription` в /admin.
-- NTAG 424 DNA — купить чипы + программатор, `NFC_MASTER_KEY` на Vercel
-  синхронизировать с локальным.
-- Миграция Supabase в eu-central-1 (`docs/region-migration.md`).
+- NTAG 424 DNA: купить чипы + программатор ACR1252U, синхронизировать
+  `NFC_MASTER_KEY` на Vercel с локальным (сейчас разные)
+- Миграция Supabase в `eu-central-1` (Франкфурт) — план
+  в `docs/region-migration.md`, `scripts/copy-storage.ts`
 
 **Прочее:**
-- Скриншот-прогон авторизованных частей (владелец / бариста / гость с картой /
-  платформенный админ) визуально не проверялся.
-- Аудит-находка #10 (delete_tenant + auth-user не атомарны) — LOW, скипнули.
+- Скриншот-прогон авторизованных частей визуально не проверялся
+- Аудит #10 (delete_tenant не атомарен) — LOW, скипнули
 
-### Задача коворку на research
-
-Формулировка, скопированная в чат сегодня — ищет фичи, которые
-поднимут retention гостя, дадут виральность и добавят ценности владельцу
-(за что заплатят выше тариф). Смотрит конкурентов (Loyverse, Fivestars,
-Belly, Stamp Me, UDS, узбекские если есть) и специфику узбекского рынка
-(Click/Payme, привычки к скидкам, гео). Формат ответа — 10–15 фич с
-impact/effort и обоснованием.
-
-Ответ ждётся в свободной форме, потом разберём и решим что берём.
-
-## Сессия 8 сентября 2026 (вечер) — реальные данные вместо витринных
-
-Экраны показывали цифры из макета и местами роняли текст в невидимость.
-Разобрали и то, и другое.
-
-### Невидимый текст
-
-`/admin/*` тащил хвост от старой светлой темы: карточки `bg-white` под
-глобальным `color: #F4F4F2` — белым по белому. Затронуло `AdminConsole`,
-`ApplicationsPanel`, `GuestsPanel`, `TagsPanel`, `TenantsPanel`,
-`/admin/guests/[id]`, `/admin/tenants/[id]`.
-
-- Поверхности переведены на токены системы: `bg-surface` / `bg-surface-2`.
-- Инпуты в `AdminConsole` и `shared.ts` слиты в один тёмный стиль.
-- Красный на тёмном подняли до `text-red-300`, `border-red-400/30`;
-  успех — `text-latte` вместо нечитаемого `text-bean-dark`.
-- `html { color-scheme: dark }` + правило на `select option`, чтобы нативные
-  выпадашки не открывались светлыми. Светлая панель бариста помечена
-  `.scheme-light` — там схема остаётся светлой.
-
-### Реальные данные
-
-**Миграция `0019_platform_mrr_series.sql`:**
-- `admin_plan_price_uzs()` — прайс тарифов в SQL, зеркало `PLAN_PRICE_UZS`
-  из `lib/plan.ts` (loyalty 290 000, marketing 490 000).
-- `admin_platform_overview()` доп. отдаёт `mrr_uzs`, `mrr_new_week_uzs` и
-  четыре ряда по 14 дней: `series_stamps`, `series_tenants`, `series_guests`,
-  `series_applications`.
-
-**`/admin`:** MRR считается по тарифам платящих кофеен, а не `× 290 000`.
-Спарклайны рисуются из рядов; плоский ряд даёт ровную линию, короткий —
-не рисуется вовсе. Тайла «Churn» больше нет — её нечем считать.
-
-**`/staff`:** штампы, гости, награды и график за 7 дней — из
-`stampy_stamps` / `stampy_rewards` по тенанту. Лента событий — реальные
-последние штампы и выдачи с точкой и источником (`nfc` / `manual`).
-Бейдж в сайдбаре — имя и роль вошедшего, а не «Касса бариста».
-«Возвраты 62% ↑ 3 п.п.» заменены на честную «Активность базы за сегодня».
-
-**`/card`:** уведомления собираются из состояния карты (`buildNotifications`),
-а не два зашитых пункта; спарклайн истории — накопление штампов за 14 дней;
-метрики профиля — из `lifetime_stamps`, наград и карт. Названия наград берутся
-из `program.reward_title`. Восстановлен поп-ап и haptic при живом начислении
-штампа — их потеряли при прошлой правке поллинга. Починен сломанный контур
-иконки профиля. Переключатель уведомлений, который ничего не переключал, стал
-подписью «в Telegram». Добавлены русские числительные (`plural`).
-
-**Выдуманный город:** в схеме у кофейни нет города, поэтому `· Ташкент`
-убран с карточек гостя, кошелька, превью бренда и подвалов.
-
-### Осталось
-
-- Лендинг (`app/page.tsx`) — витринные Sfumato / Chinor / «2 148». Это
-  иллюстрация продукта, не данные; трогать не стали.
-- Кабинет кофейни тёмный, референс Jiron светлый — вопрос по-прежнему открыт.
-- Экспорт CSV для тарифа marketing, ± штамп владельцу — не делали.
-
-## Сессия 8 сентября 2026 (аудит перед прод-запуском)
-
-Прошли по всем экранам: невидимый текст и данные, которых нет в базе.
-Запуск через пару дней, поэтому чинили сразу.
-
-### Оформление кофейни не доезжало до гостя
-
-Самая крупная находка. Владелец выбирает в кабинете пять цветов и стиль
-штампа, форма валидирует контраст, всё сохраняется в `stampy_tenants.brand` —
-а гость видел одну и ту же синеву `#5B8DEF` у всех кофеен. CSS-переменные
-`--brand-*` выставлялись в `app/card/layout.tsx` и в `applyBrand()`, но их
-никто не читал. Превью в кабинете подписано «Так карту увидит гость» и врало
-не меньше: `brand.bg` применялся только если содержит слово `gradient`.
-
-- `StampGrid` принимает `brand` и рисует цветами кофейни, `card_style`
-  наконец работает (`components/brand/StampMark.tsx` — circles/cups/hearts/stars).
-- Плашка карты в `CardScreen` собирается из `surface`/`bg`/`text`/`primary`/`accent`.
-- `CardPreview` переписан поверх того же `StampGrid` — превью и мини-апп
-  теперь физически не могут разойтись.
-- Цветовая арифметика собрана в `lib/color.ts` (`withAlpha`, `shade`, `inkOn`,
-  `contrastRatio`, `readableFill`, `plateColors`); раньше она лежала в трёх файлах.
-
-### Невидимый текст
-
-- Карточка кошелька (`WalletCardRow`) красила фон в `brand.primary`, а текст
-  держала белым: у кофейни со светлым брендом это белое по белому. Теперь фон
-  проходит через `readableFill()` — тон бренда сохраняется, контраст ≥ 4.5
-  гарантирован. Функция `inkOn()` в файле была, но её не вызывали.
-- `plateColors()` перепроверяет `brand.text` против `brand.surface` уже в
-  рантайме: в базе могли осесть записи, сохранённые до валидации.
-- Прогон по всем `app/**` и `components/**`: остальные светлые подложки
-  (панель бариста, светлые секции лендинга, белая рамка QR) свой тёмный текст
-  задают явно. Новых мест не нашли.
-
-### Витрина обещала не то, что продаёт приложение
-
-- Лендинг продавал **Solo 290 000 / Chain 890 000 / Group договорной** с
-  лимитами «до 1 000 гостей», «до 5 точек» и пунктами «API и интеграции с POS».
-  В коде тарифа два: `loyalty` 290 000 и `marketing` 490 000, лимитов по гостям
-  нет, API нет. Прайс-лист вынесен в `PLAN_CARDS` (`lib/plan.ts`) — лендинг и
-  `/dashboard/billing` рисуют один и тот же объект.
-- «Экспорт данных» в тарифе marketing — в коде такого нет вообще; убрали из
-  тарифа и из FAQ («выгрузить аналитику»).
-- FAQ обещал «от 3 до 12 штампов», в схеме `check (stamps_required between 2 and 20)`.
-- Хиро-метрика «+38% возвратов гостей» — выдуманная цифра; заменили на
-  проверяемые факты (30 дней триала, 0 сум за пластик, 0 установок).
-- Плашка «Работают в Ташкенте» перечисляла шесть реальных кофеен как клиентов.
-  Клиентов пока нет — блок заменён на честное «Запускаемся в Ташкенте».
-- В макете телефона и кассы стояли те же реальные названия — заменены на
-  условные, бейдж «+38%» и «2 148 чашек за месяц» убраны.
-
-Макеты интерфейса на лендинге оставили: без скриншота продукт не покажешь.
-Убирали именно **утверждения** — цены, метрики, список клиентов.
-
-### Проверки
-
-Добавлен `npm run verify:brand` (`scripts/verify-brand.tsx`): рендерит карточку,
-сетку штампов и строку кошелька на пяти брендах (тёмный, светлый, почти белый,
-битый «текст = фон», кислотный) в трёх состояниях и требует, чтобы цвет бренда
-попал в разметку, зашитой синевы Stampy не осталось, а текст был контрастен.
-Входит в `npm run verify`.
-
-Итого: 28 SQL-проверок, 19 миграций, 41 проверка бренда, `npm run build` — всё зелёное.
-Все семь маршрутов отвечают 200 на живом дев-сервере без ошибок в логе.
-
-### Что осталось открытым после аудита
-
-**Блокирует деплой:**
-- Миграция `0019_platform_mrr_series.sql` не применена на проде. Без неё
-  `/admin` покажет нули по MRR и без спарклайнов — страница не упадёт, поля
-  дефолтятся через `EMPTY_OVERVIEW`, но цифры будут пустые. `npm run db:push`.
-
-**Держать в синке руками:**
-- Прайс тарифов лежит в двух местах: `PLAN_PRICE_UZS` (`lib/plan.ts`) и
-  `public.admin_plan_price_uzs()` (миграция 0019). Комментарии-напоминалки
-  стоят в обоих файлах.
-- Плашка карты в `CardScreen` и `CardPreview` — одна вёрстка в двух файлах.
-  `StampGrid` общий, остальное синхронизируется глазами; `npm run verify:brand`
-  поймает расхождение по цветам, но не по разметке.
-
-**На согласование:**
-- Тариф «Сеть» на лендинге переписан под то, что реально сможем дать (общая
-  карта на все точки, настройка и обучение на месте, персональный менеджер).
-  Если продавать собираемся иначе — текст менять.
-- Плашку с логотипами клиентов вернуть, когда появятся кофейни, с которыми
-  можно согласовать размещение.
-
-**Не делали (как и раньше):**
-- Кабинет кофейни тёмный, референс Jiron светлый — вопрос открыт.
-- ± штамп владельцу в дашборде и платформенному в карточке гостя.
-- Экспорт CSV: обещание с витрины убрали, самой фичи по-прежнему нет.
-- Оплата Click/Payme — счёт вручную, `admin_set_subscription` в `/admin`.
-- NTAG 424 DNA — купить чипы и программатор, синхронизировать `NFC_MASTER_KEY`.
-- Миграция Supabase в eu-central-1 (`docs/region-migration.md`).
-- Скриншот-прогон авторизованных экранов глазами: маршруты проверены на 200,
-  но живую сессию владельца/бариста/гостя никто не открывал.
+**Research задача коворку:**
+Отдана 8 сентября — фичи для retention/виральности/upsell, разбор
+конкурентов (Loyverse, Fivestars, UDS), специфика UZ-рынка. Ждём результат.
 
 ## Ссылки
 
-- `docs/pre-launch.md` — чеклист перед запуском: что обязательно, что решить, чем проверять.
-- `docs/audit-2026-09-09.md` — отчёт аудита перед прод-запуском: что нашли, что починили, что осталось.
-- `docs/deploy.md` — деплой на Vercel, переменные окружения, cron.
-- `docs/nfc-provisioning.md` — как прошивать метки.
-- `docs/region-migration.md` — перенос Supabase в eu-central-1.
-
-## Сессия 10 сентября 2026 — уведомления в кошельке и контраст лендинга
-
-### Уведомления: «прочитано» жило не в том месте
-
-В режиме кошелька (`screen.step === "cards"`) список собирался на лету из карт
-(`walletNotifications`), а колокольчик в шапке, точка в нижней навигации и кнопка
-«Прочитать все» смотрели на стейт `notifications`, который в этом режиме пустой.
-Итог: награда готова — точки на колокольчике нет, а «Прочитать все» ничего не делает.
-
-Второй, менее заметный случай той же ошибки — в режиме одной кофейни: опрос
-состояния раз в 4 секунды вызывает `setNotifications(buildNotifications(next))`
-и заново поднимает `unread`, так что отметка о прочтении жила ровно до следующего тика.
-
-Починили одним приёмом: прочитанное вынесено в отдельное множество `readIds`,
-а колокольчик, вкладка и кнопка работают от одного производного списка
-`activeNotifications`. Список пересобирается сколько угодно раз — отметка держится;
-новое уведомление приходит с новым id и снова зажигает точку.
-
-### Невидимый текст на лендинге
-
-Добавлен `scripts/verify-contrast.tsx` (`npm run verify:contrast`): рендерит
-страницу в разметку и идёт по дереву, наследуя цвет и фон так же, как браузер.
-Для каждого текстового узла считает контраст по WCAG и валит сборку ниже 4.5.
-
-Две ошибки были в самой проверке, обе стоили ложных срабатываний:
-- svg-примитивы (`path`, `circle`, `line`) React закрывает явными тегами, а я
-  считал их самозакрывающимися — стек лишний раз выталкивался, и фон уезжал
-  к корневому чёрному. Из-за этого светлые секции выглядели тёмными.
-- у градиента бралась только самая тёмная остановка. Для белого текста опасна
-  как раз светлая: `text-white` на `#7BA5FF` — это 2.4:1. Теперь текст проверяется
-  против каждой остановки, и в отчёт идёт худшая.
-
-Что поправили на самой странице (было 43 места ниже AA):
-- приглушённые подписи: `text-[#F4F4F2]/40…/45` → `/60` (на тёмном /40 даёт 3.5),
-  `text-[#0E0F11]/40…/55` → `/65` (на кремовом /50 даёт 3.5).
-- акцент на светлых поверхностях: `#5B8DEF` на `#F0EFEC` — всего 2.8. Заведён
-  токен `--color-bean-ink: #2F5CAF` (5.6) и применён на лендинге и в панели бариста.
-- карточки в макете телефона: белый текст на светлом конце градиента не читался,
-  синяя и красная карты уведены в более глубокий тон, полупрозрачные подписи
-  на янтарной карте сделаны сплошными.
-- белая буква на синем кружке аватара (3.06) заменена на тёмные чернила.
-
-Итог: `npm run verify:contrast` — «невидимого текста нет».
-
-### Проверка
-
-`npm run verify` теперь гоняет пять шагов: selftest, sql, flow, brand, contrast.
-28 SQL-проверок, 19 миграций, оформление бренда, контраст лендинга, `npm run build` —
-всё зелёное. Семь маршрутов отвечают 200 на дев-сервере без ошибок в логе.
-
-### Хвост
-
-Проверка контраста пока покрывает только лендинг: `/apply` и `/login` тянут
-server actions и через них supabase-клиент, которому нужны переменные окружения.
-Экраны с авторизацией по-прежнему смотрятся глазами.
-
-### Догонка: почему проверка молчала, а текст не было видно
-
-Первый заход починил только контраст, но владелец всё равно не видел подзаголовок
-в hero — `text-[#F4F4F2]/70` на тёмном, по расчёту 8.7:1.
-
-Разгадка в том, во что Tailwind 4 компилирует модификатор прозрачности:
-
-```css
-.text-\[\#F4F4F2\]\/70 { color: oklab(96.6595% -.000750124 .00254089/.7) }
-```
-
-`oklab()` понимают Safari 15.4+, Chrome 111+, Firefox 113+. Где не понимают —
-правило целиком отбрасывается, и подпись остаётся без своего цвета. Проверка
-этого не ловила: она считала контраст по классам, а не по тому, что реально
-доезжает до браузера.
-
-Токены темы компилируются иначе — в обычный hex:
-
-```css
---color-ink-label: #f4f4f299;
-.text-ink-label { color: var(--color-ink-label) }
-```
-
-Поэтому приглушённый текст переведён на токены:
-
-- `--color-ink-body` (0.72) и `--color-ink-label` (0.60) — на тёмном;
-- `--color-carbon-body` (0.72) и `--color-carbon-label` (0.65) — на светлом.
-
-Заменено 79 классов на лендинге и ещё 89 в остальных 11 файлах, включая мини-апп:
-там ровно те же `text-[#F4F4F2]/45` и `/50`, то есть у гостя подписи могли
-пропадать так же. В собранном CSS `color:oklab(` больше не встречается ни разу.
-
-Остались `oklab()` в границах (6) и фонах (13) — там потеря правила стоит оттенка
-или рамки, но не читаемости, поэтому не трогали.
-
-Проверка научена читать `--color-*` прямо из `globals.css`, чтобы палитра у неё и
-у браузера была одна. Что она действительно резолвит токены — проверено: временно
-сделали `--color-ink-label` тёмным, получили 32 провала, вернули — снова чисто.
-
-### Суперадминка доведена до системы
-
-`/admin` был единственным разделом, который выглядел незаконченным рядом
-с остальными: обзор оформили ещё в прошлой волне, а внутренние страницы так и
-остались голой разметкой.
-
-Что было:
-- ни на одной из четырёх страниц (`tenants`, `guests`, `applications`, `tags`)
-  не было заголовка — просто список посреди пустоты, тогда как каждая страница
-  кабинета начинается с `page-title` и `page-subtitle`;
-- вместо `.card` / `.btn` / `.badge` — самодельные `rounded-2xl bg-bean px-5 py-3`
-  и `<h2 className="font-medium">`;
-- в карточке кофейни тариф и статус выводились сырыми значениями enum:
-  «тариф loyalty · подписка trial»;
-- в шапке висела зашитая плашка «Все системы в норме» — здоровье сервисов
-  никто не проверяет, зелёный индикатор врал бы ровно тогда, когда он нужнее всего;
-- `AdminConsole.tsx` (680 строк) нигде не рендерился: страницы собраны из
-  отдельных панелей, а снаружи брали только три его формы и типы.
-
-Что сделали:
-- заголовки на всех четырёх страницах;
-- панели и формы переведены на `.card`, `.card-title`, `.btn`, `.badge`, `.note`,
-  `.empty`, `.eyebrow`;
-- карточки кофейни и гостя переписаны: человеческие подписи тарифа и статуса,
-  строка метрик сверху, бейджи вместо красных надписей;
-- пустые состояния вместо «Точек нет.» — с объяснением, что делать;
-- мёртвая обёртка `AdminConsole` удалена, а живые формы (`TenantRow`,
-  `CreateTenantSection`, `ApplicationRow`) переведены на стандартные токены
-  и классы системы (`.card`, `.input`, `.field-label`, `.field-hint`, `.btn`, `.badge`),
-  убраны самодельные JS-строки инпутов.
-
-Функциональность не трогали: те же экшены, RPC и права.
-
-## Сессия 10 сентября 2026 (вечер) — проверка волны от коворка
-
-Коммит `b95c721` (админка, `StampyLivePreview`, мобильный UX) приняли и прошли
-по нему проверками. Билд, типы, 28 SQL-проверок, бренд и контраст — зелёные,
-фикс уведомлений и общий прайс-лист на месте. Нашли и починили пять вещей.
-
-### Регресс: `oklab()` вернулся в цвета текста
-
-Два новых файла — `AdminSidebar.tsx` и `StampyLivePreview.tsx` — снова написаны
-через `text-white/40`, `text-white/60` и т.п. Это ровно тот регресс, из-за
-которого подписи теряли цвет: модификатор прозрачности компилируется в `oklab()`,
-и где браузер его не понимает, правило отбрасывается целиком. Проверка контраста
-такое не ловит — она считает цвета, а не их переносимость. 16 классов переведены
-на токены.
-
-В CSS осталось два правила с `oklab()` — Tailwind подхватывает имена классов из
-текста этого девлога. Ни один элемент их не применяет.
-
-### Выдуманный аптайм на панели платформы
-
-Панель «Здоровье системы» показывала `API платформы 99.98%`,
-`NFC-регистрация 99.94%`, `Telegram Mini App 100.0%`, `Панель бариста 99.62%`.
-Ничего из этого не измеряется. На странице платформенного админа такие числа
-читаются как основание для решений, поэтому панель заменена на то, что мы
-действительно знаем: привязанные метки, точки, кофейни на пробном, карты.
-
-### Спарклайн по гостям был декоративным
-
-```js
-memberships.map((m) => ({ created_at: stamps[0]?.created_at || new Date() }))
-```
-
-Всем картам подставлялась одна и та же дата — первого штампа в выборке, — то есть
-график рисовал, будто вся база пришла в один день. У членства есть `first_seen_at`,
-теперь ряд считается по нему; заодно появился честный прирост «+N за 7 дн.»
-вместо `↑ {всего гостей}`, где итог выдавался за дельту. Убрано и `↑ 100%` у MRR.
-
-### Вся таблица штампов на каждый заход в админку
-
-```js
-supabase.from("stampy_stamps").select("id, created_at, tenant_id")
-```
-
-Без лимита и без окна по дате, при `force-dynamic`. `stampy_stamps` растёт с
-каждым касанием гостя — это самая быстрорастущая таблица в схеме. На старте
-незаметно, на сотне тысяч строк страница начнёт тянуть всё в память процесса.
-
-Теперь: выборка ограничена 14 днями (ровно окно спарклайна), итог по штампам —
-счётчиком `head: true`, а штампы по кофейне считаются суммой `lifetime_stamps`
-её членств. Все числа те же, тяжёлая выгрузка ушла.
-
-Заодно `mrrUzs` считал прайс своей копией `490000 / 290000` — переведён на
-`PLAN_PRICE_UZS`.
-
-### Реальные кофейни снова выданы за примеры
-
-В `StampyLivePreview` вернулись Broadway, Chinor и Sfumato — в карточках и в
-тексте («Broadway, Chinor и Sfumato живут в одном месте»). Это действующие
-ташкентские заведения, и выдавать их за своих клиентов нельзя. Заменены на
-условные, как в остальных макетах: «Кофейня на Навои», «Пекарня у дома»,
-«Обжарка №7». Вымышленные имена гостей в демо-ленте оставлены.
-
-### Хвост
-
-Миграция `0019_platform_mrr_series.sql` (`admin_platform_overview`, MRR и ряды
-в SQL) больше не вызывается: новая админка считает всё в компоненте. Функция
-осталась в базе мёртвой — либо вернуть её как источник для тайлов, либо удалить
-отдельной миграцией. Пока не трогали, чтобы не ломать волну.
-
-### Логин в админку
-
-Заявка «не могу войти под admin/admin12». Код входа цел: `signIn`, middleware и
-`requirePlatformAdmin` в волне не менялись. Проверили напрямую:
-
-- `admin@stampy.local` в базе есть, состоит в `stampy_platform_admins`,
-  последний успешный вход — 9 сентября;
-- `signInWithPassword` с `admin12` и `admin123` отвечает `Invalid login credentials`.
-
-То есть сломался не вход, а пароль — он просто другой. Поставили тот, который
-ожидался, и проверили вход тем же вызовом, что делает приложение.
-
-Появился `scripts/admin-password.ts`: меняет пароль платформенному админу и сразу
-проверяет вход (`npx tsx scripts/admin-password.ts <логин> <пароль>`). Раньше это
-делалось руками через SQL Editor по инструкции из девлога.
-
-**`admin` / `admin12` — слабый пароль для платформенного админа. Перед запуском
-поменять на нормальный тем же скриптом.**
-
-### Лента под превью стала живой
-
-Была прокрутка пяти зашитых строк по кругу: метки «2 мин», «5 мин» не менялись
-никогда, при взгляде вблизи лента выглядела сломанной. Теперь события
-генерируются с настоящими отметками времени, новые приходят сверху раз в 5 секунд,
-старые стареют по отдельному тику («только что» → «7 мин назад» → «2 ч назад»).
-Награда выпадает реже штампа. Лента наполняется на клиенте — на сервере
-`Math.random` дал бы одну разметку, а после гидратации другую.
-
-Счётчик «142 начислений и наград по всем кофейням сети» ничего не считал —
-показывает длину живой ленты и честно подписан как демонстрация.
-
-Названия кофеен по просьбе владельца вернули к ташкентским из дизайн-макетов:
-Sfumato, Chinor, Broadway, Nur Café, Cezve Coffee, Milk & Honey.
-
-### Мини-апп по макету «Stampy Mini App Screens»
-
-Сверились с макетом поэкранно. Загрузка, касание NFC, кошелёк с веером, деталь
-карты, награда с одноразовым кодом на 15 минут, профиль и пустой кошелёк уже
-работали. Расхождения были в истории — её и переписали:
-
-- фильтры «Все / Штампы / Награды»;
-- секции по дням с заголовками «Сегодня», «Вчера» и датой дальше;
-- награды выделены золотым тоном (`#F4B94A`), как в макете;
-- штампы и награды в одной ленте по времени, а не двумя отдельными списками.
-
-Добавлена подсказка «Обычно вы возвращаетесь через N дней» — считается медианой
-промежутков между штампами (медиана, а не среднее: одна долгая пауза не должна
-перекашивать), показывается от трёх штампов.
-
-Чего в макете нет данных под собой и потому не делали: «Флэт уайт · 28 000 сум» —
-в схеме у штампа нет ни напитка, ни цены. Рисовать это значило бы вернуть на экран
-выдуманные данные. Нужна колонка — заведём отдельно.
-
-### Чеклист перед запуском
-
-Хвосты расползлись по шести местам девлога, а впереди аудит и запуск по приезде
-NFC. Собрали их в `docs/pre-launch.md`: обязательное, спорное, обещанное но не
-сделанное, что держать в синке руками и — отдельным разделом — чего наши
-проверки не ловят. Механику деплоя не дублировали, она в `docs/deploy.md`.
+- `docs/deploy.md` — деплой на Vercel, переменные окружения, cron
+- `docs/nfc-provisioning.md` — как прошивать метки
+- `docs/region-migration.md` — план переезда Supabase во Frankfurt
+- `docs/pre-launch.md` — чеклист перед запуском
+- `дизайн/*.html` — референсы Stampy.dc
