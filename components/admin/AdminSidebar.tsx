@@ -94,7 +94,7 @@ export function AdminSidebar({ counts }: { counts?: Counts }) {
       </Link>
 
       {/* Group: Управление */}
-      <div className="text-[10px] text-white/40 font-mono uppercase tracking-[0.1em] px-2.5 pt-5 pb-2">
+      <div className="text-[10px] text-ink-label font-mono uppercase tracking-[0.1em] px-2.5 pt-5 pb-2">
         Управление
       </div>
 
@@ -108,13 +108,13 @@ export function AdminSidebar({ counts }: { counts?: Counts }) {
               className={`px-2.5 py-2 rounded-xl text-[13px] font-medium transition-all flex items-center gap-2.5 ${
                 active
                   ? "bg-[#5B8DEF]/15 text-white shadow-sm border border-[#5B8DEF]/20"
-                  : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                  : "text-ink-label hover:text-white hover:bg-white/[0.04]"
               }`}
             >
-              <span className={active ? "text-[#7BA5FF]" : "text-white/40"}>{item.icon}</span>
+              <span className={active ? "text-[#7BA5FF]" : "text-ink-label"}>{item.icon}</span>
               <span>{item.label}</span>
               {item.count !== undefined && item.count > 0 && (
-                <span className="ml-auto font-mono text-[10px] text-white/50 px-1.5 py-0.5 rounded bg-white/[0.04]">
+                <span className="ml-auto font-mono text-[10px] text-ink-label px-1.5 py-0.5 rounded bg-white/[0.04]">
                   {item.count}
                 </span>
               )}
@@ -124,10 +124,10 @@ export function AdminSidebar({ counts }: { counts?: Counts }) {
       </nav>
 
       {/* Group: Система */}
-      <div className="text-[10px] text-white/40 font-mono uppercase tracking-[0.1em] px-2.5 pt-6 pb-2">
+      <div className="text-[10px] text-ink-label font-mono uppercase tracking-[0.1em] px-2.5 pt-6 pb-2">
         Продукт
       </div>
-      <div className="flex flex-col gap-1 text-[13px] text-white/50">
+      <div className="flex flex-col gap-1 text-[13px] text-ink-label">
         <Link
           href="/dashboard"
           className="px-2.5 py-2 rounded-xl hover:text-white hover:bg-white/[0.04] transition-all flex items-center gap-2.5"
@@ -158,13 +158,13 @@ export function AdminSidebar({ counts }: { counts?: Counts }) {
           </div>
           <div className="min-w-0">
             <div className="text-xs font-semibold text-white truncate">Super-Admin</div>
-            <div className="text-[10px] text-white/50 font-mono">Ops · Stampy</div>
+            <div className="text-[10px] text-ink-label font-mono">Ops · Stampy</div>
           </div>
         </div>
         <form action="/auth/signout" method="post">
           <button
             title="Выйти"
-            className="size-7 rounded-lg border border-white/10 bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/10 grid place-items-center transition-colors"
+            className="size-7 rounded-lg border border-white/10 bg-white/[0.04] text-ink-label hover:text-white hover:bg-white/10 grid place-items-center transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />

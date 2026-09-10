@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { formatUzs } from "@/lib/plan";
+import { formatUzs, PLAN_PRICE_UZS } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +35,18 @@ function generateCumulativeSeries(items: { created_at: string }[], days = 14): n
 export default async function AdminOverview() {
   const supabase = await supabaseServer();
 
-  // Fetch real data from all tables directly
+  // Окно под спарклайны — 14 дней. Всё, что нужно за всё время, берём счётчиками
+  // и агрегатами: stampy_stamps растёт с каждым касанием, и выгружать её целиком
+  // на каждый заход в админку нельзя.
+  const seriesFrom = new Date();
+  seriesFrom.setHours(0, 0, 0, 0);
+  seriesFrom.setDate(seriesFrom.getDate() - 13);
+
   const [
     { data: tenantsData },
     { count: guestsCount },
     { data: stampsData },
+    { count: stampsTotal },
     { data: applicationsData },
     { data: tagsData },
     { data: membershipsData },
@@ -49,10 +56,17 @@ export default async function AdminOverview() {
       .select("id, name, slug, plan, subscription_status, created_at, stampy_venues(id, name, active)")
       .order("created_at", { ascending: false }),
     supabase.from("stampy_customers").select("id", { count: "exact", head: true }),
-    supabase.from("stampy_stamps").select("id, created_at, tenant_id").order("created_at", { ascending: true }),
+    supabase
+      .from("stampy_stamps")
+      .select("id, created_at, tenant_id")
+      .gte("created_at", seriesFrom.toISOString())
+      .order("created_at", { ascending: true }),
+    supabase.from("stampy_stamps").select("id", { count: "exact", head: true }),
     supabase.from("stampy_applications").select("*").order("created_at", { ascending: false }),
     supabase.from("stampy_nfc_tags").select("uid, tenant_id"),
-    supabase.from("stampy_memberships").select("id, tenant_id, customer_id, stamps_count"),
+    supabase
+      .from("stampy_memberships")
+      .select("id, tenant_id, customer_id, stamps_count, lifetime_stamps, first_seen_at"),
   ]);
 
   const tenants = tenantsData ?? [];
@@ -67,7 +81,10 @@ export default async function AdminOverview() {
   const activeTenants = tenants.filter(
     (t) => t.subscription_status === "active" || t.subscription_status === "trial",
   );
-  const mrrUzs = payingTenants.reduce((sum, t) => sum + (t.plan === "marketing" ? 490000 : 290000), 0);
+  const mrrUzs = payingTenants.reduce(
+    (sum, tenant) => sum + (PLAN_PRICE_UZS[tenant.plan] ?? PLAN_PRICE_UZS.loyalty),
+    0,
+  );
 
   // Time boundaries (Tashkent / local)
   const now = new Date();
@@ -83,14 +100,27 @@ export default async function AdminOverview() {
   const seriesStamps = generateSeries(stamps, 14);
   const seriesTenants = generateCumulativeSeries(tenants, 14);
   const seriesGuests = generateCumulativeSeries(
-    memberships.map((m) => ({ created_at: stamps[0]?.created_at || new Date().toISOString() })),
+    memberships.map((membership) => ({ created_at: membership.first_seen_at })),
     14,
   );
+  const newGuestsWeek = memberships.filter(
+    (membership) => new Date(membership.first_seen_at) >= weekStart,
+  ).length;
+
+  const boundTags = tags.filter((tag) => tag.tenant_id).length;
+  const venuesTotal = tenants.reduce(
+    (sum, tenant) => sum + (tenant.stampy_venues?.length ?? 0),
+    0,
+  );
+  const trialTenants = tenants.filter((tenant) => tenant.subscription_status === "trial");
 
   // Cafe summary rows for the Screen 14 table
   const cafeRows = tenants.map((tenant) => {
     const cafeMemberships = memberships.filter((m) => m.tenant_id === tenant.id);
-    const cafeStamps = stamps.filter((s) => s.tenant_id === tenant.id);
+    const cafeStamps = cafeMemberships.reduce(
+      (sum, membership) => sum + (membership.lifetime_stamps ?? 0),
+      0,
+    );
     const spotsCount = tenant.stampy_venues?.length || 1;
     const isPaying = tenant.subscription_status === "active";
     const isTrial = tenant.subscription_status === "trial";
@@ -111,7 +141,7 @@ export default async function AdminOverview() {
       status: tenant.subscription_status,
       spotsCount,
       guestsCount: cafeMemberships.length,
-      stampsCount: cafeStamps.length,
+      stampsCount: cafeStamps,
       initials: initials || "ST",
       health: isPaying ? "хорошо" : isTrial ? "пробный" : "внимание",
       healthStatus: isPaying ? "ok" : isTrial ? "trial" : "warn",
@@ -154,7 +184,7 @@ export default async function AdminOverview() {
         <KpiTile
           label="MRR"
           value={mrrUzs > 0 ? formatUzs(mrrUzs) : "0 сум"}
-          change={mrrUzs > 0 ? "↑ 100%" : "—"}
+          change={payingTenants.length > 0 ? `${payingTenants.length} на оплате` : "нет оплат"}
           hint={`${payingTenants.length} платящих точек`}
           series={seriesTenants}
         />
@@ -169,14 +199,14 @@ export default async function AdminOverview() {
         <KpiTile
           label="Гости"
           value={totalGuests}
-          change={totalGuests > 0 ? `↑ ${totalGuests}` : "—"}
+          change={newGuestsWeek > 0 ? `+${newGuestsWeek} за 7 дн.` : "без новых за 7 дн."}
           hint={`${memberships.length} карт в кошельках`}
           href="/admin/guests"
           series={seriesGuests}
         />
         <KpiTile
           label="Штампы"
-          value={stamps.length}
+          value={stampsTotal ?? 0}
           change={stampsToday > 0 ? `+${stampsToday} сегодня` : `${stampsWeek} за 7 дн.`}
           hint="начислено гостям"
           series={seriesStamps}
@@ -293,20 +323,25 @@ export default async function AdminOverview() {
 
         {/* Right Column: System Health + Incidents/Alerts as in Screen 14 */}
         <div className="flex flex-col gap-4">
-          {/* Здоровье системы */}
+          {/*
+            Здесь была панель «Здоровье системы» с аптаймом 99.98% / 99.94% / 100%.
+            Ни один из этих показателей не измеряется, а на панели платформы такие
+            числа читаются как основание для решений. Вернём, когда появится
+            настоящий мониторинг; пока показываем то, что действительно знаем.
+          */}
           <section className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="card-title">Здоровье системы</h2>
+              <h2 className="card-title">Метки и точки</h2>
               <span className="text-[10px] font-mono text-ink-faint uppercase tracking-wider">
-                30 дней
+                сейчас
               </span>
             </div>
 
             <div className="flex flex-col gap-3.5">
-              <HealthBar label="API платформы" percent={99.98} color="bg-[#5B8DEF]" />
-              <HealthBar label="NFC-регистрация" percent={99.94} color="bg-[#5B8DEF]" />
-              <HealthBar label="Telegram Mini App" percent={100.0} color="bg-[#5B8DEF]" />
-              <HealthBar label="Панель бариста" percent={99.62} color="bg-[#7BA5FF]" />
+              <StatLine label="Меток привязано" value={`${boundTags} из ${tags.length}`} />
+              <StatLine label="Точек у кофеен" value={venuesTotal} />
+              <StatLine label="Кофеен на пробном" value={trialTenants.length} />
+              <StatLine label="Карт в кошельках" value={memberships.length} />
             </div>
           </section>
 
@@ -383,24 +418,11 @@ export default async function AdminOverview() {
   );
 }
 
-function HealthBar({
-  label,
-  percent,
-  color,
-}: {
-  label: string;
-  percent: number;
-  color: string;
-}) {
+function StatLine({ label, value }: { label: string; value: string | number }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-xs mb-1.5">
-        <span className="text-ink-soft font-medium">{label}</span>
-        <span className="font-mono text-white font-semibold">{percent.toFixed(2)}%</span>
-      </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${percent}%` }} />
-      </div>
+    <div className="flex items-baseline justify-between gap-3 text-[13px]">
+      <span className="text-ink-soft">{label}</span>
+      <span className="font-mono font-semibold text-white tabular-nums">{value}</span>
     </div>
   );
 }
