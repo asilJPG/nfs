@@ -9,6 +9,7 @@ type Venue = { id: string; name: string };
 
 export type StaffStats = {
   stampsToday: number;
+  stampsDelta: number;
   guestsToday: number;
   rewardsToday: number;
   returnRate: number;
@@ -19,6 +20,12 @@ export type StaffStats = {
     title: string;
     subtitle: string;
     time: string;
+  }[];
+  closeToReward: {
+    id: string;
+    name: string;
+    stampsCount: number;
+    stampsRequired: number;
   }[];
 };
 
@@ -204,6 +211,13 @@ export function StaffConsole({
 
   const lastPointY = Math.round(80 - ((counts[counts.length - 1] || 0) / maxVal) * 60);
 
+  // Подписи оси X: пн/вт/… за 7 дней относительно выбранного (последний — сам dayISO).
+  const weekdayLabels = Array.from({ length: 7 }).map((_, i) => {
+    const [y, m, d] = dayISO.split("-").map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d - (6 - i)));
+    return dt.toLocaleDateString("ru-RU", { timeZone: "UTC", weekday: "short" });
+  });
+
   return (
     <div className="min-h-dvh bg-[#FAFAF9] text-[#0E0F11] font-sans antialiased">
       <div className="min-h-dvh grid grid-cols-1 md:grid-cols-[240px_1fr]">
@@ -362,7 +376,19 @@ export function StaffConsole({
                   <div className="text-2xl font-bold tracking-tight">
                     <CountUp value={stats?.stampsToday ?? 0} />
                   </div>
-                  <div className="text-[10px] text-bean-ink font-medium mt-1">{isToday ? "за сегодня" : "за день"}</div>
+                  <div
+                    className={`text-[10px] font-medium mt-1 ${
+                      (stats?.stampsDelta ?? 0) > 0
+                        ? "text-emerald-700"
+                        : (stats?.stampsDelta ?? 0) < 0
+                        ? "text-red-700"
+                        : "text-carbon-label"
+                    }`}
+                  >
+                    {(stats?.stampsDelta ?? 0) === 0
+                      ? "как вчера"
+                      : `${(stats?.stampsDelta ?? 0) > 0 ? "+" : ""}${stats?.stampsDelta} vs вчера`}
+                  </div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
@@ -391,7 +417,7 @@ export function StaffConsole({
               <div className="p-4 rounded-2xl border border-black/[0.06] bg-white mb-6">
                 <div className="flex justify-between items-center mb-3">
                   <div className="text-xs font-semibold">Штампы за неделю</div>
-                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold">7д</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold">7д · итого {counts.reduce((a, b) => a + b, 0)}</div>
                 </div>
                 <svg viewBox="0 0 400 90" width="100%" height="90" className="overflow-visible">
                   <defs>
@@ -405,7 +431,32 @@ export function StaffConsole({
                   <circle cx="400" cy={lastPointY} r="4" fill="#5B8DEF"/>
                   <circle cx="400" cy={lastPointY} r="8" fill="#5B8DEF" opacity="0.25"/>
                 </svg>
+                <div className="mt-2 grid grid-cols-7 text-[10px] text-carbon-label font-mono uppercase text-center">
+                  {weekdayLabels.map((w, i) => (
+                    <div key={i} className={i === weekdayLabels.length - 1 ? "text-[#0E0F11] font-semibold" : ""}>
+                      {w}
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Близко к награде — реальная помощь бариста */}
+              {stats?.closeToReward && stats.closeToReward.length > 0 && (
+                <div className="p-4 rounded-2xl border border-black/[0.06] bg-white mb-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="text-xs font-semibold">На один штамп до награды</div>
+                    <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold">{stats.closeToReward.length}</div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {stats.closeToReward.map((g) => (
+                      <div key={g.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                        <span className="font-semibold text-[#0E0F11]">{g.name}</span>
+                        <span className="text-[11px] font-mono text-[#5B8DEF]">{g.stampsCount}/{g.stampsRequired}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Recent Activity Live Feed with REAL data */}
               <div>
