@@ -43,9 +43,9 @@ export default async function AdminOverview() {
   seriesFrom.setDate(seriesFrom.getDate() - 13);
 
   const [
-    { data: tenantsData },
-    { count: guestsCount },
-    { data: stampsData },
+    { data: tenantsData, error: tenantsError },
+    { count: guestsCount, error: guestsError },
+    { data: stampsData, error: stampsError },
     { count: stampsTotal },
     { data: applicationsData },
     { data: tagsData },
@@ -53,7 +53,9 @@ export default async function AdminOverview() {
   ] = await Promise.all([
     supabase
       .from("stampy_tenants")
-      .select("id, name, slug, plan, subscription_status, created_at, stampy_venues(id, name, active)")
+      .select(
+        "id, name, slug, plan, subscription_status, subscription_until, created_at, stampy_venues(id, name, active)",
+      )
       .order("created_at", { ascending: false }),
     supabase.from("stampy_customers").select("id", { count: "exact", head: true }),
     supabase
@@ -76,8 +78,19 @@ export default async function AdminOverview() {
   const memberships = membershipsData ?? [];
   const totalGuests = guestsCount ?? 0;
 
+  // Health-статус берём из результатов уже выполненных запросов: если критичные
+  // селекты прошли — БД жива. Отдельного пинга не гоняем, чтоб не удваивать RTT.
+  const dbHealthy = !tenantsError && !guestsError && !stampsError;
+
   // Real calculations
-  const payingTenants = tenants.filter((t) => t.subscription_status === "active");
+  // MRR учитывает только тех, у кого статус active И оплата не просрочена.
+  // Иначе после истечения подписки кофейня всё ещё считается платящей и MRR завышен.
+  const nowTs = Date.now();
+  const payingTenants = tenants.filter(
+    (t) =>
+      t.subscription_status === "active" &&
+      (!t.subscription_until || new Date(t.subscription_until).getTime() > nowTs),
+  );
   const activeTenants = tenants.filter(
     (t) => t.subscription_status === "active" || t.subscription_status === "trial",
   );
@@ -99,6 +112,11 @@ export default async function AdminOverview() {
   // Series for sparklines
   const seriesStamps = generateSeries(stamps, 14);
   const seriesTenants = generateCumulativeSeries(tenants, 14);
+  // Реального лога подписок нет — приближаем спарклайн MRR суммой прайса всех
+  // сегодняшних платящих, размазанной по их дате создания. Тренд, а не факт.
+  const payingCumulative = generateCumulativeSeries(payingTenants, 14);
+  const payingNow = payingCumulative[payingCumulative.length - 1] || 1;
+  const seriesMrr = payingCumulative.map((c) => Math.round((c / payingNow) * mrrUzs));
   const seriesGuests = generateCumulativeSeries(
     memberships.map((membership) => ({ created_at: membership.first_seen_at })),
     14,
@@ -160,11 +178,18 @@ export default async function AdminOverview() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Status pill as in Screen 14 */}
-          <div className="flex items-center gap-2 rounded-full border border-[#5B8DEF]/25 bg-[#5B8DEF]/10 px-3.5 py-1.5 text-xs font-mono text-[#7BA5FF] shadow-sm">
-            <span className="size-2 rounded-full bg-[#5B8DEF] animate-pulse" />
-            <span>Все системы работают</span>
-          </div>
+          {/* Status pill — реальный статус БД по последним запросам страницы */}
+          {dbHealthy ? (
+            <div className="flex items-center gap-2 rounded-full border border-[#5B8DEF]/25 bg-[#5B8DEF]/10 px-3.5 py-1.5 text-xs font-mono text-[#7BA5FF] shadow-sm">
+              <span className="size-2 rounded-full bg-[#5B8DEF] animate-pulse" />
+              <span>Все системы работают</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-full border border-red-400/40 bg-red-500/10 px-3.5 py-1.5 text-xs font-mono text-red-300 shadow-sm">
+              <span className="size-2 rounded-full bg-red-400" />
+              <span>Проблемы с БД</span>
+            </div>
+          )}
 
           <div className="hidden sm:flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3.5 py-2 text-xs text-ink-soft">
             <span>В реальном времени</span>
@@ -186,7 +211,7 @@ export default async function AdminOverview() {
           value={mrrUzs > 0 ? formatUzs(mrrUzs) : "0 сум"}
           change={payingTenants.length > 0 ? `${payingTenants.length} на оплате` : "нет оплат"}
           hint={`${payingTenants.length} платящих точек`}
-          series={seriesTenants}
+          series={seriesMrr}
         />
         <KpiTile
           label="Кофейни"

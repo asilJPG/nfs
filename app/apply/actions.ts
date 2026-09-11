@@ -1,9 +1,11 @@
 "use server";
 
+import { headers } from "next/headers";
 import { z } from "zod";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { sendMessage } from "@/lib/telegram/api";
 import { env } from "@/lib/env";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 export type ApplyResult = { ok: true } | { ok: false; message: string };
 
@@ -22,6 +24,14 @@ export async function submitApplication(input: unknown): Promise<ApplyResult> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте поля." };
+  }
+
+  // Спам по IP: даже если бот меняет телефоны, лимит на источник срабатывает.
+  // 10 заявок в час на IP — с запасом на честные повторы через VPN.
+  const ip = clientIp(await headers());
+  const gate = rateLimit(`apply:${ip}`, 10, 3600);
+  if (!gate.ok) {
+    return { ok: false, message: "Слишком много заявок. Попробуйте позже." };
   }
 
   const db = supabaseAdmin();
