@@ -225,18 +225,34 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               )}
             </div>
 
-            {/* User Barista Badge */}
-            <div className="mt-6 p-3 rounded-xl bg-white border border-black/[0.06] flex items-center gap-2.5 shadow-sm">
-              <div className="size-7 rounded-full bg-[#5B8DEF] grid place-items-center text-[#FAFAF9] text-xs font-semibold uppercase">
-                {staffName.trim().charAt(0) || "?"}
-              </div>
-              <div className="min-w-0">
-                <div className="text-xs font-semibold truncate leading-tight">{staffName}</div>
-                <div className="text-[10px] text-carbon-label truncate">
-                  {staffRole}
-                  {activeVenueName ? ` · ${activeVenueName}` : ""}
+            {/* User Barista Badge + Logout — общий планшет должен уметь
+                сменить смену, иначе штампы висят на утреннем бариста. */}
+            <div className="mt-6 flex flex-col gap-2">
+              <div className="p-3 rounded-xl bg-white border border-black/[0.06] flex items-center gap-2.5 shadow-sm">
+                <div className="size-7 rounded-full bg-[#5B8DEF] grid place-items-center text-[#FAFAF9] text-xs font-semibold uppercase">
+                  {staffName.trim().charAt(0) || "?"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold truncate leading-tight">{staffName}</div>
+                  <div className="text-[10px] text-carbon-label truncate">
+                    {staffRole}
+                    {activeVenueName ? ` · ${activeVenueName}` : ""}
+                  </div>
                 </div>
               </div>
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.04] transition-all"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+                    <path d="M10 8 6 12l4 4" />
+                    <path d="M6 12h9" />
+                  </svg>
+                  Сменить смену
+                </button>
+              </form>
             </div>
           </aside>
 
