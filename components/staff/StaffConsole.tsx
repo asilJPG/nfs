@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { redeemAction, type ActionResult } from "@/app/staff/actions";
+import { CountUp } from "@/components/ui/CountUp";
 
 type Venue = { id: string; name: string };
 
@@ -31,6 +32,10 @@ type Props = {
   // Владелец и менеджер могут вернуться в свой кабинет — им кассовый экран
   // просто одно из окон. Бариста работает только тут, ему выход не нужен.
   showDashboardLink?: boolean;
+  dayISO: string;
+  todayISO: string;
+  prevDayISO: string;
+  nextDayISO: string | null;
 };
 
 type ScanState =
@@ -40,7 +45,33 @@ type ScanState =
   | { kind: "unsupported" }
   | { kind: "denied"; message: string };
 
-export function StaffConsole({ tenantName, staffName, staffRole, venues, defaultVenueId, stats, showDashboardLink }: Props) {
+export function StaffConsole({
+  tenantName,
+  staffName,
+  staffRole,
+  venues,
+  defaultVenueId,
+  stats,
+  showDashboardLink,
+  dayISO,
+  todayISO,
+  prevDayISO,
+  nextDayISO,
+}: Props) {
+  const isToday = dayISO === todayISO;
+  const dayLabel = isToday
+    ? "Сегодня"
+    : new Date(`${dayISO}T00:00:00+05:00`).toLocaleDateString("ru-RU", {
+        timeZone: "Asia/Tashkent",
+        day: "numeric",
+        month: "long",
+      });
+  const dayHint = new Date(`${dayISO}T00:00:00+05:00`).toLocaleDateString("ru-RU", {
+    timeZone: "Asia/Tashkent",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  });
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
@@ -260,12 +291,10 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
           <main className="p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
             <div>
               {/* Header */}
-              <div className="flex flex-wrap justify-between items-end gap-3 mb-6">
+              <div className="flex flex-wrap justify-between items-end gap-3 mb-4">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#0E0F11]">Сегодня</h1>
-                  <div className="text-xs text-carbon-label mt-1 font-medium">
-                    {new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "short" })}
-                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#0E0F11]">{dayLabel}</h1>
+                  <div className="text-xs text-carbon-label mt-1 font-medium">{dayHint}</div>
                 </div>
 
                 <div className="flex gap-2">
@@ -279,6 +308,38 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                     Сканировать QR
                   </button>
                 </div>
+              </div>
+
+              {/* Day navigation */}
+              <div className="flex items-center gap-2 mb-6 flex-wrap">
+                <Link
+                  href={`/staff?date=${prevDayISO}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F0EFEC] text-[11px] font-medium text-[#0E0F11] hover:bg-black/[0.06] transition-all"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 6l-6 6 6 6" />
+                  </svg>
+                  Предыдущий день
+                </Link>
+                {!isToday && (
+                  <Link
+                    href="/staff"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#0E0F11] text-white text-[11px] font-semibold hover:bg-black transition-all"
+                  >
+                    Сегодня
+                  </Link>
+                )}
+                {nextDayISO && (
+                  <Link
+                    href={`/staff?date=${nextDayISO}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F0EFEC] text-[11px] font-medium text-[#0E0F11] hover:bg-black/[0.06] transition-all"
+                  >
+                    Следующий день
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 6l6 6-6 6" />
+                    </svg>
+                  </Link>
+                )}
               </div>
 
               {/* Status Banner / Outcome */}
@@ -298,23 +359,31 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов</div>
-                  <div className="text-2xl font-bold tracking-tight">{stats?.stampsToday ?? 0}</div>
-                  <div className="text-[10px] text-bean-ink font-medium mt-1">за сегодня</div>
+                  <div className="text-2xl font-bold tracking-tight">
+                    <CountUp value={stats?.stampsToday ?? 0} />
+                  </div>
+                  <div className="text-[10px] text-bean-ink font-medium mt-1">{isToday ? "за сегодня" : "за день"}</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Гостей</div>
-                  <div className="text-2xl font-bold tracking-tight">{stats?.guestsToday ?? 0}</div>
+                  <div className="text-2xl font-bold tracking-tight">
+                    <CountUp value={stats?.guestsToday ?? 0} />
+                  </div>
                   <div className="text-[10px] text-bean-ink font-medium mt-1">уникальных</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Наград</div>
-                  <div className="text-2xl font-bold tracking-tight">{stats?.rewardsToday ?? 0}</div>
-                  <div className="text-[10px] text-carbon-label font-medium mt-1">выдано сегодня</div>
+                  <div className="text-2xl font-bold tracking-tight">
+                    <CountUp value={stats?.rewardsToday ?? 0} />
+                  </div>
+                  <div className="text-[10px] text-carbon-label font-medium mt-1">выдано</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
                   <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Возвраты</div>
-                  <div className="text-2xl font-bold tracking-tight">{stats?.returnRate ?? 0}<span className="text-base text-carbon-label font-normal">%</span></div>
-                  <div className="text-[10px] text-carbon-label font-medium mt-1">гостей базы сегодня</div>
+                  <div className="text-2xl font-bold tracking-tight">
+                    <CountUp value={stats?.returnRate ?? 0} suffix="%" />
+                  </div>
+                  <div className="text-[10px] text-carbon-label font-medium mt-1">гостей базы</div>
                 </div>
               </div>
 

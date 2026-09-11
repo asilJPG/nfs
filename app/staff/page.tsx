@@ -1,22 +1,35 @@
 import { requireStaff } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { StaffConsole, type StaffStats } from "@/components/staff/StaffConsole";
+import { formatTenantDate, formatTenantTime, shiftDayISO, tenantDateISO, tenantDayEnd, tenantDayStart } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
-export default async function StaffPage() {
+type SearchParams = { date?: string };
+
+export default async function StaffPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const { staff, tenant } = await requireStaff();
   const supabase = await supabaseServer();
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-  const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString();
+  const params = await searchParams;
+  const today = tenantDateISO();
+  // ?date=YYYY-MM-DD — просмотр любого прошедшего дня. Валидируем формат и
+  // не даём заглядывать в будущее.
+  const dayISO = /^\d{4}-\d{2}-\d{2}$/.test(params.date ?? "") && (params.date! <= today)
+    ? params.date!
+    : today;
+  const isToday = dayISO === today;
+
+  const dayStart = tenantDayStart(dayISO).toISOString();
+  const dayEnd = tenantDayEnd(dayISO).toISOString();
+  // Спарклайн смотрим по неделе относительно выбранного дня.
+  const weekAgo = tenantDayStart(shiftDayISO(dayISO, -6)).toISOString();
 
   const [
     { data: venues },
-    { count: stampsTodayCount },
-    { count: rewardsTodayCount },
-    { data: todayStampsRows },
+    { count: stampsDayCount },
+    { count: rewardsDayCount },
+    { data: dayStampsRows },
     { count: totalMembersCount },
     { data: weekStampsRows },
     { data: recentStamps },
@@ -32,18 +45,21 @@ export default async function StaffPage() {
       .from("stampy_stamps")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenant.id)
-      .gte("created_at", todayStart),
+      .gte("created_at", dayStart)
+      .lt("created_at", dayEnd),
     supabase
       .from("stampy_rewards")
       .select("id", { count: "exact", head: true })
       .eq("tenant_id", tenant.id)
       .eq("status", "redeemed")
-      .gte("redeemed_at", todayStart),
+      .gte("redeemed_at", dayStart)
+      .lt("redeemed_at", dayEnd),
     supabase
       .from("stampy_stamps")
       .select("membership_id")
       .eq("tenant_id", tenant.id)
-      .gte("created_at", todayStart),
+      .gte("created_at", dayStart)
+      .lt("created_at", dayEnd),
     supabase
       .from("stampy_memberships")
       .select("id", { count: "exact", head: true })
@@ -52,36 +68,47 @@ export default async function StaffPage() {
       .from("stampy_stamps")
       .select("created_at")
       .eq("tenant_id", tenant.id)
-      .gte("created_at", weekAgo),
+      .gte("created_at", weekAgo)
+      .lt("created_at", dayEnd),
     supabase
       .from("stampy_stamps")
       .select("id, created_at, source, venue:stampy_venues(name)")
       .eq("tenant_id", tenant.id)
+      .lt("created_at", dayEnd)
       .order("created_at", { ascending: false })
-      .limit(5)
+      .limit(8)
       .returns<{ id: string; created_at: string; source: string; venue: { name: string } | null }[]>(),
     supabase
       .from("stampy_rewards")
       .select("id, title, redeemed_at, venue:stampy_venues(name)")
       .eq("tenant_id", tenant.id)
       .eq("status", "redeemed")
+      .lt("redeemed_at", dayEnd)
       .order("redeemed_at", { ascending: false })
-      .limit(5)
+      .limit(8)
       .returns<{ id: string; title: string; redeemed_at: string | null; venue: { name: string } | null }[]>(),
   ]);
 
-  const uniqueGuestsToday = new Set(todayStampsRows?.map((r) => r.membership_id)).size;
+  const uniqueGuestsDay = new Set(dayStampsRows?.map((r) => r.membership_id)).size;
 
-  // Build 7-day sparkline
+  // Кладём 7 дней, где последний — выбранный. Границы дней считаем в Ташкенте.
   const dailyCounts = [0, 0, 0, 0, 0, 0, 0];
+  const dayBuckets: Array<[Date, Date]> = [];
+  for (let i = 6; i >= 0; i--) {
+    const iso = shiftDayISO(dayISO, -i);
+    dayBuckets.push([tenantDayStart(iso), tenantDayEnd(iso)]);
+  }
   for (const s of weekStampsRows ?? []) {
-    const diffDays = Math.floor((now.getTime() - new Date(s.created_at).getTime()) / 86_400_000);
-    if (diffDays >= 0 && diffDays < 7) {
-      dailyCounts[6 - diffDays] = (dailyCounts[6 - diffDays] || 0) + 1;
+    const t = new Date(s.created_at).getTime();
+    for (let i = 0; i < 7; i++) {
+      const [a, b] = dayBuckets[i];
+      if (t >= a.getTime() && t < b.getTime()) {
+        dailyCounts[i] = (dailyCounts[i] || 0) + 1;
+        break;
+      }
     }
   }
 
-  // Combine recent events
   type EventItem = {
     id: string;
     type: "stamp" | "reward";
@@ -91,14 +118,12 @@ export default async function StaffPage() {
     time: string;
   };
 
-  // Метка «08.09 · 19:50» для не-сегодняшних событий: иначе после ночи
-  // событие с 19:50 читается как «сегодня в 19:50» и путает.
-  const todayStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const selectedStartMs = tenantDayStart(dayISO).getTime();
+
   function labelTime(d: Date): string {
-    const hhmm = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-    if (d.getTime() >= todayStartMs) return hhmm;
-    const dm = d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
-    return `${dm} · ${hhmm}`;
+    const hhmm = formatTenantTime(d);
+    if (d.getTime() >= selectedStartMs) return hhmm;
+    return `${formatTenantDate(d)} · ${hhmm}`;
   }
 
   const stampEvents: EventItem[] = (recentStamps ?? []).map((s) => {
@@ -127,13 +152,16 @@ export default async function StaffPage() {
 
   const combinedEvents = [...stampEvents, ...rewardEvents]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .slice(0, 5);
+    .slice(0, 8);
 
   const stats: StaffStats = {
-    stampsToday: stampsTodayCount ?? 0,
-    guestsToday: uniqueGuestsToday,
-    rewardsToday: rewardsTodayCount ?? 0,
-    returnRate: totalMembersCount && totalMembersCount > 0 ? Math.min(100, Math.round((uniqueGuestsToday / totalMembersCount) * 100)) : 0,
+    stampsToday: stampsDayCount ?? 0,
+    guestsToday: uniqueGuestsDay,
+    rewardsToday: rewardsDayCount ?? 0,
+    returnRate:
+      totalMembersCount && totalMembersCount > 0
+        ? Math.min(100, Math.round((uniqueGuestsDay / totalMembersCount) * 100))
+        : 0,
     weeklyCounts: dailyCounts,
     recentEvents: combinedEvents.map(({ id, type, title, subtitle, time }) => ({ id, type, title, subtitle, time })),
   };
@@ -153,6 +181,10 @@ export default async function StaffPage() {
       defaultVenueId={staff.venue_id}
       stats={stats}
       showDashboardLink={staff.role !== "cashier"}
+      dayISO={dayISO}
+      todayISO={today}
+      prevDayISO={shiftDayISO(dayISO, -1)}
+      nextDayISO={isToday ? null : shiftDayISO(dayISO, 1)}
     />
   );
 }
