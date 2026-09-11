@@ -324,9 +324,9 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                   <div className="text-[10px] text-carbon-label font-medium mt-1">выдано сегодня</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
-                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Активность</div>
+                  <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Возвраты</div>
                   <div className="text-2xl font-bold tracking-tight">{stats?.returnRate ?? 0}<span className="text-base text-carbon-label font-normal">%</span></div>
-                  <div className="text-[10px] text-carbon-label font-medium mt-1">базы за сегодня</div>
+                  <div className="text-[10px] text-carbon-label font-medium mt-1">гостей базы сегодня</div>
                 </div>
               </div>
 

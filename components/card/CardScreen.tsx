@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { StampGrid } from "./StampGrid";
 import { Monogram, WalletCardRow } from "./WalletCard";
 import { plateColors, withAlpha } from "@/lib/color";
+import { supportTelegramHandle, supportTelegramUrl } from "@/lib/contact";
 
 const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
   ssr: false,
@@ -1232,15 +1233,17 @@ function ProfileView({
           <span className="text-ink-label font-mono">Русский</span>
         </div>
 
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-            <span>Помощь и поддержка</span>
+        {supportTelegramUrl && (
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+              <span>Помощь и поддержка</span>
+            </div>
+            <a href={supportTelegramUrl} target="_blank" rel="noreferrer" className="text-[#5B8DEF]">
+              {supportTelegramHandle}
+            </a>
           </div>
-          <a href="https://t.me/stampy_support" target="_blank" rel="noreferrer" className="text-[#5B8DEF]">
-            @stampy_support
-          </a>
-        </div>
+        )}
       </div>
     </div>
   );

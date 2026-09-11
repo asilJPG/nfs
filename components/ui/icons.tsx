@@ -84,6 +84,18 @@ export function IconBolt(props: IconProps) {
   );
 }
 
+export function IconScan(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 8V6a2 2 0 0 1 2-2h2" />
+      <path d="M20 8V6a2 2 0 0 0-2-2h-2" />
+      <path d="M4 16v2a2 2 0 0 0 2 2h2" />
+      <path d="M20 16v2a2 2 0 0 1-2 2h-2" />
+      <path d="M4 12h16" />
+    </Svg>
+  );
+}
+
 export function IconLogout(props: IconProps) {
   return (
     <Svg {...props}>

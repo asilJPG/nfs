@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PendingDot } from "@/components/ui/PendingDot";
 import {
-  IconBolt,
   IconCard,
   IconChart,
   IconCrown,
   IconLock,
   IconMegaphone,
   IconPin,
+  IconScan,
   IconTag,
 } from "@/components/ui/icons";
 import type { StaffRole } from "@/types/db";
@@ -39,7 +39,7 @@ const SECONDARY_ITEMS: Item[] = [
     feature: "broadcasts",
   },
   { href: "/dashboard/billing", label: "Тариф и оплата", short: "Тариф", Icon: IconCrown },
-  { href: "/staff", label: "Касса бариста", short: "Касса", Icon: IconBolt },
+  { href: "/staff", label: "Касса бариста", short: "Касса", Icon: IconScan },
 ];
 
 export function DashboardNav({

@@ -91,6 +91,16 @@ export default async function StaffPage() {
     time: string;
   };
 
+  // Метка «08.09 · 19:50» для не-сегодняшних событий: иначе после ночи
+  // событие с 19:50 читается как «сегодня в 19:50» и путает.
+  const todayStartMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  function labelTime(d: Date): string {
+    const hhmm = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    if (d.getTime() >= todayStartMs) return hhmm;
+    const dm = d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+    return `${dm} · ${hhmm}`;
+  }
+
   const stampEvents: EventItem[] = (recentStamps ?? []).map((s) => {
     const d = new Date(s.created_at);
     return {
@@ -99,7 +109,7 @@ export default async function StaffPage() {
       title: "Штамп добавлен",
       subtitle: [s.source === "manual" ? "вручную" : "NFC-метка", s.venue?.name].filter(Boolean).join(" · "),
       date: d,
-      time: d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+      time: labelTime(d),
     };
   });
 
@@ -111,7 +121,7 @@ export default async function StaffPage() {
       title: `Награда: ${r.title}`,
       subtitle: r.venue?.name ? `выдано · ${r.venue.name}` : "выдано на кассе",
       date: d,
-      time: d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+      time: labelTime(d),
     };
   });
 

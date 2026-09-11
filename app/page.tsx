@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PLAN_CARDS } from "@/lib/plan";
+import { supportEmail, supportEmailUrl, supportTelegramUrl } from "@/lib/contact";
 import { StampyLivePreview } from "@/components/landing/StampyLivePreview";
 
 export const dynamic = "force-static";
@@ -636,8 +637,8 @@ export default function LandingPage() {
                 <div className="text-xs text-carbon-label mb-6">От шести точек — считаем отдельно.</div>
 
                 <a
-                  href="https://t.me/stampy_support"
-                  target="_blank"
+                  href={supportTelegramUrl || "#apply"}
+                  target={supportTelegramUrl ? "_blank" : undefined}
                   rel="noreferrer"
                   className="block text-center py-2.5 rounded-full bg-white border border-black/[0.08] text-xs font-semibold text-carbon hover:bg-black/5 transition-all mb-6 shadow-sm"
                 >
@@ -767,8 +768,16 @@ export default function LandingPage() {
             <span>· © 2026 Ташкент</span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="https://t.me/stampy_support" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Telegram</a>
-            <a href="mailto:hello@stampy.co" className="hover:text-white transition-colors">hello@stampy.co</a>
+            {supportTelegramUrl && (
+              <a href={supportTelegramUrl} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                Telegram
+              </a>
+            )}
+            {supportEmailUrl && (
+              <a href={supportEmailUrl} className="hover:text-white transition-colors">
+                {supportEmail}
+              </a>
+            )}
           </div>
         </div>
       </footer>

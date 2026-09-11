@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth";
+import { supportTelegramUrl } from "@/lib/contact";
 import { daysLeftInTrial, isServing, PLAN_CARDS } from "@/lib/plan";
 
 export const dynamic = "force-dynamic";
@@ -88,12 +89,11 @@ export default async function BillingPage() {
           Напишите нам в Telegram — выставим счёт на юрлицо или примем перевод. После оплаты
           подписка продлевается в течение рабочего дня, ничего перенастраивать не нужно.
         </p>
-        <a
-          href="https://t.me/stampy_support"
-          className="btn btn-primary mt-4"
-        >
-          Написать в поддержку
-        </a>
+        {supportTelegramUrl && (
+          <a href={supportTelegramUrl} target="_blank" rel="noreferrer" className="btn btn-primary mt-4">
+            Написать в поддержку
+          </a>
+        )}
       </section>
     </div>
   );
