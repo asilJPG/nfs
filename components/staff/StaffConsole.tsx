@@ -42,7 +42,6 @@ type ScanState =
 
 export function StaffConsole({ tenantName, staffName, staffRole, venues, defaultVenueId, stats, showDashboardLink }: Props) {
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
-  const [activeTab, setActiveTab] = useState<"stamps" | "rewards" | "analytics" | "history">("stamps");
   const [result, setResult] = useState<ActionResult | null>(null);
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
   const [showScannerModal, setShowScannerModal] = useState(false);
@@ -175,10 +174,8 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
   const lastPointY = Math.round(80 - ((counts[counts.length - 1] || 0) / maxVal) * 60);
 
   return (
-    <div className="min-h-dvh bg-[#08090B] text-[#F4F4F2] font-sans antialiased p-3 sm:p-6 lg:p-10 flex flex-col justify-center items-center">
-      {/* iPad-style Frame */}
-      <div className="w-full max-w-5xl rounded-[32px] p-2.5 sm:p-3 bg-[#1B1E27] border border-white/[0.08] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]">
-        <div className="scheme-light rounded-[24px] overflow-hidden bg-[#FAFAF9] text-[#0E0F11] grid grid-cols-1 md:grid-cols-[220px_1fr] min-h-[640px]">
+    <div className="min-h-dvh bg-[#FAFAF9] text-[#0E0F11] font-sans antialiased">
+      <div className="min-h-dvh grid grid-cols-1 md:grid-cols-[240px_1fr]">
           
           {/* Left Side Rail */}
           <aside className="bg-[#F0EFEC] border-r border-black/[0.06] p-5 flex flex-col justify-between">
@@ -206,53 +203,11 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                 </Link>
               )}
 
-              {/* Navigation Menu */}
-              <nav className="flex flex-col gap-1">
-                <button
-                  onClick={() => setActiveTab("stamps")}
-                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
-                    activeTab === "stamps"
-                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
-                  }`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-                  Штампы
-                </button>
-                <button
-                  onClick={() => setActiveTab("rewards")}
-                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
-                    activeTab === "rewards"
-                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
-                  }`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                  Награды
-                </button>
-                <button
-                  onClick={() => setActiveTab("analytics")}
-                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
-                    activeTab === "analytics"
-                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
-                  }`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-                  Аналитика
-                </button>
-                <button
-                  onClick={() => setActiveTab("history")}
-                  className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
-                    activeTab === "history"
-                      ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
-                      : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
-                  }`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                  История
-                </button>
-              </nav>
+              {/* Кассе не нужно ветвление — здесь один экран смены.
+                  Аналитика и история живут в /dashboard у владельца. */}
+              <div className="text-[10px] font-mono text-carbon-label uppercase tracking-widest font-semibold px-3 py-2">
+                Смена
+              </div>
 
               {venues.length > 1 && (
                 <div className="mt-4 pt-4 border-t border-black/[0.06]">
@@ -395,7 +350,6 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
               Stampy Barista · NFC &amp; QR Terminal · {new Date().getFullYear()}
             </div>
           </main>
-        </div>
       </div>
 
       {/* Scanner Modal */}
