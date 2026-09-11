@@ -7,6 +7,16 @@ import { CountUp } from "@/components/ui/CountUp";
 
 type Venue = { id: string; name: string };
 
+export type StaffTab = "stamps" | "rewards" | "analytics" | "history";
+
+type EventRow = {
+  id: string;
+  type: "stamp" | "reward";
+  title: string;
+  subtitle: string;
+  time: string;
+};
+
 export type StaffStats = {
   stampsToday: number;
   stampsDelta: number;
@@ -14,19 +24,32 @@ export type StaffStats = {
   rewardsToday: number;
   returnRate: number;
   weeklyCounts: number[];
-  recentEvents: {
-    id: string;
-    type: "stamp" | "reward";
-    title: string;
-    subtitle: string;
-    time: string;
-  }[];
+  recentEvents: EventRow[];
   closeToReward: {
     id: string;
     name: string;
     stampsCount: number;
     stampsRequired: number;
   }[];
+};
+
+export type RewardsData = {
+  readyToRedeem: { id: string; name: string; title: string; earnedAt: string }[];
+  redeemedToday: { id: string; name: string; title: string; time: string; venue: string | null }[];
+  expiredCount: number;
+};
+
+export type AnalyticsData = {
+  topGuests: { id: string; name: string; lifetime: number }[];
+  hourly: number[]; // 24 buckets, штампы за выбранный день
+  topVenues: { id: string; name: string; count: number }[];
+  newGuests: number; // за выбранный день
+};
+
+export type HistoryData = {
+  events: EventRow[];
+  totalStamps: number;
+  totalRewards: number;
 };
 
 type Props = {
@@ -43,6 +66,10 @@ type Props = {
   todayISO: string;
   prevDayISO: string;
   nextDayISO: string | null;
+  activeTab: StaffTab;
+  rewards?: RewardsData;
+  analytics?: AnalyticsData;
+  history?: HistoryData;
 };
 
 type ScanState =
@@ -51,6 +78,21 @@ type ScanState =
   | { kind: "scanning" }
   | { kind: "unsupported" }
   | { kind: "denied"; message: string };
+
+const TABS: { key: StaffTab; label: string }[] = [
+  { key: "stamps", label: "Штампы" },
+  { key: "rewards", label: "Награды" },
+  { key: "analytics", label: "Аналитика" },
+  { key: "history", label: "История" },
+];
+
+function tabHref(tab: StaffTab, dayISO: string, todayISO: string): string {
+  const params = new URLSearchParams();
+  if (tab !== "stamps") params.set("tab", tab);
+  if (dayISO !== todayISO) params.set("date", dayISO);
+  const qs = params.toString();
+  return qs ? `/staff?${qs}` : "/staff";
+}
 
 export function StaffConsole({
   tenantName,
@@ -64,6 +106,10 @@ export function StaffConsole({
   todayISO,
   prevDayISO,
   nextDayISO,
+  activeTab,
+  rewards,
+  analytics,
+  history,
 }: Props) {
   const isToday = dayISO === todayISO;
   const dayLabel = isToday
@@ -248,11 +294,27 @@ export function StaffConsole({
                 </Link>
               )}
 
-              {/* Кассе не нужно ветвление — здесь один экран смены.
-                  Аналитика и история живут в /dashboard у владельца. */}
-              <div className="text-[10px] font-mono text-carbon-label uppercase tracking-widest font-semibold px-3 py-2">
-                Смена
-              </div>
+              {/* Разделы кассы. Каждая вкладка — свой запрос на сервере,
+                  ссылка сохраняет выбранный день (?date=…). */}
+              <nav className="flex flex-col gap-1">
+                {TABS.map((tab) => {
+                  const active = tab.key === activeTab;
+                  return (
+                    <Link
+                      key={tab.key}
+                      href={tabHref(tab.key, dayISO, todayISO)}
+                      className={`w-full px-3 py-2 rounded-xl text-[13px] font-medium flex items-center gap-2.5 transition-all text-left ${
+                        active
+                          ? "bg-white text-[#0E0F11] shadow-[0_1px_3px_rgba(0,0,0,0.06)] font-semibold"
+                          : "text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.03]"
+                      }`}
+                    >
+                      <span className={`size-1.5 rounded-full ${active ? "bg-[#5B8DEF]" : "bg-carbon-label/40"}`} />
+                      {tab.label}
+                    </Link>
+                  );
+                })}
+              </nav>
 
               {venues.length > 1 && (
                 <div className="mt-4 pt-4 border-t border-black/[0.06]">
@@ -369,6 +431,8 @@ export function StaffConsole({
                 </div>
               )}
 
+              {activeTab === "stamps" && (
+              <>
               {/* 4 Stats Cards with REAL data */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
                 <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
@@ -479,6 +543,18 @@ export function StaffConsole({
                   )}
                 </div>
               </div>
+              </>
+              )}
+
+              {activeTab === "rewards" && rewards && (
+                <RewardsTab data={rewards} />
+              )}
+              {activeTab === "analytics" && analytics && (
+                <AnalyticsTab data={analytics} dayLabel={dayLabel} />
+              )}
+              {activeTab === "history" && history && (
+                <HistoryTab data={history} dayLabel={dayLabel} />
+              )}
             </div>
 
             {/* Footer */}
@@ -543,5 +619,212 @@ export function StaffConsole({
         </div>
       )}
     </div>
+  );
+}
+
+function SectionCard({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="p-4 rounded-2xl border border-black/[0.06] bg-white mb-4">
+      <div className="flex justify-between items-center mb-3">
+        <div className="text-xs font-semibold">{title}</div>
+        {hint && (
+          <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold">
+            {hint}
+          </div>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function RewardsTab({ data }: { data: RewardsData }) {
+  return (
+    <>
+      <SectionCard
+        title="Готовы забрать"
+        hint={data.readyToRedeem.length > 0 ? `${data.readyToRedeem.length}` : undefined}
+      >
+        {data.readyToRedeem.length === 0 ? (
+          <div className="text-xs text-carbon-label">Нет невыданных наград.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {data.readyToRedeem.map((r) => (
+              <div key={r.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                <div className="flex flex-col">
+                  <span className="font-semibold text-[#0E0F11]">{r.name}</span>
+                  <span className="text-[10px] text-carbon-label">{r.title}</span>
+                </div>
+                <span className="text-[11px] text-[#5B8DEF] font-mono">{r.earnedAt}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Выдано сегодня" hint={`${data.redeemedToday.length}`}>
+        {data.redeemedToday.length === 0 ? (
+          <div className="text-xs text-carbon-label">Ещё никому не выдали за сегодня.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {data.redeemedToday.map((r) => (
+              <div key={r.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                <div className="flex flex-col">
+                  <span className="font-semibold text-[#0E0F11]">{r.name}</span>
+                  <span className="text-[10px] text-carbon-label">
+                    {r.title}
+                    {r.venue ? ` · ${r.venue}` : ""}
+                  </span>
+                </div>
+                <span className="text-[11px] text-carbon-label font-mono">{r.time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      {data.expiredCount > 0 && (
+        <div className="text-[11px] text-carbon-label font-mono">
+          За последние 30 дней сгорело {data.expiredCount} наград — напомните гостям
+          в рассылке.
+        </div>
+      )}
+    </>
+  );
+}
+
+function AnalyticsTab({ data, dayLabel }: { data: AnalyticsData; dayLabel: string }) {
+  const peak = data.hourly.reduce((best, v, i) => (v > data.hourly[best] ? i : best), 0);
+  const total = data.hourly.reduce((a, b) => a + b, 0);
+  const max = Math.max(...data.hourly, 1);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mb-6">
+        <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+          <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Всего штампов</div>
+          <div className="text-2xl font-bold tracking-tight">
+            <CountUp value={total} />
+          </div>
+          <div className="text-[10px] text-carbon-label font-medium mt-1">{dayLabel.toLowerCase()}</div>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+          <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Пик</div>
+          <div className="text-2xl font-bold tracking-tight">
+            {String(peak).padStart(2, "0")}:00
+          </div>
+          <div className="text-[10px] text-carbon-label font-medium mt-1">
+            {total > 0 ? `${data.hourly[peak]} касаний в час` : "нет активности"}
+          </div>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+          <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Новых гостей</div>
+          <div className="text-2xl font-bold tracking-tight">
+            <CountUp value={data.newGuests} />
+          </div>
+          <div className="text-[10px] text-carbon-label font-medium mt-1">за день</div>
+        </div>
+      </div>
+
+      <SectionCard title="Штампы по часам" hint={`${total} за день`}>
+        <div className="grid gap-[2px] items-end" style={{ gridTemplateColumns: "repeat(24, minmax(0,1fr))", height: 70 }}>
+          {data.hourly.map((v, i) => (
+            <div
+              key={i}
+              className="rounded-sm"
+              style={{
+                background: v > 0 ? "#5B8DEF" : "rgba(0,0,0,0.06)",
+                opacity: v > 0 ? 0.4 + 0.6 * (v / max) : 1,
+                height: `${Math.max(4, (v / max) * 100)}%`,
+              }}
+              title={`${String(i).padStart(2, "0")}:00 — ${v} шт.`}
+            />
+          ))}
+        </div>
+        <div className="mt-2 flex justify-between text-[10px] text-carbon-label font-mono">
+          <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Топ гостей" hint="по всем визитам">
+        {data.topGuests.length === 0 ? (
+          <div className="text-xs text-carbon-label">Пока ни у кого нет накопленных штампов.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {data.topGuests.map((g, i) => (
+              <div key={g.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                <span className="flex items-center gap-2.5">
+                  <span className="size-5 rounded-full bg-[#5B8DEF]/15 grid place-items-center text-[10px] font-mono text-[#5B8DEF]">
+                    {i + 1}
+                  </span>
+                  <span className="font-semibold text-[#0E0F11]">{g.name}</span>
+                </span>
+                <span className="text-[11px] font-mono text-carbon-label">{g.lifetime} шт.</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      {data.topVenues.length > 1 && (
+        <SectionCard title="По точкам" hint="за день">
+          <div className="flex flex-col gap-2">
+            {data.topVenues.map((v) => (
+              <div key={v.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                <span className="font-semibold text-[#0E0F11]">{v.name}</span>
+                <span className="text-[11px] font-mono text-carbon-label">{v.count}</span>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
+    </>
+  );
+}
+
+function HistoryTab({ data, dayLabel }: { data: HistoryData; dayLabel: string }) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-6">
+        <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+          <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Штампов за месяц</div>
+          <div className="text-2xl font-bold tracking-tight">
+            <CountUp value={data.totalStamps} />
+          </div>
+        </div>
+        <div className="p-3.5 rounded-2xl bg-[#F0EFEC]">
+          <div className="text-[10px] text-carbon-label font-mono uppercase tracking-wider font-semibold mb-1.5">Наград за месяц</div>
+          <div className="text-2xl font-bold tracking-tight">
+            <CountUp value={data.totalRewards} />
+          </div>
+        </div>
+      </div>
+
+      <SectionCard title="Последние 30 событий" hint={`до ${dayLabel.toLowerCase()}`}>
+        {data.events.length === 0 ? (
+          <div className="text-xs text-carbon-label">История пуста.</div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {data.events.map((ev) => (
+              <div key={ev.id} className="flex justify-between items-center p-2.5 rounded-xl bg-[#F0EFEC] text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className={`size-2 rounded-full ${ev.type === "reward" ? "bg-[#7BA5FF]" : "bg-[#5B8DEF]"}`} />
+                  <span className="font-medium">{ev.title} · {ev.subtitle}</span>
+                </div>
+                <span className="text-[11px] text-carbon-label font-mono">{ev.time}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+    </>
   );
 }
