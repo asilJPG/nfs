@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { redeemAction, type ActionResult } from "@/app/staff/actions";
 
@@ -27,6 +28,9 @@ type Props = {
   venues: Venue[];
   defaultVenueId: string | null;
   stats?: StaffStats;
+  // Владелец и менеджер могут вернуться в свой кабинет — им кассовый экран
+  // просто одно из окон. Бариста работает только тут, ему выход не нужен.
+  showDashboardLink?: boolean;
 };
 
 type ScanState =
@@ -36,7 +40,7 @@ type ScanState =
   | { kind: "unsupported" }
   | { kind: "denied"; message: string };
 
-export function StaffConsole({ tenantName, staffName, staffRole, venues, defaultVenueId, stats }: Props) {
+export function StaffConsole({ tenantName, staffName, staffRole, venues, defaultVenueId, stats, showDashboardLink }: Props) {
   const [venueId, setVenueId] = useState<string | null>(defaultVenueId ?? venues[0]?.id ?? null);
   const [activeTab, setActiveTab] = useState<"stamps" | "rewards" | "analytics" | "history">("stamps");
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -180,7 +184,7 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
           <aside className="bg-[#F0EFEC] border-r border-black/[0.06] p-5 flex flex-col justify-between">
             <div>
               {/* Brand Header */}
-              <div className="flex items-center gap-2.5 mb-7 px-1.5">
+              <div className="flex items-center gap-2.5 mb-4 px-1.5">
                 <div className="size-6 rounded-[7px] bg-[#0E0F11] grid place-items-center text-[#FAFAF9] shadow-sm">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M8 2v2M12 2v2M16 2v2M4 8h16v9a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z" />
@@ -188,6 +192,19 @@ export function StaffConsole({ tenantName, staffName, staffRole, venues, default
                 </div>
                 <span className="text-sm font-semibold tracking-tight">{tenantName}</span>
               </div>
+
+              {/* Back to owner dashboard — только для владельца/менеджера */}
+              {showDashboardLink && (
+                <Link
+                  href="/dashboard"
+                  className="mb-6 flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-black/[0.06] text-[12px] font-medium text-[#0E0F11] hover:bg-black/[0.03] transition-all shadow-sm"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 6l-6 6 6 6" />
+                  </svg>
+                  Вернуться в кабинет
+                </Link>
+              )}
 
               {/* Navigation Menu */}
               <nav className="flex flex-col gap-1">

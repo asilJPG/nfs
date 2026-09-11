@@ -152,6 +152,7 @@ export default async function StaffPage() {
       venues={venues ?? []}
       defaultVenueId={staff.venue_id}
       stats={stats}
+      showDashboardLink={staff.role !== "cashier"}
     />
   );
 }
