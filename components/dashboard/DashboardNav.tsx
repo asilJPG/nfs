@@ -39,6 +39,7 @@ const SECONDARY_ITEMS: Item[] = [
     feature: "broadcasts",
   },
   { href: "/dashboard/billing", label: "Тариф и оплата", short: "Тариф", Icon: IconCrown },
+  { href: "/dashboard/account", label: "Аккаунт", short: "Аккаунт", Icon: IconLock },
   { href: "/staff", label: "Касса бариста", short: "Касса", Icon: IconScan },
 ];
 
