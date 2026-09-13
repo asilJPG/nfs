@@ -6,6 +6,9 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+
+# Дизайн-макеты и референсы
+дизайн/
 supabase/.temp
 
 # Личный файл правил, не часть проекта
