@@ -90,21 +90,21 @@ export default function LandingPage() {
             <div className="mt-14 pt-8 border-t border-white/[0.06] grid grid-cols-3 gap-6 max-w-lg">
               <div>
                 <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
-                  30<span className="text-sm sm:text-base text-ink-label"> дней</span>
+                  30<span className="text-sm sm:text-base text-white/60 font-normal"> дней</span>
                 </div>
-                <div className="mt-1 text-xs text-ink-label font-medium">бесплатно на старте</div>
+                <div className="mt-1 text-xs text-white/70 font-medium">бесплатно на старте</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
-                  0<span className="text-sm sm:text-base text-ink-label"> сум</span>
+                  0<span className="text-sm sm:text-base text-white/60 font-normal"> сум</span>
                 </div>
-                <div className="mt-1 text-xs text-ink-label font-medium">за пластик и печать</div>
+                <div className="mt-1 text-xs text-white/70 font-medium">за пластик и печать</div>
               </div>
               <div>
                 <div className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
-                  0<span className="text-sm sm:text-base text-ink-label"> установок</span>
+                  0<span className="text-sm sm:text-base text-white/60 font-normal"> установок</span>
                 </div>
-                <div className="mt-1 text-xs text-ink-label font-medium">карта живёт в Telegram</div>
+                <div className="mt-1 text-xs text-white/70 font-medium">карта живёт в Telegram</div>
               </div>
             </div>
           </div>
@@ -179,10 +179,10 @@ export default function LandingPage() {
           вернём этот блок, когда будет с кем согласовать логотип.
         */}
         <div className="border-t border-white/[0.06] px-6 py-6 max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="text-[11px] font-mono uppercase tracking-widest text-ink-label font-medium">
+          <div className="text-[11px] font-mono uppercase tracking-widest text-white/60 font-medium">
             Запускаемся в Ташкенте
           </div>
-          <div className="text-sm text-ink-label">
+          <div className="text-sm text-white/70">
             Первым кофейням — настройка, NFC-стенд и обучение бариста за наш счёт.
           </div>
         </div>
@@ -324,13 +324,13 @@ export default function LandingPage() {
             <div className="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-[radial-gradient(circle,_rgba(91,141,239,0.18),_transparent_65%)]" />
 
             <div className="relative">
-              <div className="font-mono text-xs text-ink-label uppercase tracking-widest mb-6 font-semibold">
+              <div className="font-mono text-xs text-white/60 uppercase tracking-widest mb-6 font-semibold">
                 Кофейням
               </div>
               <h3 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-4 leading-tight text-white">
                 Панель бариста — на планшете.
               </h3>
-              <p className="text-sm leading-relaxed text-ink-label mb-8">
+              <p className="text-sm leading-relaxed text-white/70 mb-8">
                 Начислять штампы, гасить награды, видеть возвраты — всё из одного места. Онбординг за один вечер.
               </p>
 
@@ -343,7 +343,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-white">Аналитика возвратов</div>
-                    <div className="text-xs text-ink-label mt-0.5 leading-relaxed">Кто приходит второй раз, кто — десятый. Понятно, что работает.</div>
+                    <div className="text-xs text-white/70 mt-0.5 leading-relaxed">Кто приходит второй раз, кто — десятый. Понятно, что работает.</div>
                   </div>
                 </div>
 
@@ -355,7 +355,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-white">Своя механика награды</div>
-                    <div className="text-xs text-ink-label mt-0.5 leading-relaxed">6 напитков и 7-й в подарок, скидка, специальный товар — на ваше усмотрение.</div>
+                    <div className="text-xs text-white/70 mt-0.5 leading-relaxed">6 напитков и 7-й в подарок, скидка, специальный товар — на ваше усмотрение.</div>
                   </div>
                 </div>
 
@@ -367,7 +367,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-white">NFC-стенд в комплекте</div>
-                    <div className="text-xs text-ink-label mt-0.5 leading-relaxed">Приезжает готовым. Ставите у кассы — и запустились.</div>
+                    <div className="text-xs text-white/70 mt-0.5 leading-relaxed">Приезжает готовым. Ставите у кассы — и запустились.</div>
                   </div>
                 </div>
               </div>
@@ -730,7 +730,7 @@ export default function LandingPage() {
           <h2 className="text-3xl sm:text-5xl font-semibold tracking-[-0.035em] text-white leading-tight">
             Оставьте заявку — свяжемся сегодня.
           </h2>
-          <p className="mt-4 text-sm sm:text-base text-ink-label leading-relaxed max-w-md mx-auto">
+          <p className="mt-4 text-sm sm:text-base text-white/70 leading-relaxed max-w-md mx-auto">
             Расскажем, как подключить кофейню, и привезём NFC-стенд в течение недели.
           </p>
 
@@ -743,7 +743,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-ink-label font-medium">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-white/70 font-medium">
             <div className="flex items-center gap-1.5">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5B8DEF" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg>
               Без привязки карты
