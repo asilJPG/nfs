@@ -39,9 +39,12 @@ const SECONDARY_ITEMS: Item[] = [
     feature: "broadcasts",
   },
   { href: "/dashboard/billing", label: "Тариф и оплата", short: "Тариф", Icon: IconCrown },
-  { href: "/dashboard/account", label: "Аккаунт", short: "Аккаунт", Icon: IconLock },
+  { href: "/dashboard/account", label: "Профиль и пароль", short: "Профиль", Icon: IconLock },
   { href: "/staff", label: "Касса бариста", short: "Касса", Icon: IconScan },
 ];
+
+import { useState } from "react";
+import { SupportModal } from "./SupportModal";
 
 export function DashboardNav({
   canBroadcast,
@@ -52,6 +55,7 @@ export function DashboardNav({
   role: StaffRole;
   layout?: "sidebar" | "top";
 }) {
+  const [supportOpen, setSupportOpen] = useState(false);
   const pathname = usePathname();
   const main = role === "cashier" ? [] : MAIN_ITEMS;
   const secondary =
@@ -59,42 +63,69 @@ export function DashboardNav({
 
   if (layout === "top") {
     return (
-      <nav className="flex gap-1 overflow-x-auto px-3 pb-2.5 scrollbar-none">
-        {[...main, ...secondary].map((item) => {
-          const active = pathname === item.href;
-          const locked = item.feature === "broadcasts" && !canBroadcast;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
-                active ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold" : "text-ink-label hover:bg-white/[0.04] hover:text-white"
-              }`}
-            >
-              <item.Icon className="size-4" />
-              {item.short}
-              {locked && <IconLock className="size-3.5 opacity-50" />}
-              <PendingDot className="size-2.5" />
-            </Link>
-          );
-        })}
-      </nav>
+      <>
+        <nav className="flex gap-1 overflow-x-auto px-3 pb-2.5 scrollbar-none">
+          {[...main, ...secondary].map((item) => {
+            const active = pathname === item.href;
+            const locked = item.feature === "broadcasts" && !canBroadcast;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium transition-colors ${
+                  active ? "bg-[#5B8DEF]/15 text-[#7BA5FF] font-semibold" : "text-ink-label hover:bg-white/[0.04] hover:text-white"
+                }`}
+              >
+                <item.Icon className="size-4" />
+                {item.short}
+                {locked && <IconLock className="size-3.5 opacity-50" />}
+                <PendingDot className="size-2.5" />
+              </Link>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setSupportOpen(true)}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-medium text-ink-label hover:bg-white/[0.04] hover:text-white transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Поддержка
+          </button>
+        </nav>
+        <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 p-3">
-      {main.length > 0 && (
-        <NavGroup title="Заведение" items={main} pathname={pathname} canBroadcast={canBroadcast} />
-      )}
-      <NavGroup
-        title="Маркетинг и сервис"
-        items={secondary}
-        pathname={pathname}
-        canBroadcast={canBroadcast}
-      />
-    </div>
+    <>
+      <div className="flex flex-col justify-between h-full p-3">
+        <div className="flex flex-col gap-6">
+          {main.length > 0 && (
+            <NavGroup title="Заведение" items={main} pathname={pathname} canBroadcast={canBroadcast} />
+          )}
+          <NavGroup
+            title="Маркетинг и сервис"
+            items={secondary}
+            pathname={pathname}
+            canBroadcast={canBroadcast}
+          />
+        </div>
+
+        <div className="pt-4 border-t border-white/[0.06] mt-6">
+          <button
+            type="button"
+            onClick={() => setSupportOpen(true)}
+            className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-ink-body hover:bg-white/[0.04] hover:text-white transition-all text-left"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-ink-label shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <span>Поддержка</span>
+          </button>
+        </div>
+      </div>
+      <SupportModal isOpen={supportOpen} onClose={() => setSupportOpen(false)} />
+    </>
   );
 }
 

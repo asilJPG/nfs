@@ -21,65 +21,95 @@ const schema = z.object({
 const PER_PHONE_PER_DAY = 3;
 
 export async function submitApplication(input: unknown): Promise<ApplyResult> {
-  const parsed = schema.safeParse(input);
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте поля." };
-  }
+  try {
+    const parsed = schema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, message: parsed.error.issues[0]?.message ?? "Проверьте поля." };
+    }
 
-  // Спам по IP: даже если бот меняет телефоны, лимит на источник срабатывает.
-  // 10 заявок в час на IP — с запасом на честные повторы через VPN.
-  const ip = clientIp(await headers());
-  const gate = rateLimit(`apply:${ip}`, 10, 3600);
-  if (!gate.ok) {
-    return { ok: false, message: "Слишком много заявок. Попробуйте позже." };
-  }
+    // Спам по IP: даже если бот меняет телефоны, лимит на источник срабатывает.
+    // 10 заявок в час на IP — с запасом на честные повторы через VPN.
+    let ip = "unknown";
+    try {
+      ip = clientIp(await headers());
+    } catch {
+      // headers() fallback
+    }
 
-  const db = supabaseAdmin();
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const gate = rateLimit(`apply:${ip}`, 10, 3600);
+    if (!gate.ok) {
+      return { ok: false, message: "Слишком много заявок. Попробуйте позже." };
+    }
 
-  const { count } = await db
-    .from("stampy_applications")
-    .select("id", { count: "exact", head: true })
-    .eq("phone", parsed.data.phone)
-    .gte("created_at", dayAgo);
+    const db = supabaseAdmin();
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  if ((count ?? 0) >= PER_PHONE_PER_DAY) {
-    return { ok: false, message: "Слишком много заявок с этого номера. Мы получим её позже." };
-  }
+    const { count } = await db
+      .from("stampy_applications")
+      .select("id", { count: "exact", head: true })
+      .eq("phone", parsed.data.phone)
+      .gte("created_at", dayAgo);
 
-  const { error } = await db.from("stampy_applications").insert({
-    cafe_name: parsed.data.cafe_name,
-    city: parsed.data.city || null,
-    contact_name: parsed.data.contact_name,
-    phone: parsed.data.phone,
-    telegram: parsed.data.telegram || null,
-    message: parsed.data.message || null,
-  });
+    if ((count ?? 0) >= PER_PHONE_PER_DAY) {
+      return { ok: false, message: "Слишком много заявок с этого номера. Мы свяжемся с вами." };
+    }
 
-  if (error) {
-    console.error("submitApplication failed", error);
-    return { ok: false, message: "Не удалось отправить. Попробуйте ещё раз." };
-  }
-
-  // уведомление в Telegram — если задан ADMIN_TELEGRAM_ID
-  const adminId = Number(process.env.ADMIN_TELEGRAM_ID);
-  if (Number.isFinite(adminId) && adminId > 0) {
-    const text =
-      `<b>Новая заявка</b>\n` +
-      `${escapeHtml(parsed.data.cafe_name)}` +
-      (parsed.data.city ? ` · ${escapeHtml(parsed.data.city)}` : "") +
-      `\n${escapeHtml(parsed.data.contact_name)} · ${escapeHtml(parsed.data.phone)}` +
-      (parsed.data.telegram ? ` · ${escapeHtml(parsed.data.telegram)}` : "") +
-      (parsed.data.message ? `\n\n${escapeHtml(parsed.data.message)}` : "");
-
-    void sendMessage({
-      chatId: adminId,
-      text,
-      button: { text: "Открыть админку", url: `${env.appUrl.replace(/\/$/, "")}/admin` },
+    const { error } = await db.from("stampy_applications").insert({
+      cafe_name: parsed.data.cafe_name,
+      city: parsed.data.city || null,
+      contact_name: parsed.data.contact_name,
+      phone: parsed.data.phone,
+      telegram: parsed.data.telegram || null,
+      message: parsed.data.message || null,
     });
-  }
 
-  return { ok: true };
+    if (error) {
+      console.error("submitApplication db error", error);
+      return { ok: false, message: "Не удалось сохранить заявку. Попробуйте ещё раз." };
+    }
+
+    // уведомление в Telegram (в группу/канал или админу, не роняет заявку при ошибке бота)
+    try {
+      const notifyChatId = (process.env.ADMIN_TELEGRAM_ID || "-1003931689619").trim();
+      if (notifyChatId && process.env.TELEGRAM_BOT_TOKEN) {
+        const tgContact = parsed.data.telegram
+          ? parsed.data.telegram.startsWith("@")
+            ? parsed.data.telegram
+            : `@${parsed.data.telegram.replace(/^https?:\/\/t\.me\//, "")}`
+          : "";
+
+        const text =
+          `⚡️ <b>Новая заявка на подключение</b>\n\n` +
+          `☕ <b>Кофейня:</b> ${escapeHtml(parsed.data.cafe_name)}${parsed.data.city ? ` (${escapeHtml(parsed.data.city)})` : ""}\n` +
+          `👤 <b>Контактное лицо:</b> ${escapeHtml(parsed.data.contact_name)}\n` +
+          `📞 <b>Телефон:</b> ${escapeHtml(parsed.data.phone)}\n` +
+          (tgContact ? `💬 <b>Telegram:</b> ${escapeHtml(tgContact)}\n` : "") +
+          (parsed.data.message ? `\n📝 <b>Комментарий:</b>\n<i>${escapeHtml(parsed.data.message)}</i>` : "");
+
+        const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+        const buttons = [];
+        if (tgContact && tgContact.startsWith("@")) {
+          buttons.push({ text: "Написать в Telegram", url: `https://t.me/${tgContact.replace(/^@/, "")}` });
+        }
+        if (appUrl) {
+          buttons.push({ text: "Открыть заявки в админке", url: `${appUrl}/admin/applications` });
+        }
+
+        void sendMessage({
+          chatId: notifyChatId,
+          text,
+          buttons: buttons.length > 0 ? [buttons] : undefined,
+        }).catch((err) => console.warn("Telegram notify error", err));
+      }
+    } catch (notifyErr) {
+      console.warn("Telegram notification skipped", notifyErr);
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("submitApplication fatal error", err);
+    return { ok: false, message: "Произошла ошибка при отправке заявки. Пожалуйста, попробуйте позже." };
+  }
 }
 
 function escapeHtml(s: string): string {

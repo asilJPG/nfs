@@ -24,10 +24,10 @@ const COLORS: { key: keyof Omit<Brand, "card_style">; label: string }[] = [
 
 const STYLES: Brand["card_style"][] = ["circles", "cups", "hearts", "stars"];
 const STYLE_LABELS: Record<Brand["card_style"], string> = {
-  circles: "● Кружки",
-  cups: "☕ Стаканы",
-  hearts: "♥ Сердца",
-  stars: "★ Звёзды",
+  circles: "Круги",
+  cups: "Стаканы",
+  hearts: "Сердца",
+  stars: "Звёзды",
 };
 
 export function CardSettingsForm({ tenant, program }: Props) {

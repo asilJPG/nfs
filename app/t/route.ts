@@ -59,9 +59,9 @@ function problemPage(problem: TapProblem, status: number): Response {
   main { max-width:22rem; text-align:center; }
   h1 { font-size:1.25rem; margin:0 0 .5rem; }
   p { margin:0; opacity:.75; }
-  .mark { font-size:2.5rem; margin-bottom:1rem; }
+  .mark { width:48px; height:48px; margin:0 auto 1rem; color:#5B8DEF; }
 </style></head>
-<body><main><div class="mark">☕</div><h1>${title}</h1><p>${body}</p></main></body></html>`;
+<body><main><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg></div><h1>${title}</h1><p>${body}</p></main></body></html>`;
   return new Response(html, {
     status,
     headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },

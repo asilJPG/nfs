@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { redeemAction, type ActionResult } from "@/app/staff/actions";
 import { CountUp } from "@/components/ui/CountUp";
+import { IconCamera, IconX } from "@/components/ui/icons";
+import { SupportModal } from "@/components/dashboard/SupportModal";
 
 type Venue = { id: string; name: string };
 
@@ -129,6 +131,7 @@ export function StaffConsole({
   const [result, setResult] = useState<ActionResult | null>(null);
   const [scan, setScan] = useState<ScanState>({ kind: "idle" });
   const [showScannerModal, setShowScannerModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [manualToken, setManualToken] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -347,6 +350,14 @@ export function StaffConsole({
                   </div>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowSupportModal(true)}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[12px] font-medium text-carbon-label hover:text-[#0E0F11] hover:bg-black/[0.04] transition-all"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                Поддержка
+              </button>
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
@@ -362,6 +373,7 @@ export function StaffConsole({
               </form>
             </div>
           </aside>
+          <SupportModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
 
           {/* Main Work Area */}
           <main className="p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
@@ -578,7 +590,7 @@ export function StaffConsole({
                 }}
                 className="size-7 rounded-full bg-white/10 grid place-items-center text-xs text-ink-body hover:text-white"
               >
-                ✕
+                <IconX className="size-3.5" />
               </button>
             </div>
 
@@ -591,7 +603,7 @@ export function StaffConsole({
               />
               {scan.kind !== "scanning" && (
                 <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center text-xs text-ink-label">
-                  <span className="text-3xl mb-2">📷</span>
+                  <IconCamera className="size-8 mb-2 text-[#7BA5FF]" />
                   {scan.kind === "starting" && "Запуск камеры…"}
                   {scan.kind === "idle" && "Наведите камеру на QR-код гостя"}
                   {scan.kind === "unsupported" && "Сканер не поддерживается в этом браузере. Введите код вручную ниже."}

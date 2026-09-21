@@ -16,8 +16,13 @@ function LoginForm() {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await signIn({ login, password, next });
-      if (result) setError(result.message);
+      try {
+        const result = await signIn({ login, password, next });
+        if (result) setError(result.message);
+      } catch (err) {
+        console.error("signIn error", err);
+        setError("Не удалось связаться с сервером. Пожалуйста, проверьте интернет.");
+      }
     });
   }
 

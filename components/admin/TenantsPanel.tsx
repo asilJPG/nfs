@@ -4,6 +4,7 @@ import Link from "next/link";
 import { setKitStatus } from "@/app/admin/actions";
 import { CreateTenantSection, TenantRow } from "@/components/admin/AdminConsole";
 import { useAdminAction } from "@/components/admin/shared";
+import { IconCheck } from "@/components/ui/icons";
 import type { KitOrder, TenantSummary } from "@/types/db";
 
 type Props = {
@@ -47,7 +48,10 @@ export function TenantsPanel({ tenants, kits }: Props) {
                       disabled={pending || kit.status === action.id}
                       className={`btn btn-sm ${action.id === "cancelled" ? "btn-danger" : "btn-ghost"}`}
                     >
-                      {kit.status === action.id ? `${action.label} ✓` : action.label}
+                      <span className="inline-flex items-center gap-1.5">
+                        {action.label}
+                        {kit.status === action.id && <IconCheck className="size-3.5 stroke-[2.5]" />}
+                      </span>
                     </button>
                   ))}
                 </div>

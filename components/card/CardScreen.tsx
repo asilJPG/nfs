@@ -6,6 +6,7 @@ import { StampGrid } from "./StampGrid";
 import { Monogram, WalletCardRow } from "./WalletCard";
 import { plateColors, withAlpha } from "@/lib/color";
 import { supportTelegramHandle, supportTelegramUrl } from "@/lib/contact";
+import { IconCoffee, IconStar } from "@/components/ui/icons";
 
 const RewardSheet = dynamic(() => import("./RewardSheet").then((m) => ({ default: m.RewardSheet })), {
   ssr: false,
@@ -189,18 +190,16 @@ export function CardScreen() {
     let cancelled = false;
 
     async function poll() {
-      if (cancelled || document.hidden) return;
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const response = await fetch("/api/miniapp/state", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ initData: initDataRef.current }),
         });
-        if (!response.ok) return;
-        const payload = await response.json();
-        if (cancelled || !payload || !("state" in payload) || !payload.state) return;
-        const next = payload.state as MiniAppState;
-        setNotifications(buildNotifications(next));
+        if (!response.ok || cancelled) return;
+        const next = (await response.json()) as MiniAppState;
+        if (!("tenant" in next)) return;
 
         setScreen((prev) => {
           if (prev.step !== "ready") return prev;
@@ -210,8 +209,7 @@ export function CardScreen() {
           const nextRewards = next.rewards.length;
 
           if (nextStamps > prevStamps || nextRewards > prevRewards) {
-            window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
-            setFreshStampIndex(Math.max(0, nextStamps - 1));
+            setFreshStampIndex(nextStamps - 1);
             window.setTimeout(() => setFreshStampIndex(null), 900);
             setShowStampPop({
               kind: "stamped",
@@ -633,7 +631,7 @@ function CardView({
       {remaining === 1 && (
         <div className="p-4 rounded-[20px] bg-[#5B8DEF]/10 border border-[#5B8DEF]/20 flex gap-3.5 items-start">
           <div className="size-8 rounded-xl bg-[#5B8DEF]/20 text-[#5B8DEF] grid place-items-center shrink-0">
-            ★
+            <IconStar className="size-4 fill-current" />
           </div>
           <div className="flex-1">
             <div className="text-xs font-semibold text-white">Загляните в {tenant.name} сегодня</div>
@@ -785,8 +783,8 @@ function WalletView({
   if (cards.length === 0) {
     return (
       <div className="text-center py-16 px-4">
-        <div className="size-16 rounded-3xl bg-white/[0.04] border border-white/10 grid place-items-center mx-auto mb-4 text-2xl">
-          ☕
+        <div className="size-16 rounded-3xl bg-white/[0.04] border border-white/10 grid place-items-center mx-auto mb-4 text-[#7BA5FF]">
+          <IconCoffee className="size-8" />
         </div>
         <h2 className="text-lg font-bold text-white mb-2">Пока нет ни одной карты</h2>
         <p className="text-xs text-ink-label max-w-xs mx-auto leading-relaxed">
@@ -1111,7 +1109,7 @@ function HistoryTimeline({
                       className="size-9 rounded-xl grid place-items-center shrink-0"
                       style={{ background: withAlpha(REWARD_GOLD, 0.15), color: REWARD_GOLD }}
                     >
-                      ★
+                      <IconStar className="size-4.5 fill-current" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-white truncate">{item.title}</div>

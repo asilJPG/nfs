@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { IconStar, IconCheck, IconCoffee } from "@/components/ui/icons";
 
 type ScreenKey = "wallet" | "tap" | "stamp" | "reward" | "history" | "profile";
 
@@ -202,13 +203,15 @@ const HISTORY_DATA: HistoryItem[] = [
 ];
 
 export function StampyLivePreview() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("wallet");
   const [order, setOrder] = useState<number[]>([0, 1, 2]); // visual stack positions
   const [isPlaying, setIsPlaying] = useState(true);
   // Лента наполняется на клиенте: на сервере Math.random дал бы одну разметку,
   // а на гидратации другую.
   const [feed, setFeed] = useState<FeedEvent[]>([]);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
   const [stampStep, setStampStep] = useState(0);
   const [tapAdded, setTapAdded] = useState(false);
   const [qrMode, setQrMode] = useState(false);
@@ -216,6 +219,22 @@ export function StampyLivePreview() {
   const [historyFilter, setHistoryFilter] = useState<"all" | "stamps" | "rewards">("all");
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [secondsLeft, setSecondsLeft] = useState(872); // 14:32
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Top card in stack
   const topCardIdx = order[order.length - 1];
@@ -244,31 +263,34 @@ export function StampyLivePreview() {
 
   // Timer for wallet cycle
   useEffect(() => {
-    if (!isPlaying || activeScreen !== "wallet") return;
+    if (!isPlaying || !isVisible || activeScreen !== "wallet") return;
     const interval = setInterval(cycleCards, 2800);
     return () => clearInterval(interval);
-  }, [isPlaying, activeScreen, cycleCards]);
+  }, [isPlaying, isVisible, activeScreen, cycleCards]);
 
   // Заполняем ленту событиями «за последние полчаса», дальше добавляем новые сверху
   useEffect(() => {
     const start = Date.now();
+    setNow(start);
     setFeed(
       Array.from({ length: 5 }, (_, index) => makeEvent(start - (index * 6 + 2) * 60000)),
     );
   }, []);
 
   useEffect(() => {
+    if (!isVisible) return;
     const feedInterval = setInterval(() => {
       setFeed((prev) => [makeEvent(Date.now()), ...prev].slice(0, 8));
     }, 5200);
     return () => clearInterval(feedInterval);
-  }, []);
+  }, [isVisible]);
 
   // Отдельный тик, чтобы «2 мин назад» превращалось в «3 мин назад»
   useEffect(() => {
+    if (!isVisible) return;
     const clock = setInterval(() => setNow(Date.now()), 15000);
     return () => clearInterval(clock);
-  }, []);
+  }, [isVisible]);
 
   // Stamp screen animation & resets on screen switch
   useEffect(() => {
@@ -293,13 +315,13 @@ export function StampyLivePreview() {
 
   // QR countdown timer
   useEffect(() => {
-    if (activeScreen === "reward" && qrMode && secondsLeft > 0) {
+    if (activeScreen === "reward" && qrMode && secondsLeft > 0 && isVisible) {
       const timer = setInterval(() => {
         setSecondsLeft((prev) => Math.max(0, prev - 1));
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [activeScreen, qrMode, secondsLeft]);
+  }, [activeScreen, qrMode, secondsLeft, isVisible]);
 
   const copy = SCREEN_COPY[activeScreen];
 
@@ -309,8 +331,7 @@ export function StampyLivePreview() {
       case 0:
         return "translate(-72px, -124px) rotate(-14deg) scale(0.94)";
       case 1:
-        return "translate(-24px, -96px) rotate(-6deg) scale(0.97)";
-      case 2:
+        return "translate(-24px, -100px) rotate(-6deg) scale(0.97)";
       default:
         return "translate(30px, -70px) rotate(6deg) scale(1)";
     }
@@ -327,6 +348,7 @@ export function StampyLivePreview() {
 
   return (
     <section
+      ref={containerRef}
       id="live-preview"
       className="relative overflow-hidden bg-[#08090B] border-t border-b border-white/[0.06] py-16 sm:py-24 text-white"
     >
@@ -416,7 +438,9 @@ export function StampyLivePreview() {
                 <span className="text-ink-label">До награды</span>
                 <span className="font-medium text-white">
                   {topCard.ready ? (
-                    <span className="text-[#7BA5FF]">Готово к выдаче ✓</span>
+                    <span className="text-[#7BA5FF] inline-flex items-center gap-1">
+                      Готово к выдаче <IconCheck className="size-3 stroke-[2.5]" />
+                    </span>
                   ) : (
                     `${topCard.total - topCard.count} штампа`
                   )}
@@ -540,7 +564,14 @@ export function StampyLivePreview() {
                           <div className="flex items-end justify-between">
                             <div>
                               <div className="text-2xl font-bold tracking-tight text-white leading-none">
-                                {topCard.ready ? `★ ${topCard.count} / ${topCard.total}` : `${topCard.count} / ${topCard.total}`}
+                                {topCard.ready ? (
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <IconStar className="size-4.5 fill-current" />
+                                    {topCard.count} / {topCard.total}
+                                  </span>
+                                ) : (
+                                  `${topCard.count} / ${topCard.total}`
+                                )}
                               </div>
                               <div className="text-[10px] text-ink-label mt-1 truncate max-w-[160px]">
                                 {topCard.hint}
@@ -643,7 +674,7 @@ export function StampyLivePreview() {
                                         : "border border-black/25 bg-black/5"
                                     }`}
                                   >
-                                    {i === 0 ? "★" : ""}
+                                    {i === 0 && <IconStar className="size-3 fill-current" />}
                                   </div>
                                 ))}
                               </div>
@@ -808,7 +839,7 @@ export function StampyLivePreview() {
                               <div className="font-mono text-[10px] uppercase tracking-widest text-[#14100C] font-semibold">
                                 SFUMATO · REWARD
                               </div>
-                              <div className="font-bold text-[#14100C]">★</div>
+                              <IconStar className="size-4.5 fill-current text-[#14100C]" />
                             </div>
                             <div className="relative mt-auto">
                               <div className="text-3xl font-extrabold tracking-tight leading-none text-[#14100C]">
@@ -901,7 +932,14 @@ export function StampyLivePreview() {
                                   : "bg-[#F4F4F2] text-[#0E0F11] hover:bg-white"
                               }`}
                             >
-                              {qrRedeemed ? "✓ Награда успешно списана" : "Списать на кассе"}
+                              {qrRedeemed ? (
+                                <span className="inline-flex items-center justify-center gap-1.5">
+                                  <IconCheck className="size-4 stroke-[2.5]" />
+                                  Награда успешно списана
+                                </span>
+                              ) : (
+                                "Списать на кассе"
+                              )}
                             </button>
                             <button
                               type="button"
@@ -996,7 +1034,7 @@ export function StampyLivePreview() {
                                 className="size-8 rounded-xl shrink-0 grid place-items-center font-bold text-xs"
                                 style={{ background: item.color, color: item.type === "reward" ? "#14100C" : "#FFFFFF" }}
                               >
-                                {item.type === "reward" ? "★" : ""}
+                                {item.type === "reward" ? <IconStar className="size-3.5 fill-current" /> : ""}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-semibold text-white truncate">
@@ -1062,11 +1100,17 @@ export function StampyLivePreview() {
                             onClick={() => setNotificationsOn(!notificationsOn)}
                             className={`px-2.5 py-1 rounded-full text-[10px] font-mono transition-colors ${
                               notificationsOn
-                                ? "bg-[#5B8DEF]/20 text-[#7BA5FF] border border-[#5B8DEF]/30 font-semibold"
+                                ? "bg-[#5B8DEF]/20 text-[#7BA5FF] border border-[#5B8DEF]/30 font-semibold inline-flex items-center gap-1"
                                 : "bg-white/[0.04] text-ink-label"
                             }`}
                           >
-                            {notificationsOn ? "Включены ✓" : "Выключены"}
+                            {notificationsOn ? (
+                              <>
+                                Включены <IconCheck className="size-3 stroke-[2.5]" />
+                              </>
+                            ) : (
+                              "Выключены"
+                            )}
                           </button>
                         </div>
                         <button

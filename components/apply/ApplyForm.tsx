@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { submitApplication } from "@/app/apply/actions";
+import { IconCheck } from "@/components/ui/icons";
 
 export function ApplyForm() {
   const [cafeName, setCafeName] = useState("");
@@ -19,16 +20,24 @@ export function ApplyForm() {
     event.preventDefault();
     setError(null);
     startTransition(async () => {
-      const result = await submitApplication({
-        cafe_name: cafeName,
-        city: city || undefined,
-        contact_name: contactName,
-        phone,
-        telegram: telegram || undefined,
-        message: message || undefined,
-      });
-      if (result.ok) setSent(true);
-      else setError(result.message);
+      try {
+        const result = await submitApplication({
+          cafe_name: cafeName,
+          city: city || undefined,
+          contact_name: contactName,
+          phone,
+          telegram: telegram || undefined,
+          message: message || undefined,
+        });
+        if (result.ok) {
+          setSent(true);
+        } else {
+          setError(result.message);
+        }
+      } catch (err) {
+        console.error("submitApplication client error", err);
+        setError("Не удалось связаться с сервером. Пожалуйста, проверьте интернет и попробуйте ещё раз.");
+      }
     });
   }
 
@@ -36,8 +45,8 @@ export function ApplyForm() {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-5 text-center bg-[#08090B] font-sans antialiased">
         <div className="p-8 rounded-[28px] bg-[#14161D] border border-white/10 shadow-2xl max-w-xs relative overflow-hidden">
-          <div className="size-14 rounded-full bg-gradient-to-br from-[#6B9BFF] to-[#4A7DE0] text-white grid place-items-center text-2xl mx-auto mb-4 shadow-lg shadow-[#5B8DEF]/30">
-            ✓
+          <div className="size-14 rounded-full bg-gradient-to-br from-[#6B9BFF] to-[#4A7DE0] text-white grid place-items-center mx-auto mb-4 shadow-lg shadow-[#5B8DEF]/30">
+            <IconCheck className="size-7 stroke-[2.5]" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">Заявка отправлена</h1>
           <p className="mt-2 text-xs text-ink-label leading-relaxed">

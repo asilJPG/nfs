@@ -26,17 +26,29 @@ async function call(method: string, payload: unknown): Promise<TelegramResponse>
 }
 
 export type OutgoingMessage = {
-  chatId: number;
+  chatId: number | string;
   text: string;
   imageUrl?: string | null;
   button?: { text: string; url: string } | null;
+  buttons?: { text: string; url?: string; webAppUrl?: string }[][] | null;
 };
 
 // одно сообщение рассылки; blocked → выключаем гостя, rate_limited → тормозим батч
 export async function sendMessage(message: OutgoingMessage): Promise<SendResult> {
-  const markup = message.button
-    ? { inline_keyboard: [[{ text: message.button.text, url: message.button.url }]] }
-    : undefined;
+  let markup: { inline_keyboard: unknown[][] } | undefined = undefined;
+
+  if (message.buttons && message.buttons.length > 0) {
+    markup = {
+      inline_keyboard: message.buttons.map((row) =>
+        row.map((btn) => {
+          if (btn.webAppUrl) return { text: btn.text, web_app: { url: btn.webAppUrl } };
+          return { text: btn.text, url: btn.url ?? "" };
+        }),
+      ),
+    };
+  } else if (message.button) {
+    markup = { inline_keyboard: [[{ text: message.button.text, url: message.button.url }]] };
+  }
 
   const response = message.imageUrl
     ? await call("sendPhoto", {
@@ -77,16 +89,26 @@ export async function setWebhook(url: string): Promise<TelegramResponse> {
 }
 
 export async function answerStart(
-  chatId: number,
+  chatId: number | string,
   text: string,
   button: { text: string; webAppUrl: string },
+  secondaryButton?: { text: string; url?: string; webAppUrl?: string },
 ) {
+  const keyboard = [[{ text: button.text, web_app: { url: button.webAppUrl } }]];
+  if (secondaryButton) {
+    if (secondaryButton.webAppUrl) {
+      keyboard.push([{ text: secondaryButton.text, web_app: { url: secondaryButton.webAppUrl } } as never]);
+    } else if (secondaryButton.url) {
+      keyboard.push([{ text: secondaryButton.text, url: secondaryButton.url } as never]);
+    }
+  }
+
   return call("sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: "HTML",
     reply_markup: {
-      inline_keyboard: [[{ text: button.text, web_app: { url: button.webAppUrl } }]],
+      inline_keyboard: keyboard,
     },
   });
 }

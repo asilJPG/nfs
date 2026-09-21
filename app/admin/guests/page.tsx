@@ -13,7 +13,7 @@ export default async function GuestsPage({
   const supabase = await supabaseServer();
   const { data } = await supabase.rpc("admin_guests_search", {
     p_query: q,
-    p_limit: 100,
+    p_limit: 50,
   });
 
   return (

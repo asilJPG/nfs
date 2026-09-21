@@ -78,7 +78,7 @@ export function AdminSidebar({ counts }: { counts?: Counts }) {
     },
     {
       href: "/admin/account",
-      label: "Аккаунт",
+      label: "Профиль и пароль",
       exact: false,
       icon: (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -100,7 +100,7 @@ export function AdminSidebar({ counts }: { counts?: Counts }) {
         </div>
         <span className="text-sm font-semibold tracking-tight text-white">Stampy</span>
         <span className="font-mono text-[9px] text-[#7BA5FF] px-1.5 py-0.5 rounded bg-[#5B8DEF]/15 border border-[#5B8DEF]/25 uppercase tracking-wider">
-          INT
+          АДМИН
         </span>
       </Link>
 

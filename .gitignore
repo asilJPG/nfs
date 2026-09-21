@@ -14,4 +14,5 @@ supabase/.temp
 # Личный файл правил, не часть проекта
 all_rules.md
 
-.vercel
+.DS_Store
+*.DS_Store

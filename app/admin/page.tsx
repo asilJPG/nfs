@@ -172,7 +172,7 @@ export default async function AdminOverview() {
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/[0.06] pb-6">
         <div>
           <div className="text-[11px] font-mono text-ink-label uppercase tracking-widest font-semibold mb-1.5">
-            Super-admin · Обзор
+            Главное управление · Обзор платформы
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white leading-none">Сеть Stampy</h1>
         </div>
