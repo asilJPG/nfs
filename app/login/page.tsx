@@ -19,7 +19,15 @@ function LoginForm() {
       try {
         const result = await signIn({ login, password, next });
         if (result) setError(result.message);
-      } catch (err) {
+      } catch (err: unknown) {
+        // В Next.js redirect() выбрасывает внутреннее исключение NEXT_REDIRECT для перехода
+        if (
+          err instanceof Error &&
+          (err.message === "NEXT_REDIRECT" ||
+            (err as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))
+        ) {
+          return;
+        }
         console.error("signIn error", err);
         setError("Не удалось связаться с сервером. Пожалуйста, проверьте интернет.");
       }
