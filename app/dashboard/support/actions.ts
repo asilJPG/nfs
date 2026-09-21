@@ -32,9 +32,12 @@ export async function sendCafeSupportTicket(formData: {
     const { staff, tenant } = context;
     const roleLabel =
       staff.role === "owner" ? "Владелец" : staff.role === "manager" ? "Менеджер" : "Бариста";
+    const roleTag = staff.role === "owner" ? "#владелец" : staff.role === "manager" ? "#менеджер" : "#бариста";
 
     const notifyText =
-      `☕ <b>Вопрос от кофейни (кабинет / панель)</b>\n\n` +
+      `☕ <b>Обращение от кофейни</b>\n` +
+      `#кофейня #поддержка_b2b ${roleTag}\n\n` +
+      `📍 <b>Источник:</b> Личный кабинет заведения (web)\n` +
       `🏢 <b>Кофейня:</b> ${escapeHtml(tenant.name)} (<code>${escapeHtml(tenant.slug)}</code>)\n` +
       `👤 <b>Сотрудник:</b> ${escapeHtml(staff.name || "Сотрудник")} · ${roleLabel}\n` +
       (formData.contact ? `📞 <b>Контакты:</b> ${escapeHtml(formData.contact.trim())}\n` : "") +

@@ -117,7 +117,9 @@ export async function POST(request: NextRequest) {
     const username = from?.username ? `@${from.username}` : "нет username";
 
     const notifyText =
-      `💬 <b>Вопрос в поддержку из Telegram-бота</b>\n\n` +
+      `💬 <b>Вопрос в поддержку из Telegram-бота</b>\n` +
+      `#гость #поддержка_b2c\n\n` +
+      `📍 <b>Источник:</b> Telegram-бот (гость)\n` +
       `👤 <b>От:</b> ${escapeHtml(fullName)} (${escapeHtml(username)})\n` +
       `🆔 <b>Telegram ID:</b> <code>${from?.id ?? chatId}</code>\n` +
       (userDetails.cafeInfo ? `☕ <b>Кофейня:</b> ${escapeHtml(userDetails.cafeInfo)}\n` : "") +

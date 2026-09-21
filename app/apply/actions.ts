@@ -79,7 +79,9 @@ export async function submitApplication(input: unknown): Promise<ApplyResult> {
           : "";
 
         const text =
-          `⚡️ <b>Новая заявка на подключение</b>\n\n` +
+          `⚡️ <b>Новая заявка на подключение</b>\n` +
+          `#заявка #новая_кофейня #лид\n\n` +
+          `📍 <b>Источник:</b> Сайт (форма подключения)\n` +
           `☕ <b>Кофейня:</b> ${escapeHtml(parsed.data.cafe_name)}${parsed.data.city ? ` (${escapeHtml(parsed.data.city)})` : ""}\n` +
           `👤 <b>Контактное лицо:</b> ${escapeHtml(parsed.data.contact_name)}\n` +
           `📞 <b>Телефон:</b> ${escapeHtml(parsed.data.phone)}\n` +
